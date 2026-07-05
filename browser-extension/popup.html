@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body {
+      width: 280px;
+      margin: 0;
+      padding: 16px;
+      background: #0b0f17;
+      color: #f8fafc;
+      font-family: system-ui, sans-serif;
+      font-size: 13px;
+    }
+    h1 {
+      font-size: 14px;
+      margin: 0 0 2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status {
+      font-size: 11px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #94a3b8;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #64748b;
+    }
+    .dot.ok { background: #22c55e; }
+    .dot.bad { background: #ef4444; }
+    label { display: block; margin-bottom: 10px; color: #94a3b8; }
+    .row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .row label { margin: 0; color: #f8fafc; }
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 4px;
+      padding: 7px 9px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      color: #f8fafc;
+      font-size: 12px;
+      outline: none;
+    }
+    input:focus { border-color: rgba(255,255,255,0.25); }
+    input[type="checkbox"] { accent-color: #cbd5e1; }
+    button {
+      width: 100%;
+      padding: 8px;
+      border: 0;
+      border-radius: 8px;
+      background: #e2e8f0;
+      color: #0b0f17;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    button:hover { background: #ffffff; }
+    .saved { color: #22c55e; font-size: 11px; text-align: center; margin-top: 8px; height: 14px; }
+    .hint { font-size: 10px; color: #64748b; margin-top: 10px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <h1>Apex Download Manager</h1>
+  <div class="status"><span id="dot" class="dot"></span><span id="statusText">Checking…</span></div>
+
+  <div class="row">
+    <input type="checkbox" id="enabled" />
+    <label for="enabled">Capture browser downloads</label>
+  </div>
+
+  <label>
+    Token
+    <input type="text" id="token" placeholder="Paste from Apex → Settings" spellcheck="false" />
+  </label>
+
+  <label>
+    Port
+    <input type="number" id="port" min="1024" max="65535" />
+  </label>
+
+  <button id="save">Save</button>
+  <div class="saved" id="saved"></div>
+
+  <div class="hint">
+    Find the token in the Apex app under Settings → Browser Integration.
+    Right-click any link for “Download with Apex”.
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

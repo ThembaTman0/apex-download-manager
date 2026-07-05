@@ -1,0 +1,25 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Frontend build output
+desktop-ui/dist/
+
+# Rust / Tauri
+desktop-ui/src-tauri/target/
+desktop-ui/src-tauri/gen/
+
+# Logs & OS noise
+*.log
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Local env / secrets (none are committed by design — keep it that way)
+.env
+.env.*

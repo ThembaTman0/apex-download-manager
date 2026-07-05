@@ -1,0 +1,95 @@
+# Apex Download Manager
+
+**Download faster. Smarter. Safer.**
+
+Apex is a lightweight, modern download manager for Windows. A native Rust engine
+splits every download across up to 32 parallel connections, survives pauses,
+restarts, and network drops — wrapped in a clean, minimal desktop UI.
+
+> ⚡ Single native binary (Tauri v2 + Rust). No Electron, no JVM, no bloat.
+
+---
+
+## Features
+
+**Engine**
+- Multi-connection segmented downloads (up to 32 parallel streams per file)
+- Pause / resume that survives app restarts — per-segment progress is persisted
+- Resume integrity: `ETag`/`If-Range` validation prevents silently corrupted files
+- Automatic retry with backoff on stalls and dropped connections
+- Download queue with a concurrency limit and global speed limiting
+- Scheduling: start any download at a chosen time, sleep/shut down when the queue finishes
+
+**Capture**
+- Browser extension (Chrome / Edge / Brave) that hands downloads to Apex —
+  and safely falls back to the browser when Apex isn't running
+- Clipboard watcher: copy a download link anywhere, get a one-click toast
+- Drag & drop URLs onto the window, batch-add multiple URLs at once
+
+**Safety**
+- Every completed file is tagged with Mark-of-the-Web so Windows SmartScreen
+  and Defender scan it like a browser download
+- Built-in SHA-256 checksum verification against publisher-provided hashes
+- The extension requests **zero website permissions** — it cannot read your pages
+- Local-only: no accounts, no telemetry, nothing leaves your machine
+
+**Interface**
+- Minimal dark UI: dashboard with live speed chart, filterable download list,
+  per-download properties panel with live segment view
+- Keyboard-first: `Ctrl+N` new download, `Ctrl+F` search, `Space` pause/resume,
+  `Del` delete, `Enter` open
+- System tray: close the window, keep downloading
+
+## Project layout
+
+```
+apex-download-manager/
+├── desktop-ui/            # Tauri v2 app
+│   ├── src/               # React 19 + TypeScript + Tailwind v4 frontend
+│   └── src-tauri/         # Rust: download engine, SQLite, capture server
+├── browser-extension/     # Chrome MV3 extension (capture + context menu)
+└── website/               # Landing page (static, self-contained)
+```
+
+## Building from source
+
+Prerequisites: [Rust](https://rustup.rs) (stable, MSVC toolchain),
+[Node.js](https://nodejs.org) ≥ 20, and the Visual Studio Build Tools
+(C++ workload + Windows SDK).
+
+```powershell
+cd desktop-ui
+npm install
+npm run tauri dev      # development
+npm run tauri build    # produces MSI / NSIS installers
+```
+
+### Browser extension
+
+1. Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**,
+   select the `browser-extension/` folder.
+2. In Apex: **Settings → Browser Integration**, copy the pairing token.
+3. Click the extension icon, paste the token, **Save** — the status dot turns green.
+
+## Architecture notes
+
+- The engine probes each URL with a ranged request, plans segments, and writes
+  all connections into one preallocated temp file (`.adm`), renamed on completion.
+- State lives in SQLite (WAL) under `%APPDATA%/com.apex.download-manager/`.
+- The extension talks to a token-gated HTTP endpoint bound to `127.0.0.1:43666`.
+  Interception is accept-then-cancel: the browser download is only cancelled
+  after Apex confirms it has taken over.
+
+## Roadmap
+
+- [ ] Video grabber (yt-dlp integration)
+- [ ] Cookie handoff for authenticated downloads
+- [ ] Proxy support
+- [ ] Dynamic segment re-splitting
+- [ ] Firefox extension
+- [ ] Code signing + auto-updates
+
+## License
+
+Copyright © 2026. All rights reserved.
+Source is provided for reference; redistribution requires permission.
