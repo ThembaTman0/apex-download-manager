@@ -28,7 +28,7 @@ export function StatusBar() {
     : [...LIMIT_PRESETS, limit].sort((a, b) => a - b);
 
   return (
-    <footer className="flex items-center gap-4 h-7 px-4 bg-[#0d1117]/90 backdrop-blur-xl border-t border-white/[0.06] shrink-0 text-[11px] text-[#94A3B8]">
+    <footer className="flex items-center gap-4 h-7 px-4 bg-[#0D1017]/90 backdrop-blur-xl border-t border-white/[0.06] shrink-0 text-[11px] text-[#8A9199]">
       <div className="flex items-center gap-1.5">
         <Activity className="w-3 h-3" />
         <span>
@@ -42,7 +42,7 @@ export function StatusBar() {
         </div>
       )}
       {failed.length > 0 && (
-        <div className="flex items-center gap-1.5 text-red-400/90">
+        <div className="flex items-center gap-1.5 text-[#F07178]/90">
           <span>
             {failed.length} failed
           </span>
@@ -68,7 +68,7 @@ export function StatusBar() {
             onChange={(e) =>
               saveSettings({ ...settings, speedLimitKbps: Number(e.target.value) })
             }
-            className="bg-transparent text-[11px] text-[#94A3B8] outline-none cursor-pointer hover:text-white transition-colors [color-scheme:dark]"
+            className="bg-transparent text-[11px] text-[#8A9199] outline-none cursor-pointer hover:text-[#E6E1CF] transition-colors [color-scheme:dark]"
           >
             {limitOptions.map((v) => (
               <option key={v} value={v}>
@@ -88,7 +88,7 @@ export function StatusBar() {
           {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </span>
       </div>
-      <span className="text-[#94A3B8]/40">v1.0.0</span>
+      <span className="text-[#8A9199]/40">v1.0.0</span>
     </footer>
   );
 }

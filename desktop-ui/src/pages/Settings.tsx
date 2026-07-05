@@ -34,7 +34,7 @@ export function SettingsPage() {
 
   if (!form) {
     return (
-      <div className="flex-1 flex items-center justify-center text-sm text-[#94A3B8]">
+      <div className="flex-1 flex items-center justify-center text-sm text-[#8A9199]">
         Loading settings…
       </div>
     );
@@ -71,9 +71,9 @@ export function SettingsPage() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="max-w-2xl mx-auto rounded-[10px] bg-[#151B26] border border-white/[0.06] p-6"
+        className="max-w-2xl mx-auto rounded-[10px] bg-[#0F131A] border border-white/[0.06] p-6"
       >
-        <h1 className="text-base font-semibold text-white mb-6">Settings</h1>
+        <h1 className="text-base font-semibold text-[#E6E1CF] mb-6">Settings</h1>
 
         <Field
           icon={FolderOpen}
@@ -84,11 +84,11 @@ export function SettingsPage() {
             <input
               value={form.downloadDir}
               onChange={(e) => update({ downloadDir: e.target.value })}
-              className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-white px-3 py-2.5 outline-none focus:border-white/25 transition-colors"
+              className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-[#E6E1CF] px-3 py-2.5 outline-none focus:border-[#E6B450]/50 transition-colors"
             />
             <button
               onClick={browse}
-              className="px-3 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[#94A3B8] hover:text-white hover:bg-white/[0.1] transition-colors"
+              className="px-3 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[#8A9199] hover:text-[#E6E1CF] hover:bg-white/[0.1] transition-colors"
             >
               Browse…
             </button>
@@ -142,9 +142,9 @@ export function SettingsPage() {
               type="checkbox"
               checked={form.notifyOnComplete}
               onChange={(e) => update({ notifyOnComplete: e.target.checked })}
-              className="accent-[#cbd5e1] w-4 h-4"
+              className="accent-[#E6B450] w-4 h-4"
             />
-            <span className="text-sm text-[#cbd5e1]">
+            <span className="text-sm text-[#BFBDB6]">
               Notify when a download completes
             </span>
           </label>
@@ -160,9 +160,9 @@ export function SettingsPage() {
               type="checkbox"
               checked={form.watchClipboard}
               onChange={(e) => update({ watchClipboard: e.target.checked })}
-              className="accent-[#cbd5e1] w-4 h-4"
+              className="accent-[#E6B450] w-4 h-4"
             />
-            <span className="text-sm text-[#cbd5e1]">
+            <span className="text-sm text-[#BFBDB6]">
               Watch clipboard for download URLs
             </span>
           </label>
@@ -178,9 +178,9 @@ export function SettingsPage() {
               type="checkbox"
               checked={form.autoOrganize}
               onChange={(e) => update({ autoOrganize: e.target.checked })}
-              className="accent-[#cbd5e1] w-4 h-4"
+              className="accent-[#E6B450] w-4 h-4"
             />
-            <span className="text-sm text-[#cbd5e1]">
+            <span className="text-sm text-[#BFBDB6]">
               Sort downloads into category folders
             </span>
           </label>
@@ -196,7 +196,7 @@ export function SettingsPage() {
             onChange={(e) =>
               update({ queueDoneAction: e.target.value as QueueDoneAction })
             }
-            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-white px-3 py-2.5 outline-none focus:border-white/25 transition-colors [color-scheme:dark]"
+            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-[#E6E1CF] px-3 py-2.5 outline-none focus:border-[#E6B450]/50 transition-colors [color-scheme:dark]"
           >
             <option value="none">Do nothing</option>
             <option value="sleep">Sleep</option>
@@ -205,13 +205,13 @@ export function SettingsPage() {
         </Field>
 
         <div className="border-t border-white/[0.06] my-6" />
-        <h2 className="text-sm font-semibold text-white mb-1 flex items-center gap-2">
-          <Globe className="w-4 h-4 text-[#94A3B8]" />
+        <h2 className="text-sm font-semibold text-[#E6E1CF] mb-1 flex items-center gap-2">
+          <Globe className="w-4 h-4 text-[#8A9199]" />
           Browser Integration
         </h2>
-        <p className="text-[11px] text-[#94A3B8] mb-4 leading-relaxed">
+        <p className="text-[11px] text-[#8A9199] mb-4 leading-relaxed">
           Install the extension from the{" "}
-          <code className="text-[#cbd5e1]">browser-extension</code> folder
+          <code className="text-[#BFBDB6]">browser-extension</code> folder
           (chrome://extensions → Load unpacked), then paste this token into its
           popup. Downloads you start in the browser are then captured by Apex.
         </p>
@@ -222,9 +222,9 @@ export function SettingsPage() {
               type="checkbox"
               checked={form.captureEnabled}
               onChange={(e) => update({ captureEnabled: e.target.checked })}
-              className="accent-[#cbd5e1] w-4 h-4"
+              className="accent-[#E6B450] w-4 h-4"
             />
-            <span className="text-sm text-[#cbd5e1]">
+            <span className="text-sm text-[#BFBDB6]">
               Accept downloads from the browser extension
             </span>
           </label>
@@ -236,7 +236,7 @@ export function SettingsPage() {
           hint="The extension must present this token; regenerate if it ever leaks"
         >
           <div className="flex gap-2">
-            <code className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg text-xs text-white font-mono px-3 py-2.5 truncate select-text">
+            <code className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg text-xs text-[#E6E1CF] font-mono px-3 py-2.5 truncate select-text">
               {form.captureToken || "—"}
             </code>
             <button
@@ -248,11 +248,11 @@ export function SettingsPage() {
                 setTokenCopied(true);
                 setTimeout(() => setTokenCopied(false), 1500);
               }}
-              className="px-3 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[#94A3B8] hover:text-white hover:bg-white/[0.1] transition-colors"
+              className="px-3 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[#8A9199] hover:text-[#E6E1CF] hover:bg-white/[0.1] transition-colors"
               title="Copy token"
             >
               {tokenCopied ? (
-                <Check className="w-4 h-4 text-green-400" />
+                <Check className="w-4 h-4 text-[#7FD962]" />
               ) : (
                 <Copy className="w-4 h-4" />
               )}
@@ -263,7 +263,7 @@ export function SettingsPage() {
                 setForm(s);
                 useDownloadsStore.setState({ settings: s });
               }}
-              className="px-3 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[#94A3B8] hover:text-white hover:bg-white/[0.1] transition-colors"
+              className="px-3 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[#8A9199] hover:text-[#E6E1CF] hover:bg-white/[0.1] transition-colors"
               title="Regenerate token"
             >
               <RefreshCw className="w-4 h-4" />
@@ -284,12 +284,12 @@ export function SettingsPage() {
           />
         </Field>
 
-        {error && <p className="text-xs text-red-400 mb-4 break-all">{error}</p>}
+        {error && <p className="text-xs text-[#F07178] mb-4 break-all">{error}</p>}
 
         <div className="flex items-center gap-3 mt-2">
           <button
             onClick={save}
-            className="px-5 py-2.5 rounded-lg bg-[#E2E8F0] hover:bg-white text-[#0B0F17] text-sm font-semibold flex items-center gap-2 transition-colors"
+            className="px-5 py-2.5 rounded-lg bg-[#E6B450] hover:bg-[#F0C266] text-[#0B0E14] text-sm font-semibold flex items-center gap-2 transition-colors"
           >
             <Save className="w-3.5 h-3.5" />
             Save Settings
@@ -298,7 +298,7 @@ export function SettingsPage() {
             <motion.span
               initial={{ opacity: 0, x: -6 }}
               animate={{ opacity: 1, x: 0 }}
-              className="text-xs text-green-400 font-medium"
+              className="text-xs text-[#7FD962] font-medium"
             >
               Saved ✓
             </motion.span>
@@ -323,11 +323,11 @@ function Field({
   return (
     <div className="mb-5">
       <div className="flex items-center gap-2 mb-1.5">
-        <Icon className="w-3.5 h-3.5 text-[#94A3B8]" />
-        <span className="text-xs font-medium text-white">{label}</span>
+        <Icon className="w-3.5 h-3.5 text-[#8A9199]" />
+        <span className="text-xs font-medium text-[#E6E1CF]">{label}</span>
       </div>
       {children}
-      {hint && <p className="text-[10px] text-[#94A3B8]/70 mt-1.5">{hint}</p>}
+      {hint && <p className="text-[10px] text-[#8A9199]/70 mt-1.5">{hint}</p>}
     </div>
   );
 }
@@ -353,7 +353,7 @@ function NumberInput({
         const v = parseInt(e.target.value, 10);
         if (!Number.isNaN(v)) onChange(Math.min(max, Math.max(min, v)));
       }}
-      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-white px-3 py-2.5 outline-none focus:border-white/25 transition-colors tabular-nums"
+      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-[#E6E1CF] px-3 py-2.5 outline-none focus:border-[#E6B450]/50 transition-colors tabular-nums"
     />
   );
 }

@@ -41,7 +41,7 @@ const helper = createColumnHelper<Download>();
 
 const typeIcon = (type: string) => {
   const t = type.toUpperCase();
-  const cls = "w-4 h-4 text-[#94A3B8]";
+  const cls = "w-4 h-4 text-[#8A9199]";
   if (["MKV", "MP4", "AVI", "MOV", "WEBM"].includes(t)) return <FileVideo className={cls} />;
   if (["ZIP", "RAR", "7Z", "TAR", "GZ"].includes(t)) return <FileArchive className={cls} />;
   if (["PNG", "JPG", "JPEG", "GIF", "WEBP"].includes(t)) return <FileImage className={cls} />;
@@ -66,7 +66,7 @@ export function DownloadsTable() {
             type="checkbox"
             checked={allSelected}
             onChange={allSelected ? clearSelection : selectAll}
-            className="accent-[#cbd5e1] cursor-pointer"
+            className="accent-[#E6B450] cursor-pointer"
           />
         ),
         cell: ({ row }) => (
@@ -75,7 +75,7 @@ export function DownloadsTable() {
             checked={selectedIds.has(row.original.id)}
             onChange={() => toggleSelect(row.original.id)}
             onClick={(e) => e.stopPropagation()}
-            className="accent-[#cbd5e1] cursor-pointer"
+            className="accent-[#E6B450] cursor-pointer"
           />
         ),
       }),
@@ -92,12 +92,12 @@ export function DownloadsTable() {
           <span className="flex items-center gap-1.5 max-w-[260px]">
             {info.row.original.url.startsWith("http://") && (
               <ShieldAlert
-                className="w-3.5 h-3.5 text-yellow-500/80 shrink-0"
+                className="w-3.5 h-3.5 text-[#FF8F40]/80 shrink-0"
                 aria-label="Insecure connection (HTTP)"
               />
             )}
             <span
-              className="text-sm text-white font-medium truncate"
+              className="text-sm text-[#E6E1CF] font-medium truncate"
               title={info.row.original.error ?? info.getValue()}
             >
               {info.getValue()}
@@ -109,14 +109,14 @@ export function DownloadsTable() {
         header: "Type",
         size: 60,
         cell: (info) => (
-          <span className="text-xs text-[#94A3B8] font-mono">{info.getValue()}</span>
+          <span className="text-xs text-[#8A9199] font-mono">{info.getValue()}</span>
         ),
       }),
       helper.accessor("sizeBytes", {
         header: "Size",
         size: 80,
         cell: (info) => (
-          <span className="text-xs text-[#94A3B8] tabular-nums">
+          <span className="text-xs text-[#8A9199] tabular-nums">
             {info.getValue() > 0 ? formatBytes(info.getValue()) : "—"}
           </span>
         ),
@@ -133,7 +133,7 @@ export function DownloadsTable() {
         header: "Speed",
         size: 90,
         cell: (info) => (
-          <span className="text-xs tabular-nums text-cyan-400">
+          <span className="text-xs tabular-nums text-[#39BAE6]">
             {info.getValue() > 0 ? formatSpeed(info.getValue()) : "—"}
           </span>
         ),
@@ -142,7 +142,7 @@ export function DownloadsTable() {
         header: "ETA",
         size: 70,
         cell: (info) => (
-          <span className="text-xs tabular-nums text-[#94A3B8]">{formatETA(info.getValue())}</span>
+          <span className="text-xs tabular-nums text-[#8A9199]">{formatETA(info.getValue())}</span>
         ),
       }),
       helper.accessor("status", {
@@ -153,10 +153,10 @@ export function DownloadsTable() {
           if (d.status === "queued" && d.startAt && d.startAt > Date.now()) {
             return (
               <span
-                className="inline-flex items-center gap-1.5 text-[11px] text-[#cbd5e1]"
+                className="inline-flex items-center gap-1.5 text-[11px] text-[#BFBDB6]"
                 title={new Date(d.startAt).toLocaleString()}
               >
-                <CalendarClock className="w-3 h-3 text-[#94A3B8]" />
+                <CalendarClock className="w-3 h-3 text-[#8A9199]" />
                 Scheduled
               </span>
             );
@@ -168,7 +168,7 @@ export function DownloadsTable() {
         header: "Modified",
         size: 90,
         cell: (info) => (
-          <span className="text-xs tabular-nums text-[#94A3B8]">
+          <span className="text-xs tabular-nums text-[#8A9199]">
             {info.getValue().toLocaleDateString()}
           </span>
         ),
@@ -191,17 +191,17 @@ export function DownloadsTable() {
     <div className="flex-1 overflow-auto">
       <table className="w-full border-collapse table-fixed">
         <thead className="sticky top-0 z-10">
-          <tr className="bg-[#0d1117]/95 backdrop-blur-sm border-b border-white/[0.06]">
+          <tr className="bg-[#0D1017]/95 backdrop-blur-sm border-b border-white/[0.06]">
             {table.getFlatHeaders().map((header) => (
               <th
                 key={header.id}
                 style={{ width: header.getSize() }}
-                className="px-3 py-2 text-left text-[11px] font-medium text-[#94A3B8]/80 whitespace-nowrap"
+                className="px-3 py-2 text-left text-[11px] font-medium text-[#8A9199]/80 whitespace-nowrap"
               >
                 {header.column.getCanSort() ? (
                   <button
                     onClick={header.column.getToggleSortingHandler()}
-                    className="flex items-center gap-1 hover:text-white transition-colors"
+                    className="flex items-center gap-1 hover:text-[#E6E1CF] transition-colors"
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
                     {header.column.getIsSorted() === "asc" ? (
@@ -230,7 +230,7 @@ export function DownloadsTable() {
         </tbody>
       </table>
       {filtered.length === 0 && (
-        <div className="flex flex-col items-center justify-center h-48 text-[#94A3B8]">
+        <div className="flex flex-col items-center justify-center h-48 text-[#8A9199]">
           <FileDown className="w-10 h-10 mb-3 opacity-20" />
           <p className="text-sm font-medium">No downloads yet</p>
           <p className="text-xs opacity-60 mt-1">Click “Add URL” to start one</p>
@@ -294,7 +294,7 @@ function TableRow({ row, selected }: RowProps) {
         </motion.tr>
       </ContextMenu.Trigger>
       <ContextMenu.Portal>
-        <ContextMenu.Content className="z-50 min-w-[190px] rounded-xl bg-[#1a2130] border border-white/[0.08] shadow-2xl shadow-black/50 p-1.5 text-sm">
+        <ContextMenu.Content className="z-50 min-w-[190px] rounded-xl bg-[#161B24] border border-white/[0.08] shadow-2xl shadow-black/50 p-1.5 text-sm">
           <MenuItem
             icon={ExternalLink}
             label="Open"
@@ -379,8 +379,8 @@ function MenuItem({
         disabled
           ? "opacity-30 cursor-not-allowed"
           : danger
-          ? "text-red-400 data-[highlighted]:bg-red-500/10"
-          : "text-[#cbd5e1] data-[highlighted]:bg-white/[0.06] data-[highlighted]:text-white"
+          ? "text-[#F07178] data-[highlighted]:bg-[#D95757]/10"
+          : "text-[#BFBDB6] data-[highlighted]:bg-white/[0.06] data-[highlighted]:text-[#E6E1CF]"
       )}
     >
       <Icon className="w-3.5 h-3.5" />

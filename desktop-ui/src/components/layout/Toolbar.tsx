@@ -58,10 +58,10 @@ export function Toolbar() {
   }, []);
 
   return (
-    <div className="flex items-center gap-1 px-3 py-1.5 bg-[#0d1117] border-b border-white/[0.06] shrink-0">
+    <div className="flex items-center gap-1 px-3 py-1.5 bg-[#0D1017] border-b border-white/[0.06] shrink-0">
       <button
         onClick={() => setAddDialogOpen(true)}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-[#E2E8F0] hover:bg-white text-[#0B0F17] transition-colors"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-[#E6B450] hover:bg-[#F0C266] text-[#0B0E14] transition-colors"
       >
         <Plus className="w-3.5 h-3.5" />
         Add URL
@@ -108,10 +108,10 @@ export function Toolbar() {
       <div
         className={cn(
           "relative flex items-center w-52 rounded-md border bg-white/[0.04] transition-colors",
-          focused ? "border-white/25" : "border-white/[0.08]"
+          focused ? "border-[#E6B450]/50" : "border-white/[0.08]"
         )}
       >
-        <Search className="absolute left-2.5 w-3.5 h-3.5 text-[#94A3B8]" />
+        <Search className="absolute left-2.5 w-3.5 h-3.5 text-[#8A9199]" />
         <input
           ref={inputRef}
           value={searchQuery}
@@ -119,23 +119,23 @@ export function Toolbar() {
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           placeholder="Search downloads"
-          className="w-full bg-transparent text-xs text-white placeholder:text-[#94A3B8]/50 pl-8 pr-12 py-1.5 outline-none"
+          className="w-full bg-transparent text-xs text-[#E6E1CF] placeholder:text-[#8A9199]/50 pl-8 pr-12 py-1.5 outline-none"
         />
         {searchQuery ? (
           <button
             onClick={() => setSearchQuery("")}
-            className="absolute right-2.5 text-[#94A3B8] hover:text-white transition-colors"
+            className="absolute right-2.5 text-[#8A9199] hover:text-[#E6E1CF] transition-colors"
           >
             <X className="w-3.5 h-3.5" />
           </button>
         ) : (
-          <kbd className="absolute right-2 text-[10px] text-[#94A3B8]/50 border border-white/[0.08] rounded px-1 select-none">
+          <kbd className="absolute right-2 text-[10px] text-[#8A9199]/50 border border-white/[0.08] rounded px-1 select-none">
             Ctrl F
           </kbd>
         )}
       </div>
 
-      <span className="text-[11px] text-[#94A3B8]/70 tabular-nums ml-2 shrink-0">
+      <span className="text-[11px] text-[#8A9199]/70 tabular-nums ml-2 shrink-0">
         {hasSelection
           ? `${selected.length} of ${downloads.length} selected`
           : `${downloads.length} item${downloads.length !== 1 ? "s" : ""}`}
@@ -164,10 +164,10 @@ function GhostButton({
       className={cn(
         "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
         disabled
-          ? "opacity-30 cursor-not-allowed text-[#94A3B8]"
+          ? "opacity-30 cursor-not-allowed text-[#8A9199]"
           : danger
-          ? "text-[#94A3B8] hover:bg-red-500/10 hover:text-red-400"
-          : "text-[#94A3B8] hover:bg-white/[0.06] hover:text-white"
+          ? "text-[#8A9199] hover:bg-[#D95757]/10 hover:text-[#F07178]"
+          : "text-[#8A9199] hover:bg-white/[0.06] hover:text-[#E6E1CF]"
       )}
     >
       <Icon className="w-3.5 h-3.5" />

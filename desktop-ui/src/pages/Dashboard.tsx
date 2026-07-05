@@ -20,13 +20,13 @@ export function DashboardPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.15 }}
-            className="rounded-[10px] bg-[#151B26] border border-white/[0.06] overflow-hidden"
+            className="rounded-[10px] bg-[#0F131A] border border-white/[0.06] overflow-hidden"
           >
             <div className="px-5 py-3 border-b border-white/[0.06]">
-              <h2 className="text-sm font-semibold text-white">Recent Downloads</h2>
+              <h2 className="text-sm font-semibold text-[#E6E1CF]">Recent Downloads</h2>
             </div>
             {recent.length === 0 ? (
-              <p className="text-xs text-[#94A3B8]/60 py-8 text-center">
+              <p className="text-xs text-[#8A9199]/60 py-8 text-center">
                 No downloads yet
               </p>
             ) : (
@@ -37,8 +37,8 @@ export function DashboardPage() {
                     className="flex items-center gap-4 px-5 py-2.5 hover:bg-white/[0.02] transition-colors"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white font-medium truncate">{d.name}</p>
-                      <p className="text-[10px] text-[#94A3B8] mt-0.5">
+                      <p className="text-sm text-[#E6E1CF] font-medium truncate">{d.name}</p>
+                      <p className="text-[10px] text-[#8A9199] mt-0.5">
                         {d.sizeBytes > 0 ? formatBytes(d.sizeBytes) : "—"}
                       </p>
                     </div>

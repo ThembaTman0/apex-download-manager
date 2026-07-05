@@ -12,9 +12,9 @@ import {
 import { useDownloadsStore } from "@/stores/downloadsStore";
 import { formatSpeed } from "@/lib/utils";
 
-// Chart mark colors validated for CVD + contrast on #151B26 (see dataviz checks).
-const CYAN = "#0891B2";
-const GRAY = "#94A3B8";
+// Chart mark colors validated for CVD + contrast on #0F131A (see dataviz checks).
+const CYAN = "#39BAE6";
+const GRAY = "#8A9199";
 
 export function SpeedChart() {
   const speedHistory = useDownloadsStore((s) => s.speedHistory);
@@ -25,15 +25,15 @@ export function SpeedChart() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.15 }}
-      className="rounded-[10px] bg-[#151B26] border border-white/[0.06] p-5"
+      className="rounded-[10px] bg-[#0F131A] border border-white/[0.06] p-5"
     >
-      <h2 className="text-sm font-semibold text-white mb-1">Download Speed</h2>
-      <p className="text-[11px] text-[#94A3B8] mb-4">
+      <h2 className="text-sm font-semibold text-[#E6E1CF] mb-1">Download Speed</h2>
+      <p className="text-[11px] text-[#8A9199] mb-4">
         Combined transfer rate · last 2 minutes
       </p>
       <div className="h-48">
         {chartData.length < 2 ? (
-          <div className="h-full flex items-center justify-center text-xs text-[#94A3B8]/60">
+          <div className="h-full flex items-center justify-center text-xs text-[#8A9199]/60">
             Speed data appears once downloads are running
           </div>
         ) : (
@@ -55,14 +55,14 @@ export function SpeedChart() {
                   })
                 }
                 stroke="rgba(255,255,255,0.15)"
-                tick={{ fill: "#94A3B8", fontSize: 10 }}
+                tick={{ fill: "#8A9199", fontSize: 10 }}
                 tickLine={false}
                 minTickGap={40}
               />
               <YAxis
                 tickFormatter={(v: number) => (v > 0 ? formatSpeed(v) : "0")}
                 stroke="rgba(255,255,255,0.15)"
-                tick={{ fill: "#94A3B8", fontSize: 10 }}
+                tick={{ fill: "#8A9199", fontSize: 10 }}
                 tickLine={false}
                 axisLine={false}
                 width={70}
@@ -73,11 +73,11 @@ export function SpeedChart() {
                   if (!active || !payload?.length) return null;
                   const p = payload[0].payload as { time: number; speed: number };
                   return (
-                    <div className="rounded-lg bg-[#1a2130] border border-white/[0.08] px-3 py-2 text-xs shadow-xl">
-                      <p className="text-[#94A3B8]">
+                    <div className="rounded-lg bg-[#161B24] border border-white/[0.08] px-3 py-2 text-xs shadow-xl">
+                      <p className="text-[#8A9199]">
                         {new Date(p.time).toLocaleTimeString()}
                       </p>
-                      <p className="text-white font-semibold tabular-nums">
+                      <p className="text-[#E6E1CF] font-semibold tabular-nums">
                         {formatSpeed(p.speed)}
                       </p>
                     </div>
@@ -92,7 +92,7 @@ export function SpeedChart() {
                 fill="url(#speedFill)"
                 isAnimationActive={false}
                 dot={false}
-                activeDot={{ r: 4, fill: CYAN, stroke: "#151B26", strokeWidth: 2 }}
+                activeDot={{ r: 4, fill: CYAN, stroke: "#0F131A", strokeWidth: 2 }}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -124,12 +124,12 @@ export function FileTypesCard() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.15 }}
-      className="rounded-[10px] bg-[#151B26] border border-white/[0.06] p-5"
+      className="rounded-[10px] bg-[#0F131A] border border-white/[0.06] p-5"
     >
-      <h2 className="text-sm font-semibold text-white mb-1">File Types</h2>
-      <p className="text-[11px] text-[#94A3B8] mb-4">Downloads by extension</p>
+      <h2 className="text-sm font-semibold text-[#E6E1CF] mb-1">File Types</h2>
+      <p className="text-[11px] text-[#8A9199] mb-4">Downloads by extension</p>
       {typeDist.length === 0 ? (
-        <p className="text-xs text-[#94A3B8]/60 py-6 text-center">No downloads yet</p>
+        <p className="text-xs text-[#8A9199]/60 py-6 text-center">No downloads yet</p>
       ) : (
         <div className="flex flex-col gap-2">
           {typeDist.map(([type, count]) => (
@@ -138,7 +138,7 @@ export function FileTypesCard() {
               className="flex items-center gap-3 group"
               title={`${type}: ${count}`}
             >
-              <span className="w-14 text-xs text-[#94A3B8] font-mono text-right shrink-0">
+              <span className="w-14 text-xs text-[#8A9199] font-mono text-right shrink-0">
                 {type}
               </span>
               <div className="flex-1 h-4 flex items-center">
@@ -150,7 +150,7 @@ export function FileTypesCard() {
                   style={{ background: GRAY }}
                 />
               </div>
-              <span className="w-8 text-xs text-white tabular-nums shrink-0">
+              <span className="w-8 text-xs text-[#E6E1CF] tabular-nums shrink-0">
                 {count}
               </span>
             </div>

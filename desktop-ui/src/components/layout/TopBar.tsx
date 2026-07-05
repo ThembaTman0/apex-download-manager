@@ -7,7 +7,7 @@ export function TopBar() {
   return (
     <header
       data-tauri-drag-region
-      className="flex items-center h-9 bg-[#0d1117] border-b border-white/[0.06] shrink-0"
+      className="flex items-center h-9 bg-[#0D1017] border-b border-white/[0.06] shrink-0"
     >
       <div data-tauri-drag-region className="flex-1 h-full" />
       <div className="flex items-stretch self-stretch">
@@ -44,10 +44,10 @@ function WinButton({
       onClick={onClick}
       aria-label={label}
       className={cn(
-        "w-11 flex items-center justify-center text-[#94A3B8] transition-colors",
+        "w-11 flex items-center justify-center text-[#8A9199] transition-colors",
         danger
-          ? "hover:bg-red-600 hover:text-white"
-          : "hover:bg-white/[0.06] hover:text-white"
+          ? "hover:bg-[#C24747] hover:text-[#E6E1CF]"
+          : "hover:bg-white/[0.06] hover:text-[#E6E1CF]"
       )}
     >
       {children}

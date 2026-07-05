@@ -68,23 +68,23 @@ export function ScheduleDialog() {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 10 }}
                 transition={{ duration: 0.18 }}
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[400px] max-w-[calc(100vw-32px)] rounded-xl bg-[#151B26] border border-white/[0.08] shadow-2xl shadow-black/40 p-6"
+                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[400px] max-w-[calc(100vw-32px)] rounded-xl bg-[#0F131A] border border-white/[0.08] shadow-2xl shadow-black/40 p-6"
               >
                 <div className="flex items-center justify-between mb-1">
-                  <Dialog.Title className="text-base font-semibold text-white flex items-center gap-2">
+                  <Dialog.Title className="text-base font-semibold text-[#E6E1CF] flex items-center gap-2">
                     <span className="w-7 h-7 rounded-lg bg-white/[0.08] flex items-center justify-center">
-                      <CalendarClock className="w-4 h-4 text-[#94A3B8]" />
+                      <CalendarClock className="w-4 h-4 text-[#8A9199]" />
                     </span>
                     Schedule Download
                   </Dialog.Title>
-                  <Dialog.Close className="text-[#94A3B8] hover:text-white transition-colors">
+                  <Dialog.Close className="text-[#8A9199] hover:text-[#E6E1CF] transition-colors">
                     <X className="w-4 h-4" />
                   </Dialog.Close>
                 </div>
-                <p className="text-xs text-[#94A3B8] mb-5 truncate">{target?.name}</p>
+                <p className="text-xs text-[#8A9199] mb-5 truncate">{target?.name}</p>
 
                 <label className="block mb-4">
-                  <span className="text-xs font-medium text-[#94A3B8] mb-1.5 block">
+                  <span className="text-xs font-medium text-[#8A9199] mb-1.5 block">
                     Start at
                   </span>
                   <input
@@ -92,22 +92,22 @@ export function ScheduleDialog() {
                     value={when}
                     min={toLocalInputValue(new Date())}
                     onChange={(e) => setWhen(e.target.value)}
-                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-white px-3 py-2.5 outline-none focus:border-white/25 transition-colors [color-scheme:dark]"
+                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-[#E6E1CF] px-3 py-2.5 outline-none focus:border-[#E6B450]/50 transition-colors [color-scheme:dark]"
                   />
                 </label>
 
-                {error && <p className="text-xs text-red-400 mb-4">{error}</p>}
+                {error && <p className="text-xs text-[#F07178] mb-4">{error}</p>}
 
                 <div className="flex justify-between gap-2">
                   <button
                     onClick={startNow}
-                    className="px-4 py-2 rounded-lg text-sm font-medium text-[#94A3B8] hover:text-white hover:bg-white/[0.06] transition-colors"
+                    className="px-4 py-2 rounded-lg text-sm font-medium text-[#8A9199] hover:text-[#E6E1CF] hover:bg-white/[0.06] transition-colors"
                   >
                     Start now instead
                   </button>
                   <button
                     onClick={save}
-                    className="px-5 py-2 rounded-lg bg-[#E2E8F0] hover:bg-white text-[#0B0F17] text-sm font-semibold transition-colors"
+                    className="px-5 py-2 rounded-lg bg-[#E6B450] hover:bg-[#F0C266] text-[#0B0E14] text-sm font-semibold transition-colors"
                   >
                     Schedule
                   </button>

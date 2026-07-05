@@ -31,23 +31,23 @@ export function ClipboardToast() {
           initial={{ opacity: 0, y: 24, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 24, scale: 0.97 }}
-          className="fixed bottom-10 right-4 z-50 w-80 rounded-[10px] bg-[#1a2130] border border-white/[0.08] shadow-2xl shadow-black/50 p-4"
+          className="fixed bottom-10 right-4 z-50 w-80 rounded-[10px] bg-[#161B24] border border-white/[0.08] shadow-2xl shadow-black/50 p-4"
         >
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-[#E2E8F0] flex items-center justify-center shrink-0">
-              <Link2 className="w-4 h-4 text-[#0B0F17]" />
+            <div className="w-8 h-8 rounded-lg bg-[#E6B450] flex items-center justify-center shrink-0">
+              <Link2 className="w-4 h-4 text-[#0B0E14]" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white">
+              <p className="text-sm font-semibold text-[#E6E1CF]">
                 Download link copied
               </p>
-              <p className="text-xs text-[#94A3B8] truncate" title={clipboardUrl}>
+              <p className="text-xs text-[#8A9199] truncate" title={clipboardUrl}>
                 {fileName}
               </p>
             </div>
             <button
               onClick={() => setClipboardUrl(null)}
-              className="text-[#94A3B8] hover:text-white transition-colors shrink-0"
+              className="text-[#8A9199] hover:text-[#E6E1CF] transition-colors shrink-0"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -58,7 +58,7 @@ export function ClipboardToast() {
               setClipboardUrl(null);
               setAddDialogOpen(true);
             }}
-            className="w-full py-2 rounded-xl bg-[#E2E8F0] hover:bg-white text-[#0B0F17] text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+            className="w-full py-2 rounded-xl bg-[#E6B450] hover:bg-[#F0C266] text-[#0B0E14] text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
             Download it
@@ -97,14 +97,14 @@ export function QueueActionToast() {
     <motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 rounded-[10px] bg-[#1a2130] border border-yellow-500/30 shadow-2xl shadow-black/50 px-5 py-4 flex items-center gap-4"
+      className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 rounded-[10px] bg-[#161B24] border border-[#FF8F40]/30 shadow-2xl shadow-black/50 px-5 py-4 flex items-center gap-4"
     >
-      <Icon className="w-5 h-5 text-yellow-400" />
+      <Icon className="w-5 h-5 text-[#FF8F40]" />
       <div>
-        <p className="text-sm font-semibold text-white">
+        <p className="text-sm font-semibold text-[#E6E1CF]">
           All downloads finished — {label.toLowerCase()} in {Math.max(0, secondsLeft)}s
         </p>
-        <p className="text-xs text-[#94A3B8]">
+        <p className="text-xs text-[#8A9199]">
           Configured in Settings → When queue finishes
         </p>
       </div>
@@ -113,13 +113,13 @@ export function QueueActionToast() {
           backend.executeQueueAction(action).catch(() => {});
           setAction(null);
         }}
-        className="px-3 py-1.5 rounded-lg bg-yellow-500/15 text-yellow-400 text-xs font-semibold hover:bg-yellow-500/25 transition-colors"
+        className="px-3 py-1.5 rounded-lg bg-[#FF8F40]/15 text-[#FF8F40] text-xs font-semibold hover:bg-[#FF8F40]/25 transition-colors"
       >
         {label} now
       </button>
       <button
         onClick={() => setAction(null)}
-        className="px-3 py-1.5 rounded-lg bg-white/[0.06] text-[#cbd5e1] text-xs font-semibold hover:bg-white/[0.1] transition-colors"
+        className="px-3 py-1.5 rounded-lg bg-white/[0.06] text-[#BFBDB6] text-xs font-semibold hover:bg-white/[0.1] transition-colors"
       >
         Cancel
       </button>

@@ -46,21 +46,21 @@ export function DeleteDialog() {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 10 }}
                 transition={{ duration: 0.18 }}
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[400px] max-w-[calc(100vw-32px)] rounded-xl bg-[#151B26] border border-white/[0.08] shadow-2xl shadow-black/40 p-6"
+                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[400px] max-w-[calc(100vw-32px)] rounded-xl bg-[#0F131A] border border-white/[0.08] shadow-2xl shadow-black/40 p-6"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <Dialog.Title className="text-base font-semibold text-white flex items-center gap-2">
-                    <span className="w-7 h-7 rounded-lg bg-red-500/15 flex items-center justify-center">
-                      <Trash2 className="w-4 h-4 text-red-400" />
+                  <Dialog.Title className="text-base font-semibold text-[#E6E1CF] flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-lg bg-[#D95757]/15 flex items-center justify-center">
+                      <Trash2 className="w-4 h-4 text-[#F07178]" />
                     </span>
                     Delete {count} download{count !== 1 ? "s" : ""}?
                   </Dialog.Title>
-                  <Dialog.Close className="text-[#94A3B8] hover:text-white transition-colors">
+                  <Dialog.Close className="text-[#8A9199] hover:text-[#E6E1CF] transition-colors">
                     <X className="w-4 h-4" />
                   </Dialog.Close>
                 </div>
 
-                <p className="text-sm text-[#94A3B8] mb-4">
+                <p className="text-sm text-[#8A9199] mb-4">
                   This removes the selected item{count !== 1 ? "s" : ""} from the
                   list. Active downloads will be stopped.
                 </p>
@@ -70,23 +70,23 @@ export function DeleteDialog() {
                     type="checkbox"
                     checked={deleteFile}
                     onChange={(e) => setDeleteFile(e.target.checked)}
-                    className="accent-red-500"
+                    className="accent-[#D95757]"
                   />
-                  <span className="text-sm text-[#94A3B8]">
+                  <span className="text-sm text-[#8A9199]">
                     Also delete file{count !== 1 ? "s" : ""} from disk
                   </span>
                 </label>
 
                 <div className="flex justify-end gap-2">
                   <Dialog.Close asChild>
-                    <button className="px-4 py-2 rounded-lg text-sm font-medium text-[#94A3B8] hover:text-white hover:bg-white/[0.06] transition-colors">
+                    <button className="px-4 py-2 rounded-lg text-sm font-medium text-[#8A9199] hover:text-[#E6E1CF] hover:bg-white/[0.06] transition-colors">
                       Cancel
                     </button>
                   </Dialog.Close>
                   <button
                     disabled={busy || count === 0}
                     onClick={confirm}
-                    className="px-5 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-semibold disabled:opacity-60 transition-colors"
+                    className="px-5 py-2 rounded-lg bg-[#D95757] hover:bg-[#C24747] text-[#E6E1CF] text-sm font-semibold disabled:opacity-60 transition-colors"
                   >
                     {busy ? "Deleting…" : "Delete"}
                   </button>

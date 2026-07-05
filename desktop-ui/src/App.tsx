@@ -111,11 +111,11 @@ export default function App() {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-[#0B0F17] overflow-hidden rounded-[10px]">
+    <div className="flex flex-col h-screen bg-[#0B0E14] overflow-hidden rounded-[10px]">
       <TopBar />
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar column */}
-        <div className="flex flex-col h-full bg-[#0d1117] border-r border-white/[0.06] w-56 shrink-0">
+        <div className="flex flex-col h-full bg-[#0D1017] border-r border-white/[0.06] w-56 shrink-0">
           <Sidebar />
         </div>
 
@@ -152,13 +152,13 @@ export default function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-10 right-4 z-50 max-w-sm rounded-xl bg-[#1a2130] border border-red-500/30 shadow-2xl shadow-black/50 p-3 flex items-start gap-2.5"
+            className="fixed bottom-10 right-4 z-50 max-w-sm rounded-xl bg-[#161B24] border border-[#D95757]/30 shadow-2xl shadow-black/50 p-3 flex items-start gap-2.5"
           >
-            <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-            <p className="text-xs text-[#cbd5e1] break-all flex-1">{lastError}</p>
+            <AlertTriangle className="w-4 h-4 text-[#F07178] shrink-0 mt-0.5" />
+            <p className="text-xs text-[#BFBDB6] break-all flex-1">{lastError}</p>
             <button
               onClick={() => setLastError(null)}
-              className="text-[#94A3B8] hover:text-white transition-colors shrink-0"
+              className="text-[#8A9199] hover:text-[#E6E1CF] transition-colors shrink-0"
             >
               <X className="w-3.5 h-3.5" />
             </button>

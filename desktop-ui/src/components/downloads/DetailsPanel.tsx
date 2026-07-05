@@ -49,13 +49,13 @@ export function DetailsPanel() {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 16 }}
           transition={{ duration: 0.15, ease: "easeOut" }}
-          className="w-80 shrink-0 border-l border-white/[0.06] bg-[#10151f] flex flex-col overflow-hidden"
+          className="w-80 shrink-0 border-l border-white/[0.06] bg-[#0E1219] flex flex-col overflow-hidden"
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] shrink-0">
-            <h2 className="text-sm font-semibold text-white">Properties</h2>
+            <h2 className="text-sm font-semibold text-[#E6E1CF]">Properties</h2>
             <button
               onClick={() => setDetailsId(null)}
-              className="text-[#94A3B8] hover:text-white transition-colors"
+              className="text-[#8A9199] hover:text-[#E6E1CF] transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -63,12 +63,12 @@ export function DetailsPanel() {
 
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
             <div>
-              <p className="text-sm text-white font-medium break-all">{download.name}</p>
+              <p className="text-sm text-[#E6E1CF] font-medium break-all">{download.name}</p>
               <div className="mt-1.5">
                 <StatusBadge status={download.status} />
               </div>
               {download.error && (
-                <p className="text-xs text-red-400 mt-2 break-all">{download.error}</p>
+                <p className="text-xs text-[#F07178] mt-2 break-all">{download.error}</p>
               )}
             </div>
 
@@ -92,39 +92,39 @@ export function DetailsPanel() {
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] text-[#94A3B8]">URL</span>
+                <span className="text-[11px] text-[#8A9199]">URL</span>
                 <button
                   onClick={() => copyUrls([download.id])}
-                  className="text-[#94A3B8] hover:text-white transition-colors"
+                  className="text-[#8A9199] hover:text-[#E6E1CF] transition-colors"
                   title="Copy URL"
                 >
                   <Copy className="w-3 h-3" />
                 </button>
               </div>
-              <p className="text-[11px] text-[#cbd5e1] break-all font-mono leading-relaxed select-text">
+              <p className="text-[11px] text-[#BFBDB6] break-all font-mono leading-relaxed select-text">
                 {download.url}
               </p>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] text-[#94A3B8]">Folder</span>
+                <span className="text-[11px] text-[#8A9199]">Folder</span>
                 <button
                   onClick={() => showInFolder(download.id)}
-                  className="text-[#94A3B8] hover:text-white transition-colors"
+                  className="text-[#8A9199] hover:text-[#E6E1CF] transition-colors"
                   title="Show in folder"
                 >
                   <FolderOpen className="w-3 h-3" />
                 </button>
               </div>
-              <p className="text-[11px] text-[#cbd5e1] break-all font-mono leading-relaxed select-text">
+              <p className="text-[11px] text-[#BFBDB6] break-all font-mono leading-relaxed select-text">
                 {download.savePath}
               </p>
             </div>
 
             {segments.length > 1 && (
               <div>
-                <span className="text-[11px] text-[#94A3B8] block mb-2">
+                <span className="text-[11px] text-[#8A9199] block mb-2">
                   Segments
                 </span>
                 <div className="flex flex-col gap-1.5">
@@ -134,16 +134,16 @@ export function DetailsPanel() {
                       total > 0 ? Math.min(100, (s.downloaded / total) * 100) : 0;
                     return (
                       <div key={i} className="flex items-center gap-2">
-                        <span className="w-5 text-[10px] text-[#94A3B8]/60 tabular-nums text-right">
+                        <span className="w-5 text-[10px] text-[#8A9199]/60 tabular-nums text-right">
                           {i + 1}
                         </span>
                         <div className="flex-1 h-1 bg-white/[0.07] rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-[#cbd5e1] rounded-full transition-[width] duration-500"
+                            className="h-full bg-[#E6B450] rounded-full transition-[width] duration-500"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
-                        <span className="w-9 text-[10px] text-[#94A3B8] tabular-nums text-right">
+                        <span className="w-9 text-[10px] text-[#8A9199] tabular-nums text-right">
                           {Math.round(pct)}%
                         </span>
                       </div>
@@ -162,8 +162,8 @@ export function DetailsPanel() {
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <span className="text-[11px] text-[#94A3B8] shrink-0">{label}</span>
-      <span className="text-xs text-[#cbd5e1] text-right tabular-nums">{children}</span>
+      <span className="text-[11px] text-[#8A9199] shrink-0">{label}</span>
+      <span className="text-xs text-[#BFBDB6] text-right tabular-nums">{children}</span>
     </div>
   );
 }
