@@ -69,12 +69,17 @@
   </style>
 </head>
 <body>
-  <h1>Apex Download Manager</h1>
+  <h1><img src="icons/48.png" alt="" width="22" height="22" />Apex Download Manager</h1>
   <div class="status"><span id="dot" class="dot"></span><span id="statusText">Checking…</span></div>
 
   <div class="row">
     <input type="checkbox" id="enabled" />
     <label for="enabled">Capture browser downloads</label>
+  </div>
+
+  <div class="row">
+    <input type="checkbox" id="hideShelf" />
+    <label for="hideShelf">Hide browser download popup</label>
   </div>
 
   <label>
@@ -93,6 +98,9 @@
   <div class="hint">
     Find the token in the Apex app under Settings → Browser Integration.
     Right-click any link for “Download with Apex”.
+    For seamless capture, turn <b>off</b> “Ask where to save each file before
+    downloading” in your browser’s download settings — that dialog is shown
+    by the browser before Apex can take over, and Apex picks the folder anyway.
   </div>
 
   <script src="popup.js"></script>

@@ -42,6 +42,9 @@ impl Db {
             "ALTER TABLE downloads ADD COLUMN etag TEXT",
             "ALTER TABLE downloads ADD COLUMN last_modified TEXT",
             "ALTER TABLE downloads ADD COLUMN start_at INTEGER",
+            "ALTER TABLE downloads ADD COLUMN request_headers TEXT",
+            "ALTER TABLE downloads ADD COLUMN kind TEXT",
+            "ALTER TABLE downloads ADD COLUMN video_format TEXT",
         ] {
             let _ = conn.execute(ddl, []);
         }
@@ -62,17 +65,19 @@ impl Db {
 
     pub fn upsert_download(&self, d: &Download) -> Result<(), String> {
         let segs = serde_json::to_string(&d.segment_states).map_err(|e| e.to_string())?;
+        let req_headers = serde_json::to_string(&d.request_headers).map_err(|e| e.to_string())?;
         self.conn
             .execute(
                 "INSERT INTO downloads (id, name, url, file_type, size_bytes, downloaded_bytes, status,
                     segments, modified_at, created_at, save_path, supports_ranges, error, segment_states,
-                    etag, last_modified, start_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)
+                    etag, last_modified, start_at, request_headers, kind, video_format)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)
                  ON CONFLICT(id) DO UPDATE SET
                     name = ?2, url = ?3, file_type = ?4, size_bytes = ?5, downloaded_bytes = ?6,
                     status = ?7, segments = ?8, modified_at = ?9, save_path = ?11,
                     supports_ranges = ?12, error = ?13, segment_states = ?14,
-                    etag = ?15, last_modified = ?16, start_at = ?17",
+                    etag = ?15, last_modified = ?16, start_at = ?17, request_headers = ?18,
+                    kind = ?19, video_format = ?20",
                 params![
                     d.id,
                     d.name,
@@ -91,6 +96,9 @@ impl Db {
                     d.etag,
                     d.last_modified,
                     d.start_at,
+                    req_headers,
+                    d.kind,
+                    d.video_format,
                 ],
             )
             .map_err(|e| e.to_string())?;
@@ -180,6 +188,12 @@ fn row_to_download(row: &rusqlite::Row) -> rusqlite::Result<Download> {
     let status: String = row.get("status")?;
     let segs_json: String = row.get("segment_states")?;
     let segment_states: Vec<Segment> = serde_json::from_str(&segs_json).unwrap_or_default();
+    let kind: Option<String> = row.get("kind")?;
+    let video_format: Option<String> = row.get("video_format")?;
+    let headers_json: Option<String> = row.get("request_headers")?;
+    let request_headers: Vec<(String, String)> = headers_json
+        .and_then(|j| serde_json::from_str(&j).ok())
+        .unwrap_or_default();
     let size_bytes: i64 = row.get("size_bytes")?;
     let downloaded_bytes: i64 = row.get("downloaded_bytes")?;
     let size_bytes = size_bytes.max(0) as u64;
@@ -211,8 +225,11 @@ fn row_to_download(row: &rusqlite::Row) -> rusqlite::Result<Download> {
         error: row.get("error")?,
         created_at: row.get("created_at")?,
         start_at: row.get("start_at")?,
+        kind: kind.filter(|k| !k.is_empty()).unwrap_or_else(crate::models::default_kind),
+        video_format,
         etag: row.get("etag")?,
         last_modified: row.get("last_modified")?,
         segment_states,
+        request_headers,
     })
 }

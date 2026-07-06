@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  Clapperboard,
   ListOrdered,
   Pause,
   PauseCircle,
@@ -26,6 +27,7 @@ export function Toolbar() {
     pauseAll,
     resumeAll,
     setAddDialogOpen,
+    setVideoDialogOpen,
     setDeleteDialogOpen,
     settings,
     saveSettings,
@@ -71,6 +73,15 @@ export function Toolbar() {
       >
         <Plus className="w-3.5 h-3.5" />
         Add URL
+      </button>
+
+      <button
+        onClick={() => setVideoDialogOpen(true)}
+        title="Download video/audio from YouTube and other sites"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.1] text-[#E6E1CF] transition-colors ml-1"
+      >
+        <Clapperboard className="w-3.5 h-3.5" />
+        Grab Video
       </button>
 
       <div className="w-px h-4 bg-white/[0.08] mx-1.5" />

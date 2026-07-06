@@ -3,21 +3,25 @@ import { motion } from "framer-motion";
 import {
   Bell,
   Check,
+  Clapperboard,
   ClipboardCopy,
   Copy,
+  Download,
   FolderOpen,
   FolderTree,
   Gauge,
   Globe,
   Layers,
   ListOrdered,
+  Loader2,
   Power,
   RefreshCw,
   Save,
 } from "lucide-react";
 import { backend } from "@/services/backend";
 import { useDownloadsStore } from "@/stores/downloadsStore";
-import type { QueueDoneAction, Settings } from "@/types";
+import { formatBytes } from "@/lib/utils";
+import type { QueueDoneAction, Settings, ToolsStatus } from "@/types";
 
 export function SettingsPage() {
   const settings = useDownloadsStore((s) => s.settings);
@@ -206,6 +210,9 @@ export function SettingsPage() {
         </Field>
 
         <div className="border-t border-white/[0.06] my-6" />
+        <VideoGrabberSection />
+
+        <div className="border-t border-white/[0.06] my-6" />
         <h2 className="text-sm font-semibold text-[#E6E1CF] mb-1 flex items-center gap-2">
           <Globe className="w-4 h-4 text-[#8A9199]" />
           Browser Integration
@@ -227,6 +234,18 @@ export function SettingsPage() {
             />
             <span className="text-sm text-[#BFBDB6]">
               Accept downloads from the browser extension
+            </span>
+          </label>
+          <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
+            <input
+              type="checkbox"
+              checked={form.captureConfirm}
+              disabled={!form.captureEnabled}
+              onChange={(e) => update({ captureConfirm: e.target.checked })}
+              className="accent-[#E6B450] w-4 h-4 disabled:opacity-40"
+            />
+            <span className="text-sm text-[#BFBDB6] disabled:opacity-40">
+              Ask me to approve each capture before it downloads
             </span>
           </label>
         </Field>
@@ -306,6 +325,129 @@ export function SettingsPage() {
           )}
         </div>
       </motion.div>
+    </div>
+  );
+}
+
+/** yt-dlp / ffmpeg status with one-click installers. */
+function VideoGrabberSection() {
+  const [tools, setTools] = useState<ToolsStatus | null>(null);
+  const [installing, setInstalling] = useState<"yt-dlp" | "ffmpeg" | null>(null);
+  const [progress, setProgress] = useState<{ downloaded: number; total: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    backend.ytdlpStatus().then(setTools).catch(() => {});
+    let unlisten: (() => void) | undefined;
+    backend
+      .onToolsProgress((p) => setProgress({ downloaded: p.downloaded, total: p.total }))
+      .then((fn) => (unlisten = fn));
+    return () => unlisten?.();
+  }, []);
+
+  const install = async (tool: "yt-dlp" | "ffmpeg") => {
+    setInstalling(tool);
+    setProgress(null);
+    setError(null);
+    try {
+      const s = tool === "yt-dlp" ? await backend.installYtdlp() : await backend.installFfmpeg();
+      setTools(s);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setInstalling(null);
+      setProgress(null);
+    }
+  };
+
+  return (
+    <>
+      <h2 className="text-sm font-semibold text-[#E6E1CF] mb-1 flex items-center gap-2">
+        <Clapperboard className="w-4 h-4 text-[#8A9199]" />
+        Video Grabber
+      </h2>
+      <p className="text-[11px] text-[#8A9199] mb-4 leading-relaxed">
+        “Grab Video” downloads video/audio from YouTube and 1000+ other sites
+        using <code className="text-[#BFBDB6]">yt-dlp</code>. FFmpeg is optional
+        — it unlocks the highest resolutions by merging separate video and audio
+        streams.
+      </p>
+
+      <ToolRow
+        name="yt-dlp"
+        required
+        status={tools?.ytdlpPath ? `Installed${tools.ytdlpVersion ? ` · v${tools.ytdlpVersion}` : ""}` : "Not installed"}
+        ok={!!tools?.ytdlpPath}
+        installing={installing === "yt-dlp"}
+        progress={installing === "yt-dlp" ? progress : null}
+        onInstall={() => install("yt-dlp")}
+        installLabel={tools?.ytdlpPath ? "Update" : "Install"}
+        disabled={installing !== null}
+      />
+      <ToolRow
+        name="FFmpeg"
+        status={tools?.ffmpegPath ? "Installed" : "Not installed — best quality limited"}
+        ok={!!tools?.ffmpegPath}
+        installing={installing === "ffmpeg"}
+        progress={installing === "ffmpeg" ? progress : null}
+        onInstall={() => install("ffmpeg")}
+        installLabel={tools?.ffmpegPath ? "Reinstall" : "Install (~180 MB)"}
+        disabled={installing !== null}
+      />
+      {error && <p className="text-xs text-[#F07178] mb-4 break-all">{error}</p>}
+    </>
+  );
+}
+
+function ToolRow({
+  name,
+  required,
+  status,
+  ok,
+  installing,
+  progress,
+  onInstall,
+  installLabel,
+  disabled,
+}: {
+  name: string;
+  required?: boolean;
+  status: string;
+  ok: boolean;
+  installing: boolean;
+  progress: { downloaded: number; total: number } | null;
+  onInstall: () => void;
+  installLabel: string;
+  disabled: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3 mb-3 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
+      <span
+        className={`w-2 h-2 rounded-full shrink-0 ${ok ? "bg-[#7FD962]" : "bg-[#FF8F40]"}`}
+      />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-[#E6E1CF] font-medium">
+          {name}
+          {required && <span className="text-[10px] text-[#8A9199] ml-1.5">required</span>}
+        </p>
+        <p className="text-[11px] text-[#8A9199] truncate">
+          {installing && progress
+            ? `Downloading… ${formatBytes(progress.downloaded)}${progress.total ? ` / ${formatBytes(progress.total)}` : ""}`
+            : status}
+        </p>
+      </div>
+      <button
+        onClick={onInstall}
+        disabled={disabled}
+        className="px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-xs font-medium text-[#8A9199] hover:text-[#E6E1CF] hover:bg-white/[0.1] disabled:opacity-50 flex items-center gap-1.5 transition-colors shrink-0"
+      >
+        {installing ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        ) : (
+          <Download className="w-3.5 h-3.5" />
+        )}
+        {installing ? "Installing…" : installLabel}
+      </button>
     </div>
   );
 }

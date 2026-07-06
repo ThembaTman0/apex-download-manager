@@ -21,13 +21,35 @@ const TEMP_SUFFIX: &str = ".adm";
 /// save dir + name + ".adm" suffix still fit (tokenized CDN URLs can put
 /// 1000+ chars in the last path segment).
 const MAX_NAME_CHARS: usize = 150;
-const EVENT_CHANGED: &str = "download:changed";
+pub(crate) const EVENT_CHANGED: &str = "download:changed";
 const EVENT_REMOVED: &str = "download:removed";
 
 struct ActiveHandle {
     cancel: CancellationToken,
     removing: Arc<AtomicBool>,
     join: Option<tauri::async_runtime::JoinHandle<()>>,
+}
+
+/// A browser capture held for the user to approve before it downloads.
+#[derive(Clone)]
+struct PendingCapture {
+    id: String,
+    url: String,
+    file_name: Option<String>,
+    request_headers: Vec<(String, String)>,
+    /// Display values shown in the approval window.
+    name: String,
+    folder: String,
+}
+
+/// The subset of a pending capture the approval window renders.
+#[derive(serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CaptureView {
+    id: String,
+    url: String,
+    name: String,
+    folder: String,
 }
 
 pub struct DownloadManager {
@@ -37,6 +59,8 @@ pub struct DownloadManager {
     settings: Arc<Mutex<Settings>>,
     limiter: Arc<RateLimiter>,
     client: reqwest::Client,
+    /// Ordered so the approval window shows captures in arrival order.
+    pending_captures: Arc<Mutex<Vec<PendingCapture>>>,
 }
 
 impl DownloadManager {
@@ -61,6 +85,7 @@ impl DownloadManager {
             settings: Arc::new(Mutex::new(settings)),
             limiter,
             client,
+            pending_captures: Arc::new(Mutex::new(Vec::new())),
         })
     }
 
@@ -72,6 +97,7 @@ impl DownloadManager {
             settings: self.settings.clone(),
             limiter: self.limiter.clone(),
             client: self.client.clone(),
+            pending_captures: self.pending_captures.clone(),
         }
     }
 
@@ -106,6 +132,7 @@ impl DownloadManager {
         url: String,
         save_dir: Option<String>,
         file_name: Option<String>,
+        request_headers: Vec<(String, String)>,
     ) -> Result<Download, String> {
         let url = url.trim().to_string();
         if !url.starts_with("http://") && !url.starts_with("https://") {
@@ -147,9 +174,12 @@ impl DownloadManager {
             error: None,
             created_at: now,
             start_at: None,
+            kind: crate::models::default_kind(),
+            video_format: None,
             etag: None,
             last_modified: None,
             segment_states: Vec::new(),
+            request_headers,
         };
         self.db.lock().unwrap().upsert_download(&d)?;
         self.emit_changed(&d);
@@ -159,6 +189,199 @@ impl DownloadManager {
             .unwrap()
             .get_download(&d.id)?
             .ok_or_else(|| "download vanished".to_string())
+    }
+
+    /// Queue a video for yt-dlp. `title`/`ext` name the file; `selector` is the
+    /// -f format string picked in the quality dialog.
+    pub fn add_video(
+        &self,
+        url: String,
+        title: String,
+        ext: String,
+        selector: String,
+        save_dir: Option<String>,
+    ) -> Result<Download, String> {
+        let url = url.trim().to_string();
+        if !url.starts_with("http://") && !url.starts_with("https://") {
+            return Err("Only http(s) URLs are supported".into());
+        }
+        let settings = self.get_settings();
+        let ext = ext.trim().trim_matches('.').to_string();
+        let title = if title.trim().is_empty() { "video".to_string() } else { title };
+        let name = sanitize_filename(&format!("{}.{}", title.trim(), ext));
+        let dir = match save_dir.filter(|d| !d.trim().is_empty()) {
+            Some(d) => d,
+            None if settings.auto_organize => {
+                let category = category_for_type(&file_type_from_name(&name));
+                Path::new(&settings.download_dir)
+                    .join(category)
+                    .to_string_lossy()
+                    .to_string()
+            }
+            None => settings.download_dir,
+        };
+        let now = now_millis();
+        let d = Download {
+            id: uuid::Uuid::new_v4().to_string(),
+            file_type: file_type_from_name(&name),
+            name,
+            url,
+            size_bytes: 0,
+            downloaded_bytes: 0,
+            progress: 0.0,
+            speed_bytes_per_sec: 0,
+            eta_seconds: 0,
+            status: DownloadStatus::Queued,
+            segments: 1,
+            modified_at: now,
+            save_path: dir,
+            supports_ranges: false,
+            error: None,
+            created_at: now,
+            start_at: None,
+            kind: "video".into(),
+            video_format: Some(selector),
+            etag: None,
+            last_modified: None,
+            segment_states: Vec::new(),
+            request_headers: Vec::new(),
+        };
+        self.db.lock().unwrap().upsert_download(&d)?;
+        self.emit_changed(&d);
+        self.try_start(&d.id)?;
+        self.db
+            .lock()
+            .unwrap()
+            .get_download(&d.id)?
+            .ok_or_else(|| "download vanished".to_string())
+    }
+
+    /// Hold a browser capture for user approval instead of downloading it
+    /// immediately. Emits `capture:pending` and brings the window forward so
+    /// the prompt is seen even when Apex sits in the tray. Nothing is written
+    /// to the downloads list until the user approves.
+    pub fn stage_capture(
+        &self,
+        url: String,
+        file_name: Option<String>,
+        request_headers: Vec<(String, String)>,
+    ) -> Result<String, String> {
+        let url = url.trim().to_string();
+        if !url.starts_with("http://") && !url.starts_with("https://") {
+            return Err("Only http(s) URLs are supported".into());
+        }
+        let settings = self.get_settings();
+        let preview_name = file_name
+            .clone()
+            .filter(|n| !n.trim().is_empty())
+            .map(|n| sanitize_filename(&n))
+            .unwrap_or_else(|| filename_from_url(&url));
+        let folder = if settings.auto_organize {
+            let category = category_for_type(&file_type_from_name(&preview_name));
+            Path::new(&settings.download_dir)
+                .join(category)
+                .to_string_lossy()
+                .to_string()
+        } else {
+            settings.download_dir.clone()
+        };
+        let id = uuid::Uuid::new_v4().to_string();
+        self.pending_captures.lock().unwrap().push(PendingCapture {
+            id: id.clone(),
+            url: url.clone(),
+            file_name,
+            request_headers,
+            name: preview_name.clone(),
+            folder: folder.clone(),
+        });
+        // Pop up a small always-on-top approval window (IDM-style), separate
+        // from the main app. Created hidden; it shows itself once its React
+        // side has loaded the pending list. Subsequent captures reuse it.
+        self.ensure_capture_window();
+        let _ = self.app.emit(
+            "capture:pending",
+            CaptureView {
+                id: id.clone(),
+                url,
+                name: preview_name,
+                folder,
+            },
+        );
+        Ok(id)
+    }
+
+    fn ensure_capture_window(&self) {
+        // Existing (hidden after a previous round): just raise it. Showing from
+        // Rust is reliable here; a JS show() during the webview's initial load
+        // does not stick, so visibility is driven from this side.
+        if let Some(win) = self.app.get_webview_window("capture") {
+            let _ = win.show();
+            let _ = win.set_focus();
+            return;
+        }
+        let app = self.app.clone();
+        // Window creation must happen on the main thread on Windows. Built
+        // visible (the reliable native path) — React fills it in immediately.
+        let _ = app.clone().run_on_main_thread(move || {
+            if let Ok(win) = tauri::WebviewWindowBuilder::new(
+                &app,
+                "capture",
+                tauri::WebviewUrl::App("index.html".into()),
+            )
+            .title("Apex — Approve download")
+            .inner_size(440.0, 412.0)
+            .resizable(false)
+            .decorations(false)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .center()
+            .build()
+            {
+                let _ = win.set_focus();
+            }
+        });
+    }
+
+    /// Captures currently waiting for approval, in arrival order.
+    pub fn list_pending_captures(&self) -> Vec<CaptureView> {
+        self.pending_captures
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|p| CaptureView {
+                id: p.id.clone(),
+                url: p.url.clone(),
+                name: p.name.clone(),
+                folder: p.folder.clone(),
+            })
+            .collect()
+    }
+
+    /// Approve or reject a staged capture. On approval it becomes a normal
+    /// download (with the browser's headers); rejection drops it entirely.
+    /// An unknown id (already resolved) is a no-op.
+    pub fn resolve_capture(
+        &self,
+        id: &str,
+        approved: bool,
+        save_dir: Option<String>,
+        file_name: Option<String>,
+    ) -> Result<Option<Download>, String> {
+        let pending = {
+            let mut list = self.pending_captures.lock().unwrap();
+            match list.iter().position(|p| p.id == id) {
+                Some(i) => list.remove(i),
+                None => return Ok(None),
+            }
+        };
+        if !approved {
+            return Ok(None);
+        }
+        let name = file_name
+            .filter(|n| !n.trim().is_empty())
+            .or(pending.file_name);
+        let d = self.add(pending.url, save_dir, name, pending.request_headers)?;
+        Ok(Some(d))
     }
 
     pub fn pause(&self, id: &str) -> Result<(), String> {
@@ -233,7 +456,11 @@ impl DownloadManager {
             .unwrap()
             .get_download(id)?
             .ok_or("download not found")?;
-        let _ = std::fs::remove_file(temp_path(&d));
+        if d.kind == "video" {
+            crate::ytdlp::remove_partials(&d);
+        } else {
+            let _ = std::fs::remove_file(temp_path(&d));
+        }
         d.segment_states.clear();
         d.downloaded_bytes = 0;
         d.progress = 0.0;
@@ -253,7 +480,11 @@ impl DownloadManager {
         let d = self.db.lock().unwrap().get_download(id)?;
         if let Some(d) = d {
             // A half-finished temp file is useless without its record.
-            let _ = std::fs::remove_file(temp_path(&d));
+            if d.kind == "video" {
+                crate::ytdlp::remove_partials(&d);
+            } else {
+                let _ = std::fs::remove_file(temp_path(&d));
+            }
             if delete_file {
                 let _ = std::fs::remove_file(final_path(&d));
             }
@@ -381,18 +612,22 @@ impl DownloadManager {
     }
 }
 
-struct TaskCtx {
-    app: AppHandle,
-    db: Arc<Mutex<Db>>,
-    settings: Arc<Mutex<Settings>>,
-    limiter: Arc<RateLimiter>,
-    client: reqwest::Client,
-    cancel: CancellationToken,
-    removing: Arc<AtomicBool>,
+pub(crate) struct TaskCtx {
+    pub(crate) app: AppHandle,
+    pub(crate) db: Arc<Mutex<Db>>,
+    pub(crate) settings: Arc<Mutex<Settings>>,
+    pub(crate) limiter: Arc<RateLimiter>,
+    pub(crate) client: reqwest::Client,
+    pub(crate) cancel: CancellationToken,
+    pub(crate) removing: Arc<AtomicBool>,
 }
 
 async fn run_download(ctx: TaskCtx, mgr: DownloadManager, mut d: Download) {
-    let outcome = drive_download(&ctx, &mut d).await;
+    let outcome = if d.kind == "video" {
+        crate::ytdlp::drive_video(&ctx, &mut d).await
+    } else {
+        drive_download(&ctx, &mut d).await
+    };
 
     let removing = ctx.removing.load(Ordering::SeqCst);
     if !removing {
@@ -480,9 +715,7 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
     let has_progress = d.segment_states.iter().any(|s| s.downloaded > 0);
     if has_progress {
         if let Some(validator) = d.etag.clone().or_else(|| d.last_modified.clone()) {
-            let check = ctx
-                .client
-                .get(&d.url)
+            let check = with_headers(ctx.client.get(&d.url), &d.request_headers)
                 .header(header::RANGE, "bytes=0-0")
                 .header(header::IF_RANGE, validator)
                 .send()
@@ -511,7 +744,7 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
     if d.segment_states.is_empty() {
         let probe = tokio::select! {
             _ = ctx.cancel.cancelled() => return Ok(false),
-            p = probe_url(&ctx.client, &d.url) => p?,
+            p = probe_url(&ctx.client, &d.url, &d.request_headers) => p?,
         };
         d.size_bytes = probe.size;
         d.supports_ranges = probe.supports_ranges;
@@ -582,6 +815,7 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
         let supports_ranges = d.supports_ranges;
         let known_size = d.size_bytes > 0;
         let if_range = d.etag.clone().or_else(|| d.last_modified.clone());
+        let request_headers = d.request_headers.clone();
         handles.push(tokio::spawn(async move {
             let res = download_segment(
                 &client,
@@ -595,6 +829,7 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
                 supports_ranges,
                 known_size,
                 if_range,
+                &request_headers,
             )
             .await;
             if res.is_err() {
@@ -660,6 +895,13 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
         }
     }
 
+    // A no-range server may have served a different byte count than the
+    // probe predicted (dynamic bodies); the bytes on disk are the real size.
+    if !d.supports_ranges && total > 0 && d.size_bytes != total {
+        d.size_bytes = total;
+        d.progress = 100.0;
+    }
+
     // 5. All segments done — move the temp file into place.
     d.status = DownloadStatus::Merging;
     let _ = ctx.app.emit(EVENT_CHANGED, &*d);
@@ -715,9 +957,30 @@ struct ProbeResult {
     content_type: Option<String>,
 }
 
-async fn probe_url(client: &reqwest::Client, url: &str) -> Result<ProbeResult, String> {
-    let resp = client
-        .get(url)
+/// Apply browser-captured headers (Cookie, Referer, User-Agent). Invalid
+/// names/values are skipped rather than failing the download; reqwest strips
+/// sensitive headers itself if a redirect leaves the original host.
+fn with_headers(
+    mut req: reqwest::RequestBuilder,
+    headers: &[(String, String)],
+) -> reqwest::RequestBuilder {
+    for (k, v) in headers {
+        if let (Ok(name), Ok(value)) = (
+            header::HeaderName::from_bytes(k.as_bytes()),
+            header::HeaderValue::from_str(v),
+        ) {
+            req = req.header(name, value);
+        }
+    }
+    req
+}
+
+async fn probe_url(
+    client: &reqwest::Client,
+    url: &str,
+    request_headers: &[(String, String)],
+) -> Result<ProbeResult, String> {
+    let resp = with_headers(client.get(url), request_headers)
         .header(header::RANGE, "bytes=0-0")
         .send()
         .await
@@ -836,8 +1099,9 @@ async fn download_segment(
     supports_ranges: bool,
     known_size: bool,
     if_range: Option<String>,
+    request_headers: &[(String, String)],
 ) -> Result<(), String> {
-    let expected = if known_size {
+    let mut expected = if known_size {
         Some(seg.end - seg.start + 1)
     } else {
         None
@@ -862,7 +1126,7 @@ async fn download_segment(
         }
         attempts += 1;
 
-        let mut req = client.get(url);
+        let mut req = with_headers(client.get(url), request_headers);
         if supports_ranges {
             req = req.header(
                 header::RANGE,
@@ -892,6 +1156,14 @@ async fn download_segment(
         };
         if supports_ranges && resp.status() != reqwest::StatusCode::PARTIAL_CONTENT {
             return Err(format!("segment {index}: server ignored range request"));
+        }
+        if !supports_ranges {
+            // A no-range server can serve a body that differs from the probe's
+            // (the probe carried a Range header some servers vary on). This
+            // response's own Content-Length is the real target; without one,
+            // EOF is the completion signal — hyper errors on premature close,
+            // so a clean EOF genuinely means the body is complete.
+            expected = resp.content_length().filter(|cl| *cl > 0);
         }
 
         let mut file = tokio::fs::OpenOptions::new()
@@ -956,6 +1228,11 @@ async fn download_segment(
                     if let Some(exp) = expected {
                         if done >= exp {
                             let _ = file.flush().await;
+                            if !supports_ranges {
+                                // Preallocation used the probe's size; cut
+                                // any stale tail past the real body.
+                                let _ = file.set_len(done).await;
+                            }
                             return Ok(());
                         }
                     }
@@ -969,7 +1246,12 @@ async fn download_segment(
                             }
                             continue 'attempt;
                         }
-                        _ => return Ok(()),
+                        _ => {
+                            if !supports_ranges {
+                                let _ = file.set_len(done).await;
+                            }
+                            return Ok(());
+                        }
                     }
                 }
             }

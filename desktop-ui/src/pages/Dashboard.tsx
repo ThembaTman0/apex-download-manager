@@ -5,6 +5,7 @@ import { useDownloadsStore } from "@/stores/downloadsStore";
 import { ProgressCell } from "@/components/downloads/ProgressCell";
 import { StatusBadge } from "@/components/downloads/StatusBadge";
 import { formatBytes } from "@/lib/utils";
+import apexLogo from "@/assets/apex-logo.png";
 
 export function DashboardPage() {
   const downloads = useDownloadsStore((s) => s.downloads);
@@ -26,9 +27,17 @@ export function DashboardPage() {
               <h2 className="text-sm font-semibold text-[#E6E1CF]">Recent Downloads</h2>
             </div>
             {recent.length === 0 ? (
-              <p className="text-xs text-[#8A9199]/60 py-8 text-center">
-                No downloads yet
-              </p>
+              <div className="py-8 flex flex-col items-center gap-3">
+                <img
+                  src={apexLogo}
+                  alt=""
+                  className="w-28 opacity-30 select-none"
+                  draggable={false}
+                />
+                <p className="text-xs text-[#8A9199]/60 text-center">
+                  No downloads yet
+                </p>
+              </div>
             ) : (
               <div className="divide-y divide-white/[0.04]">
                 {recent.map((d) => (

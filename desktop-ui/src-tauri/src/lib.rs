@@ -3,6 +3,7 @@ mod commands;
 mod db;
 mod engine;
 mod models;
+mod ytdlp;
 
 use std::time::Duration;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
@@ -160,6 +161,13 @@ pub fn run() {
             commands::compute_checksum,
             commands::execute_queue_action,
             commands::regenerate_capture_token,
+            commands::resolve_capture,
+            commands::list_pending_captures,
+            commands::ytdlp_status,
+            commands::install_ytdlp,
+            commands::install_ffmpeg,
+            commands::probe_video,
+            commands::add_video,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

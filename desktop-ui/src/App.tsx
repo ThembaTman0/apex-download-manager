@@ -6,6 +6,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import { Toolbar } from "@/components/layout/Toolbar";
 import { StatusBar } from "@/components/layout/StatusBar";
 import { AddUrlDialog } from "@/components/dialogs/AddUrlDialog";
+import { GrabVideoDialog } from "@/components/dialogs/GrabVideoDialog";
 import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
 import { ChecksumDialog } from "@/components/dialogs/ChecksumDialog";
 import { ScheduleDialog } from "@/components/dialogs/ScheduleDialog";
@@ -45,7 +46,13 @@ export default function App() {
         return;
       }
       const s = useDownloadsStore.getState();
-      if (s.addDialogOpen || s.deleteDialogOpen || s.checksumTarget || s.scheduleTarget) {
+      if (
+        s.addDialogOpen ||
+        s.videoDialogOpen ||
+        s.deleteDialogOpen ||
+        s.checksumTarget ||
+        s.scheduleTarget
+      ) {
         return;
       }
       const selected = s.downloads.filter((d) => s.selectedIds.has(d.id));
@@ -139,6 +146,7 @@ export default function App() {
       <StatusBar />
 
       <AddUrlDialog />
+      <GrabVideoDialog />
       <DeleteDialog />
       <ChecksumDialog />
       <ScheduleDialog />

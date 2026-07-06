@@ -1,4 +1,4 @@
-use crate::engine::DownloadManager;
+use crate::engine::{CaptureView, DownloadManager};
 use crate::models::{DiskUsage, Download, Settings};
 use tauri::State;
 
@@ -14,7 +14,7 @@ pub async fn add_download(
     save_dir: Option<String>,
     file_name: Option<String>,
 ) -> Result<Download, String> {
-    mgr.add(url, save_dir, file_name)
+    mgr.add(url, save_dir, file_name, Vec::new())
 }
 
 #[tauri::command]
@@ -72,6 +72,61 @@ pub async fn regenerate_capture_token(
     let mut s = mgr.get_settings();
     s.capture_token = uuid::Uuid::new_v4().simple().to_string();
     mgr.update_settings(s)
+}
+
+#[tauri::command]
+pub async fn list_pending_captures(
+    mgr: State<'_, DownloadManager>,
+) -> Result<Vec<CaptureView>, String> {
+    Ok(mgr.list_pending_captures())
+}
+
+#[tauri::command]
+pub async fn resolve_capture(
+    mgr: State<'_, DownloadManager>,
+    id: String,
+    approved: bool,
+    save_dir: Option<String>,
+    file_name: Option<String>,
+) -> Result<Option<Download>, String> {
+    mgr.resolve_capture(&id, approved, save_dir, file_name)
+}
+
+// --- Video grabber (yt-dlp) ---
+
+#[tauri::command]
+pub async fn ytdlp_status(app: tauri::AppHandle) -> Result<crate::ytdlp::ToolsStatus, String> {
+    Ok(crate::ytdlp::status(&app).await)
+}
+
+#[tauri::command]
+pub async fn install_ytdlp(app: tauri::AppHandle) -> Result<crate::ytdlp::ToolsStatus, String> {
+    crate::ytdlp::install_ytdlp(&app).await
+}
+
+#[tauri::command]
+pub async fn install_ffmpeg(app: tauri::AppHandle) -> Result<crate::ytdlp::ToolsStatus, String> {
+    crate::ytdlp::install_ffmpeg(&app).await
+}
+
+#[tauri::command]
+pub async fn probe_video(
+    app: tauri::AppHandle,
+    url: String,
+) -> Result<crate::ytdlp::VideoProbe, String> {
+    crate::ytdlp::probe(&app, &url).await
+}
+
+#[tauri::command]
+pub async fn add_video(
+    mgr: State<'_, DownloadManager>,
+    url: String,
+    title: String,
+    ext: String,
+    selector: String,
+    save_dir: Option<String>,
+) -> Result<Download, String> {
+    mgr.add_video(url, title, ext, selector, save_dir)
 }
 
 #[tauri::command]

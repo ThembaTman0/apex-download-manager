@@ -4,8 +4,8 @@ import {
   Download,
   Settings,
   HardDrive,
-  Zap,
 } from "lucide-react";
+import apexIcon from "@/assets/apex-icon.png";
 import { cn, formatBytes } from "@/lib/utils";
 import { useDownloadsStore } from "@/stores/downloadsStore";
 import type { NavItem } from "@/types";
@@ -29,9 +29,7 @@ export function Sidebar() {
     <aside className="flex flex-col flex-1 py-4 gap-1 overflow-hidden">
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-4 mb-4">
-        <div className="w-7 h-7 rounded-lg bg-[#E6B450] flex items-center justify-center">
-          <Zap className="w-4 h-4 text-[#0B0E14]" />
-        </div>
+        <img src={apexIcon} alt="Apex" className="w-7 h-7" draggable={false} />
         <div>
           <p className="text-sm font-bold text-[#E6E1CF] leading-none">Apex</p>
           <p className="text-[10px] text-[#8A9199] leading-none mt-0.5">Download Manager</p>

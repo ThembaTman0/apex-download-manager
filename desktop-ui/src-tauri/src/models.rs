@@ -69,12 +69,27 @@ pub struct Download {
     pub created_at: i64,
     /// Unix millis; when set and in the future, the download waits until then.
     pub start_at: Option<i64>,
+    /// "http" (segmented engine) or "video" (driven by yt-dlp).
+    #[serde(default = "default_kind")]
+    pub kind: String,
+    /// yt-dlp -f selector chosen in the quality picker (kind == "video").
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub video_format: Option<String>,
     #[serde(skip)]
     pub etag: Option<String>,
     #[serde(skip)]
     pub last_modified: Option<String>,
     #[serde(skip)]
     pub segment_states: Vec<Segment>,
+    /// Extra request headers captured from the browser (Cookie, Referer,
+    /// User-Agent) so downloads behind logins work. Cookies are session
+    /// secrets — kept out of every UI payload via skip.
+    #[serde(skip)]
+    pub request_headers: Vec<(String, String)>,
+}
+
+pub fn default_kind() -> String {
+    "http".into()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -94,6 +109,9 @@ pub struct Settings {
     pub queue_done_action: String,
     /// Accept downloads pushed by the browser extension.
     pub capture_enabled: bool,
+    /// Prompt for approval before starting a browser-captured download, so a
+    /// stray or malicious download can't begin silently.
+    pub capture_confirm: bool,
     /// Localhost port the capture server listens on (change needs restart).
     pub capture_port: u16,
     /// Shared secret the extension must present; empty until first run.
@@ -113,6 +131,7 @@ impl Default for Settings {
             auto_organize: false,
             queue_done_action: "none".into(),
             capture_enabled: true,
+            capture_confirm: true,
             capture_port: 43666,
             capture_token: String::new(),
         }

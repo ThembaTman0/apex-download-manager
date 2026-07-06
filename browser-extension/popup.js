@@ -1,10 +1,11 @@
-const DEFAULTS = { enabled: true, port: 43666, token: "" };
+const DEFAULTS = { enabled: true, port: 43666, token: "", hideShelf: true };
 
 const $ = (id) => document.getElementById(id);
 
 function load() {
   chrome.storage.sync.get(DEFAULTS, (cfg) => {
     $("enabled").checked = cfg.enabled;
+    $("hideShelf").checked = cfg.hideShelf;
     $("token").value = cfg.token;
     $("port").value = cfg.port;
     ping(cfg.port);
@@ -33,6 +34,7 @@ async function ping(port) {
 $("save").addEventListener("click", () => {
   const cfg = {
     enabled: $("enabled").checked,
+    hideShelf: $("hideShelf").checked,
     token: $("token").value.trim(),
     port: parseInt($("port").value, 10) || DEFAULTS.port,
   };

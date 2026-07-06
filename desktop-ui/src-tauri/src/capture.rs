@@ -19,7 +19,14 @@ struct AddRequest {
     url: String,
     #[serde(default)]
     file_name: Option<String>,
+    /// Browser context (cookies, referrer, user-agent) so the engine can
+    /// fetch URLs that sit behind a login. Anything outside the whitelist
+    /// below is dropped.
+    #[serde(default)]
+    headers: std::collections::HashMap<String, String>,
 }
+
+const FORWARDABLE_HEADERS: [&str; 3] = ["cookie", "referer", "user-agent"];
 
 pub fn start(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
@@ -122,7 +129,41 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
                 Ok(r) => r,
                 Err(_) => return respond(&mut stream, 400, r#"{"ok":false,"error":"bad json"}"#).await,
             };
-            match mgr.add(req.url, None, req.file_name) {
+            let request_headers: Vec<(String, String)> = req
+                .headers
+                .into_iter()
+                .filter_map(|(k, v)| {
+                    let k = k.trim().to_ascii_lowercase();
+                    let ok = FORWARDABLE_HEADERS.contains(&k.as_str())
+                        && !v.contains(['\r', '\n'])
+                        && !v.is_empty();
+                    ok.then_some((k, v))
+                })
+                .collect();
+
+            // With confirmation on, hold the capture for user approval rather
+            // than downloading it silently. The extension has already canceled
+            // the browser's copy, so a rejected capture downloads nowhere.
+            if settings.capture_confirm {
+                return match mgr.stage_capture(req.url, req.file_name, request_headers) {
+                    Ok(id) => {
+                        let reply = format!(
+                            r#"{{"ok":true,"pending":true,"id":{}}}"#,
+                            serde_json::to_string(&id).unwrap_or_default()
+                        );
+                        respond(&mut stream, 200, &reply).await
+                    }
+                    Err(e) => {
+                        let reply = format!(
+                            r#"{{"ok":false,"error":{}}}"#,
+                            serde_json::to_string(&e).unwrap_or_default()
+                        );
+                        respond(&mut stream, 400, &reply).await
+                    }
+                };
+            }
+
+            match mgr.add(req.url, None, req.file_name, request_headers) {
                 Ok(d) => {
                     let _ = app
                         .notification()

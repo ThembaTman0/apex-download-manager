@@ -22,6 +22,7 @@ interface DownloadsState {
   diskUsage: DiskUsage | null;
   speedHistory: SpeedSample[];
   addDialogOpen: boolean;
+  videoDialogOpen: boolean;
   deleteDialogOpen: boolean;
   lastError: string | null;
   /** URL to pre-fill the Add dialog with (from clipboard toast). */
@@ -41,6 +42,7 @@ interface DownloadsState {
   setSearchQuery: (q: string) => void;
   setActiveNav: (nav: NavItem) => void;
   setAddDialogOpen: (open: boolean) => void;
+  setVideoDialogOpen: (open: boolean) => void;
   setDeleteDialogOpen: (open: boolean) => void;
   setLastError: (e: string | null) => void;
   setPendingUrl: (url: string | null) => void;
@@ -59,6 +61,13 @@ interface DownloadsState {
   clearSelection: () => void;
 
   addDownload: (url: string, saveDir?: string, fileName?: string) => Promise<void>;
+  addVideo: (
+    url: string,
+    title: string,
+    ext: string,
+    selector: string,
+    saveDir?: string
+  ) => Promise<void>;
   pauseDownload: (id: string) => Promise<void>;
   resumeDownload: (id: string) => Promise<void>;
   restartDownload: (id: string) => Promise<void>;
@@ -89,6 +98,7 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
   diskUsage: null,
   speedHistory: [],
   addDialogOpen: false,
+  videoDialogOpen: false,
   deleteDialogOpen: false,
   lastError: null,
   pendingUrl: null,
@@ -169,6 +179,7 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
       addDialogOpen: open,
       pendingUrl: open ? s.pendingUrl : null,
     })),
+  setVideoDialogOpen: (open) => set({ videoDialogOpen: open }),
   setDeleteDialogOpen: (open) => set({ deleteDialogOpen: open }),
   setLastError: (e) => set({ lastError: e }),
   setPendingUrl: (url) => set({ pendingUrl: url }),
@@ -206,6 +217,15 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
 
   addDownload: async (url, saveDir, fileName) => {
     const d = await backend.addDownload(url, saveDir, fileName);
+    set((s) => ({
+      downloads: s.downloads.some((x) => x.id === d.id)
+        ? s.downloads.map((x) => (x.id === d.id ? d : x))
+        : sortDownloads([d, ...s.downloads]),
+    }));
+  },
+
+  addVideo: async (url, title, ext, selector, saveDir) => {
+    const d = await backend.addVideo(url, title, ext, selector, saveDir);
     set((s) => ({
       downloads: s.downloads.some((x) => x.id === d.id)
         ? s.downloads.map((x) => (x.id === d.id ? d : x))

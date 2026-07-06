@@ -1,8 +1,31 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "framer-motion";
-import { FolderOpen, Link2, Loader2, Plus, X } from "lucide-react";
+import { FileUp, FolderOpen, Link2, Loader2, Plus, X } from "lucide-react";
 import { useDownloadsStore } from "@/stores/downloadsStore";
+
+const MAX_BATCH = 500;
+
+/**
+ * Expand one numeric range pattern per URL: `file[1-20].zip` becomes
+ * file1.zip … file20.zip. Zero-padding follows the start number ([01-20] →
+ * 01, 02, …). URLs without a pattern come back unchanged.
+ */
+function expandPattern(url: string): string[] {
+  const m = url.match(/\[(\d+)-(\d+)\]/);
+  if (!m) return [url];
+  const [token, startStr, endStr] = [m[0], m[1], m[2]];
+  const start = parseInt(startStr, 10);
+  const end = parseInt(endStr, 10);
+  if (end < start || end - start + 1 > MAX_BATCH) return [url];
+  const pad = startStr.length > 1 && startStr.startsWith("0") ? startStr.length : 0;
+  const out: string[] = [];
+  for (let i = start; i <= end; i++) {
+    const n = pad ? String(i).padStart(pad, "0") : String(i);
+    out.push(url.replace(token, n));
+  }
+  return out;
+}
 
 export function AddUrlDialog() {
   const open = useDownloadsStore((s) => s.addDialogOpen);
@@ -18,14 +41,23 @@ export function AddUrlDialog() {
   const [saveDir, setSaveDir] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [dupOk, setDupOk] = useState(false);
+  const [skipDuplicates, setSkipDuplicates] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const urls = url
-    .split(/\s+/)
-    .map((u) => u.trim())
-    .filter((u) => /^https?:\/\/\S+$/i.test(u));
-  const isDuplicate =
-    urls.length === 1 && downloads.some((d) => d.url === urls[0]);
+  // Parse the textarea: split, expand [1-20] patterns, drop repeats.
+  const urls = [
+    ...new Set(
+      url
+        .split(/\s+/)
+        .map((u) => u.trim())
+        .filter((u) => /^https?:\/\/\S+$/i.test(u))
+        .flatMap(expandPattern)
+        .slice(0, MAX_BATCH)
+    ),
+  ];
+  const existingUrls = new Set(downloads.map((d) => d.url));
+  const duplicates = urls.filter((u) => existingUrls.has(u));
+  const freshUrls = urls.filter((u) => !existingUrls.has(u));
 
   useEffect(() => {
     if (!open) return;
@@ -34,7 +66,7 @@ export function AddUrlDialog() {
     setSaveDir(settings?.downloadDir ?? "");
     setError(null);
     setBusy(false);
-    setDupOk(false);
+    setSkipDuplicates(true);
     if (pendingUrl) return; // came from the clipboard toast, already filled
     // Convenience: pre-fill from clipboard when it holds a URL.
     import("@tauri-apps/plugin-clipboard-manager")
@@ -62,19 +94,20 @@ export function AddUrlDialog() {
       setError("Enter one or more valid http(s) URLs");
       return;
     }
-    if (isDuplicate && !dupOk) {
-      setDupOk(true); // next click confirms
+    const toAdd = skipDuplicates ? freshUrls : urls;
+    if (toAdd.length === 0) {
+      setError("All of these URLs are already in your list");
       return;
     }
     setBusy(true);
     setError(null);
     try {
-      for (const u of urls) {
+      for (const u of toAdd) {
         // A custom file name only makes sense for a single URL.
         await addDownload(
           u,
           saveDir || undefined,
-          urls.length === 1 ? fileName || undefined : undefined
+          toAdd.length === 1 && urls.length === 1 ? fileName || undefined : undefined
         );
       }
       setOpen(false);
@@ -82,6 +115,20 @@ export function AddUrlDialog() {
       setError(String(e));
       setBusy(false);
     }
+  };
+
+  const importTxt = async (file: File) => {
+    const text = await file.text();
+    const found = text
+      .split(/\s+/)
+      .map((u) => u.trim())
+      .filter((u) => /^https?:\/\/\S+$/i.test(u));
+    if (found.length === 0) {
+      setError("No http(s) URLs found in that file");
+      return;
+    }
+    setError(null);
+    setUrl((prev) => (prev.trim() ? prev.trimEnd() + "\n" : "") + found.join("\n"));
   };
 
   return (
@@ -124,29 +171,67 @@ export function AddUrlDialog() {
                 </div>
 
                 <label className="block mb-4">
-                  <span className="text-xs font-medium text-[#8A9199] mb-1.5 block">
-                    URL{urls.length > 1 ? `s (${urls.length})` : ""}{" "}
-                    <span className="opacity-50">— paste several to batch-add</span>
+                  <span className="text-xs font-medium text-[#8A9199] mb-1.5 flex items-center">
+                    <span>
+                      URL{urls.length > 1 ? `s (${urls.length})` : ""}{" "}
+                      <span className="opacity-50">
+                        — paste several, or use file[1-20].zip patterns
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      title="Append URLs from a .txt file (one per line)"
+                      className="ml-auto flex items-center gap-1 text-[11px] text-[#8A9199] hover:text-[#E6E1CF] transition-colors"
+                    >
+                      <FileUp className="w-3 h-3" />
+                      Import .txt
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".txt,text/plain"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) importTxt(f);
+                        e.target.value = "";
+                      }}
+                    />
                   </span>
                   <div className="relative flex">
                     <Link2 className="absolute left-3 top-3.5 w-3.5 h-3.5 text-[#8A9199]" />
                     <textarea
                       autoFocus
                       value={url}
-                      onChange={(e) => {
-                        setUrl(e.target.value);
-                        setDupOk(false);
-                      }}
+                      onChange={(e) => setUrl(e.target.value)}
                       rows={urls.length > 1 ? 4 : 1}
                       placeholder="https://example.com/file.zip"
                       className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-[#E6E1CF] placeholder:text-[#8A9199]/50 pl-9 pr-3 py-2.5 outline-none focus:border-[#E6B450]/50 transition-colors resize-none leading-relaxed"
                     />
                   </div>
-                  {isDuplicate && (
-                    <p className="text-[11px] text-[#FF8F40] mt-1.5">
-                      This URL is already in your list
-                      {dupOk ? " — click Start again to add anyway" : ""}.
-                    </p>
+                  {duplicates.length > 0 && (
+                    <div className="mt-1.5">
+                      <p className="text-[11px] text-[#FF8F40]">
+                        {urls.length === 1
+                          ? "This URL is already in your list."
+                          : `${duplicates.length} of these URLs ${
+                              duplicates.length === 1 ? "is" : "are"
+                            } already in your list.`}
+                      </p>
+                      <label className="flex items-center gap-2 mt-1 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={skipDuplicates}
+                          onChange={(e) => setSkipDuplicates(e.target.checked)}
+                          className="accent-[#E6B450] w-3.5 h-3.5"
+                        />
+                        <span className="text-[11px] text-[#BFBDB6]">
+                          Skip duplicate{duplicates.length !== 1 ? "s" : ""} (uncheck to
+                          download again)
+                        </span>
+                      </label>
+                    </div>
                   )}
                 </label>
 
@@ -199,11 +284,11 @@ export function AddUrlDialog() {
                     className="px-5 py-2 rounded-lg bg-[#E6B450] hover:bg-[#F0C266] text-[#0B0E14] text-sm font-semibold disabled:opacity-60 flex items-center gap-2 transition-colors"
                   >
                     {busy && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    {busy
-                      ? "Starting…"
-                      : urls.length > 1
-                      ? `Start ${urls.length} Downloads`
-                      : "Start Download"}
+                    {(() => {
+                      if (busy) return "Starting…";
+                      const n = skipDuplicates ? freshUrls.length : urls.length;
+                      return n > 1 ? `Start ${n} Downloads` : "Start Download";
+                    })()}
                   </button>
                 </div>
               </motion.div>
