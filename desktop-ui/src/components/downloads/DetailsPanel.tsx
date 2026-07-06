@@ -88,6 +88,7 @@ export function DetailsPanel() {
             <Row label="Connections">
               {download.segments} {download.supportsRanges ? "(resumable)" : "(no resume support)"}
             </Row>
+            <SpeedLimitRow id={download.id} limit={download.speedLimitKbps} />
             <Row label="Added">{download.createdAt.toLocaleString()}</Row>
 
             <div>
@@ -156,6 +157,39 @@ export function DetailsPanel() {
         </motion.aside>
       )}
     </AnimatePresence>
+  );
+}
+
+/** Editable per-download cap (KB/s). Applies live to a running download. */
+function SpeedLimitRow({ id, limit }: { id: string; limit: number }) {
+  const setDownloadSpeedLimit = useDownloadsStore((s) => s.setDownloadSpeedLimit);
+  const [value, setValue] = useState(limit === 0 ? "" : String(limit));
+
+  // Re-sync when the panel switches downloads or the backend confirms a change.
+  useEffect(() => {
+    setValue(limit === 0 ? "" : String(limit));
+  }, [id, limit]);
+
+  const apply = () => {
+    const kbps = Math.max(0, parseInt(value, 10) || 0);
+    if (kbps !== limit) setDownloadSpeedLimit(id, kbps);
+  };
+
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <span className="text-[11px] text-[#8A9199] shrink-0">Speed limit</span>
+      <span className="flex items-center gap-1.5">
+        <input
+          value={value}
+          onChange={(e) => setValue(e.target.value.replace(/[^0-9]/g, ""))}
+          onBlur={apply}
+          onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+          placeholder="unlimited"
+          className="w-20 bg-white/[0.04] border border-white/[0.08] rounded-md text-xs text-[#E6E1CF] text-right px-2 py-1 outline-none focus:border-[#E6B450]/50 transition-colors tabular-nums placeholder:text-[#8A9199]/50"
+        />
+        <span className="text-[10px] text-[#8A9199]">KB/s</span>
+      </span>
+    </div>
   );
 }
 

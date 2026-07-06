@@ -29,6 +29,8 @@ pub fn run() {
             show_main_window(app);
         }))
         .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
@@ -150,6 +152,7 @@ pub fn run() {
             commands::restart_download,
             commands::get_download_segments,
             commands::schedule_download,
+            commands::set_download_speed_limit,
             commands::remove_download,
             commands::pause_all,
             commands::resume_all,
@@ -164,6 +167,7 @@ pub fn run() {
             commands::resolve_capture,
             commands::list_pending_captures,
             commands::ytdlp_status,
+            commands::ytdlp_check_update,
             commands::install_ytdlp,
             commands::install_ffmpeg,
             commands::probe_video,

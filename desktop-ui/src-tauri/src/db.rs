@@ -45,6 +45,7 @@ impl Db {
             "ALTER TABLE downloads ADD COLUMN request_headers TEXT",
             "ALTER TABLE downloads ADD COLUMN kind TEXT",
             "ALTER TABLE downloads ADD COLUMN video_format TEXT",
+            "ALTER TABLE downloads ADD COLUMN speed_limit_kbps INTEGER",
         ] {
             let _ = conn.execute(ddl, []);
         }
@@ -70,14 +71,14 @@ impl Db {
             .execute(
                 "INSERT INTO downloads (id, name, url, file_type, size_bytes, downloaded_bytes, status,
                     segments, modified_at, created_at, save_path, supports_ranges, error, segment_states,
-                    etag, last_modified, start_at, request_headers, kind, video_format)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)
+                    etag, last_modified, start_at, request_headers, kind, video_format, speed_limit_kbps)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21)
                  ON CONFLICT(id) DO UPDATE SET
                     name = ?2, url = ?3, file_type = ?4, size_bytes = ?5, downloaded_bytes = ?6,
                     status = ?7, segments = ?8, modified_at = ?9, save_path = ?11,
                     supports_ranges = ?12, error = ?13, segment_states = ?14,
                     etag = ?15, last_modified = ?16, start_at = ?17, request_headers = ?18,
-                    kind = ?19, video_format = ?20",
+                    kind = ?19, video_format = ?20, speed_limit_kbps = ?21",
                 params![
                     d.id,
                     d.name,
@@ -99,6 +100,7 @@ impl Db {
                     req_headers,
                     d.kind,
                     d.video_format,
+                    d.speed_limit_kbps as i64,
                 ],
             )
             .map_err(|e| e.to_string())?;
@@ -191,6 +193,7 @@ fn row_to_download(row: &rusqlite::Row) -> rusqlite::Result<Download> {
     let kind: Option<String> = row.get("kind")?;
     let video_format: Option<String> = row.get("video_format")?;
     let headers_json: Option<String> = row.get("request_headers")?;
+    let speed_limit_kbps: Option<i64> = row.get("speed_limit_kbps")?;
     let request_headers: Vec<(String, String)> = headers_json
         .and_then(|j| serde_json::from_str(&j).ok())
         .unwrap_or_default();
@@ -226,6 +229,7 @@ fn row_to_download(row: &rusqlite::Row) -> rusqlite::Result<Download> {
         created_at: row.get("created_at")?,
         start_at: row.get("start_at")?,
         kind: kind.filter(|k| !k.is_empty()).unwrap_or_else(crate::models::default_kind),
+        speed_limit_kbps: speed_limit_kbps.unwrap_or(0).max(0) as u64,
         video_format,
         etag: row.get("etag")?,
         last_modified: row.get("last_modified")?,

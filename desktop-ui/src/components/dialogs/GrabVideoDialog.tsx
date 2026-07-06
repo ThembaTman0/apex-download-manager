@@ -6,6 +6,7 @@ import {
   Download,
   FolderOpen,
   Link2,
+  ListVideo,
   Loader2,
   Music,
   Search,
@@ -40,16 +41,23 @@ export function GrabVideoDialog() {
   const [probe, setProbe] = useState<VideoProbe | null>(null);
   const [selected, setSelected] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [updateHint, setUpdateHint] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [queued, setQueued] = useState(0);
+  /** Playlist entries the user unticked (indices into probe.playlist). */
+  const [excluded, setExcluded] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (!open) return;
     setUrl("");
     setProbe(null);
     setError(null);
+    setUpdateHint(false);
     setProbing(false);
     setBusy(false);
+    setQueued(0);
     setSelected(0);
+    setExcluded(new Set());
     setSaveDir(settings?.downloadDir ?? "");
     backend.ytdlpStatus().then(setTools).catch(() => setTools(null));
     // Convenience: pre-fill from clipboard when it holds a URL.
@@ -70,13 +78,20 @@ export function GrabVideoDialog() {
     }
     setProbing(true);
     setError(null);
+    setUpdateHint(false);
     setProbe(null);
+    setExcluded(new Set());
     try {
       const p = await backend.probeVideo(url.trim());
       setProbe(p);
       setSelected(0);
     } catch (e) {
       setError(String(e));
+      // Stale yt-dlp is the usual culprit when a site stops working.
+      backend
+        .ytdlpCheckUpdate()
+        .then((u) => setUpdateHint(u.outdated))
+        .catch(() => {});
     } finally {
       setProbing(false);
     }
@@ -89,13 +104,26 @@ export function GrabVideoDialog() {
     setBusy(true);
     setError(null);
     try {
-      await addVideo(url.trim(), probe.title, opt.ext, opt.selector, saveDir || undefined);
+      if (probe.playlist) {
+        const picked = probe.playlist.filter((_, i) => !excluded.has(i));
+        let n = 0;
+        for (const entry of picked) {
+          setQueued(++n);
+          await addVideo(entry.url, entry.title, opt.ext, opt.selector, saveDir || undefined);
+        }
+      } else {
+        await addVideo(url.trim(), probe.title, opt.ext, opt.selector, saveDir || undefined);
+      }
       setOpen(false);
     } catch (e) {
       setError(String(e));
       setBusy(false);
     }
   };
+
+  const pickedCount = probe?.playlist
+    ? probe.playlist.length - excluded.size
+    : 1;
 
   const browse = async () => {
     const { open: openDialog } = await import("@tauri-apps/plugin-dialog");
@@ -220,8 +248,14 @@ export function GrabVideoDialog() {
                             <p className="text-sm text-[#E6E1CF] font-medium line-clamp-2">
                               {probe.title}
                             </p>
-                            <p className="text-[11px] text-[#8A9199] mt-0.5">
+                            <p className="text-[11px] text-[#8A9199] mt-0.5 flex items-center gap-1">
+                              {probe.playlist && <ListVideo className="w-3 h-3" />}
                               {[
+                                probe.playlist
+                                  ? `Playlist · ${probe.playlist.length} video${
+                                      probe.playlist.length !== 1 ? "s" : ""
+                                    }`
+                                  : null,
                                 probe.uploader,
                                 probe.durationSeconds
                                   ? formatDuration(probe.durationSeconds)
@@ -232,6 +266,55 @@ export function GrabVideoDialog() {
                             </p>
                           </div>
                         </div>
+
+                        {probe.playlist && (
+                          <div className="mb-4">
+                            <span className="text-xs font-medium text-[#8A9199] mb-1.5 flex items-center">
+                              Videos ({pickedCount} of {probe.playlist.length} selected)
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setExcluded(
+                                    excluded.size > 0
+                                      ? new Set()
+                                      : new Set(probe.playlist!.map((_, i) => i))
+                                  )
+                                }
+                                className="ml-auto text-[11px] text-[#8A9199] hover:text-[#E6E1CF] transition-colors"
+                              >
+                                {excluded.size > 0 ? "Select all" : "Select none"}
+                              </button>
+                            </span>
+                            <div className="rounded-lg border border-white/[0.08] divide-y divide-white/[0.04] overflow-y-auto max-h-44">
+                              {probe.playlist.map((entry, i) => (
+                                <label
+                                  key={i}
+                                  className="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-white/[0.03] transition-colors"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={!excluded.has(i)}
+                                    onChange={(e) => {
+                                      const next = new Set(excluded);
+                                      if (e.target.checked) next.delete(i);
+                                      else next.add(i);
+                                      setExcluded(next);
+                                    }}
+                                    className="accent-[#E6B450] w-3.5 h-3.5 shrink-0"
+                                  />
+                                  <span className="text-xs text-[#E6E1CF] truncate flex-1">
+                                    {entry.title}
+                                  </span>
+                                  {entry.durationSeconds != null && (
+                                    <span className="text-[10px] text-[#8A9199] tabular-nums shrink-0">
+                                      {formatDuration(entry.durationSeconds)}
+                                    </span>
+                                  )}
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
                         <div className="mb-4">
                           <span className="text-xs font-medium text-[#8A9199] mb-1.5 block">
@@ -310,6 +393,12 @@ export function GrabVideoDialog() {
                 {error && (
                   <p className="text-xs text-[#F07178] mb-4 break-all">{error}</p>
                 )}
+                {updateHint && (
+                  <p className="text-[11px] text-[#FF8F40] mb-4">
+                    A yt-dlp update is available — sites change often, and updating
+                    usually fixes this. Settings → Video Grabber → Update.
+                  </p>
+                )}
 
                 <div className="flex justify-end gap-2">
                   <Dialog.Close asChild>
@@ -319,7 +408,7 @@ export function GrabVideoDialog() {
                   </Dialog.Close>
                   {probe && (
                     <button
-                      disabled={busy}
+                      disabled={busy || pickedCount === 0}
                       onClick={grab}
                       className="px-5 py-2 rounded-lg bg-[#E6B450] hover:bg-[#F0C266] text-[#0B0E14] text-sm font-semibold disabled:opacity-60 flex items-center gap-2 transition-colors"
                     >
@@ -328,7 +417,13 @@ export function GrabVideoDialog() {
                       ) : (
                         <Download className="w-3.5 h-3.5" />
                       )}
-                      {busy ? "Starting…" : "Download"}
+                      {busy
+                        ? probe.playlist
+                          ? `Queueing ${queued}/${pickedCount}…`
+                          : "Starting…"
+                        : probe.playlist && pickedCount > 1
+                        ? `Download ${pickedCount} Videos`
+                        : "Download"}
                     </button>
                   )}
                 </div>

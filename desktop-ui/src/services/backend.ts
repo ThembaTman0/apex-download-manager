@@ -9,6 +9,7 @@ import type {
   ToolsProgress,
   ToolsStatus,
   VideoProbe,
+  YtdlpUpdateCheck,
 } from "@/types";
 
 /** Wire format: dates come across as unix millis. */
@@ -49,6 +50,8 @@ export const backend = {
   restartDownload: (id: string) => invoke<void>("restart_download", { id }),
   scheduleDownload: (id: string, startAt: number | null) =>
     invoke<void>("schedule_download", { id, startAt }),
+  setDownloadSpeedLimit: (id: string, kbps: number) =>
+    invoke<void>("set_download_speed_limit", { id, kbps }),
   getDownloadSegments: (id: string) =>
     invoke<Segment[]>("get_download_segments", { id }),
   computeChecksum: (id: string) => invoke<string>("compute_checksum", { id }),
@@ -77,6 +80,7 @@ export const backend = {
 
   // --- Video grabber (yt-dlp) ---
   ytdlpStatus: () => invoke<ToolsStatus>("ytdlp_status"),
+  ytdlpCheckUpdate: () => invoke<YtdlpUpdateCheck>("ytdlp_check_update"),
   installYtdlp: () => invoke<ToolsStatus>("install_ytdlp"),
   installFfmpeg: () => invoke<ToolsStatus>("install_ffmpeg"),
   probeVideo: (url: string) => invoke<VideoProbe>("probe_video", { url }),

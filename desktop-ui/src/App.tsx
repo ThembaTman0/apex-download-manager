@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle, X } from "lucide-react";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -27,10 +27,43 @@ export default function App() {
   const init = useDownloadsStore((s) => s.init);
   const lastError = useDownloadsStore((s) => s.lastError);
   const setLastError = useDownloadsStore((s) => s.setLastError);
+  const [updateVersion, setUpdateVersion] = useState<string | null>(null);
+  const [updateBusy, setUpdateBusy] = useState(false);
 
   useEffect(() => {
     init();
   }, [init]);
+
+  // Quiet update check shortly after launch (no-op in dev / when offline).
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      try {
+        const { check } = await import("@tauri-apps/plugin-updater");
+        const update = await check();
+        if (update) setUpdateVersion(update.version);
+      } catch {
+        // unsigned dev build or no network — ignore
+      }
+    }, 10_000);
+    return () => clearTimeout(t);
+  }, []);
+
+  const installUpdate = async () => {
+    setUpdateBusy(true);
+    try {
+      const { check } = await import("@tauri-apps/plugin-updater");
+      const update = await check();
+      if (update) {
+        await update.downloadAndInstall();
+        const { relaunch } = await import("@tauri-apps/plugin-process");
+        await relaunch();
+      }
+      setUpdateVersion(null);
+    } catch (e) {
+      setLastError(String(e));
+      setUpdateBusy(false);
+    }
+  };
 
   // Keyboard shortcuts: Del delete · Space pause/resume · Ctrl+A select all
   // · Enter open · Esc clear selection / close panel.
@@ -152,6 +185,35 @@ export default function App() {
       <ScheduleDialog />
       <ClipboardToast />
       <QueueActionToast />
+
+      {/* Update-available toast */}
+      <AnimatePresence>
+        {updateVersion && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 rounded-xl bg-[#161B24] border border-[#E6B450]/30 shadow-2xl shadow-black/50 px-4 py-3 flex items-center gap-3"
+          >
+            <p className="text-xs text-[#BFBDB6]">
+              Apex v{updateVersion} is available.
+            </p>
+            <button
+              onClick={installUpdate}
+              disabled={updateBusy}
+              className="px-3 py-1.5 rounded-lg bg-[#E6B450] hover:bg-[#F0C266] text-[#0B0E14] text-xs font-semibold disabled:opacity-60 transition-colors"
+            >
+              {updateBusy ? "Installing…" : "Install & Restart"}
+            </button>
+            <button
+              onClick={() => setUpdateVersion(null)}
+              className="text-[#8A9199] hover:text-[#E6E1CF] transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Error toast */}
       <AnimatePresence>

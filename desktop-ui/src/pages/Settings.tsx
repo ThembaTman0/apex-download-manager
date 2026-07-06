@@ -14,6 +14,7 @@ import {
   Layers,
   ListOrdered,
   Loader2,
+  Network,
   Power,
   RefreshCw,
   Save,
@@ -140,6 +141,20 @@ export function SettingsPage() {
           />
         </Field>
 
+        <Field
+          icon={Network}
+          label="Proxy"
+          hint="http://host:port or socks5://host:port, with optional user:pass@. Applies to all downloads including video grabbing. Leave empty for a direct connection"
+        >
+          <input
+            value={form.proxyUrl}
+            onChange={(e) => update({ proxyUrl: e.target.value })}
+            placeholder="Direct connection (no proxy)"
+            spellCheck={false}
+            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-[#E6E1CF] font-mono placeholder:text-[#8A9199]/50 placeholder:font-sans px-3 py-2.5 outline-none focus:border-[#E6B450]/50 transition-colors"
+          />
+        </Field>
+
         <Field icon={Bell} label="Notifications" hint="">
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
             <input
@@ -210,6 +225,9 @@ export function SettingsPage() {
         </Field>
 
         <div className="border-t border-white/[0.06] my-6" />
+        <AppUpdatesSection />
+
+        <div className="border-t border-white/[0.06] my-6" />
         <VideoGrabberSection />
 
         <div className="border-t border-white/[0.06] my-6" />
@@ -219,9 +237,11 @@ export function SettingsPage() {
         </h2>
         <p className="text-[11px] text-[#8A9199] mb-4 leading-relaxed">
           Install the extension from the{" "}
-          <code className="text-[#BFBDB6]">browser-extension</code> folder
-          (chrome://extensions → Load unpacked), then paste this token into its
-          popup. Downloads you start in the browser are then captured by Apex.
+          <code className="text-[#BFBDB6]">browser-extension</code> folder —
+          Chrome/Edge: chrome://extensions → Load unpacked · Firefox:
+          about:debugging → Load Temporary Add-on — then paste this token into
+          its popup. Downloads you start in the browser are then captured by
+          Apex.
         </p>
 
         <Field icon={ClipboardCopy} label="Capture" hint="">
@@ -329,15 +349,125 @@ export function SettingsPage() {
   );
 }
 
+/** App version + manual update check (updates come from GitHub Releases). */
+function AppUpdatesSection() {
+  const [version, setVersion] = useState("");
+  const [state, setState] = useState<
+    "idle" | "checking" | "none" | "installing" | "error"
+  >("idle");
+  const [available, setAvailable] = useState<string | null>(null);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    import("@tauri-apps/api/app")
+      .then(({ getVersion }) => getVersion())
+      .then(setVersion)
+      .catch(() => {});
+  }, []);
+
+  const checkNow = async () => {
+    setState("checking");
+    setError(null);
+    setAvailable(null);
+    try {
+      const { check } = await import("@tauri-apps/plugin-updater");
+      const update = await check();
+      if (update) {
+        setAvailable(update.version);
+        setState("idle");
+      } else {
+        setState("none");
+      }
+    } catch (e) {
+      setError(String(e));
+      setState("error");
+    }
+  };
+
+  const installNow = async () => {
+    setState("installing");
+    setError(null);
+    try {
+      const { check } = await import("@tauri-apps/plugin-updater");
+      const update = await check();
+      if (!update) {
+        setState("none");
+        return;
+      }
+      let total = 0;
+      let done = 0;
+      await update.downloadAndInstall((ev) => {
+        if (ev.event === "Started") total = ev.data.contentLength ?? 0;
+        if (ev.event === "Progress") {
+          done += ev.data.chunkLength;
+          setProgress({ done, total });
+        }
+      });
+      const { relaunch } = await import("@tauri-apps/plugin-process");
+      await relaunch();
+    } catch (e) {
+      setError(String(e));
+      setState("error");
+      setProgress(null);
+    }
+  };
+
+  return (
+    <>
+      <h2 className="text-sm font-semibold text-[#E6E1CF] mb-1 flex items-center gap-2">
+        <RefreshCw className="w-4 h-4 text-[#8A9199]" />
+        Updates
+      </h2>
+      <p className="text-[11px] text-[#8A9199] mb-4 leading-relaxed">
+        Apex {version ? `v${version}` : ""} — updates are downloaded from GitHub
+        Releases and verified before installing.
+      </p>
+      <div className="flex items-center gap-3 mb-5">
+        <button
+          onClick={available ? installNow : checkNow}
+          disabled={state === "checking" || state === "installing"}
+          className="px-4 py-2 rounded-lg bg-white/[0.06] border border-white/[0.08] text-xs font-medium text-[#8A9199] hover:text-[#E6E1CF] hover:bg-white/[0.1] disabled:opacity-50 flex items-center gap-1.5 transition-colors"
+        >
+          {(state === "checking" || state === "installing") && (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          )}
+          {state === "installing"
+            ? progress?.total
+              ? `Installing… ${Math.round((progress.done / progress.total) * 100)}%`
+              : "Installing…"
+            : available
+            ? `Install v${available} & Restart`
+            : state === "checking"
+            ? "Checking…"
+            : "Check for Updates"}
+        </button>
+        {state === "none" && (
+          <span className="text-xs text-[#7FD962]">You're up to date ✓</span>
+        )}
+        {available && state !== "installing" && (
+          <span className="text-xs text-[#FF8F40]">Update v{available} available</span>
+        )}
+      </div>
+      {error && <p className="text-xs text-[#F07178] mb-4 break-all">{error}</p>}
+    </>
+  );
+}
+
 /** yt-dlp / ffmpeg status with one-click installers. */
 function VideoGrabberSection() {
   const [tools, setTools] = useState<ToolsStatus | null>(null);
   const [installing, setInstalling] = useState<"yt-dlp" | "ffmpeg" | null>(null);
   const [progress, setProgress] = useState<{ downloaded: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [updateAvailable, setUpdateAvailable] = useState<string | null>(null);
 
   useEffect(() => {
     backend.ytdlpStatus().then(setTools).catch(() => {});
+    backend
+      .ytdlpCheckUpdate()
+      .then((u) => setUpdateAvailable(u.outdated ? u.latest : null))
+      .catch(() => {});
     let unlisten: (() => void) | undefined;
     backend
       .onToolsProgress((p) => setProgress({ downloaded: p.downloaded, total: p.total }))
@@ -352,6 +482,7 @@ function VideoGrabberSection() {
     try {
       const s = tool === "yt-dlp" ? await backend.installYtdlp() : await backend.installFfmpeg();
       setTools(s);
+      if (tool === "yt-dlp") setUpdateAvailable(null);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -376,8 +507,14 @@ function VideoGrabberSection() {
       <ToolRow
         name="yt-dlp"
         required
-        status={tools?.ytdlpPath ? `Installed${tools.ytdlpVersion ? ` · v${tools.ytdlpVersion}` : ""}` : "Not installed"}
-        ok={!!tools?.ytdlpPath}
+        status={
+          tools?.ytdlpPath
+            ? `Installed${tools.ytdlpVersion ? ` · v${tools.ytdlpVersion}` : ""}${
+                updateAvailable ? ` — update available (v${updateAvailable})` : ""
+              }`
+            : "Not installed"
+        }
+        ok={!!tools?.ytdlpPath && !updateAvailable}
         installing={installing === "yt-dlp"}
         progress={installing === "yt-dlp" ? progress : null}
         onInstall={() => install("yt-dlp")}

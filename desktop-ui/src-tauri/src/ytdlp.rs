@@ -94,6 +94,49 @@ pub async fn status(app: &AppHandle) -> ToolsStatus {
     }
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateCheck {
+    pub current: Option<String>,
+    pub latest: Option<String>,
+    pub outdated: bool,
+}
+
+/// Compare the installed yt-dlp against the newest GitHub release. yt-dlp
+/// breaks whenever sites change their players, so staleness is the #1 cause
+/// of grabber failures.
+pub async fn check_update(app: &AppHandle) -> UpdateCheck {
+    let s = status(app).await;
+    let latest = latest_ytdlp_version().await;
+    let outdated = matches!(
+        (&s.ytdlp_version, &latest),
+        (Some(cur), Some(new)) if cur != new
+    );
+    UpdateCheck {
+        current: s.ytdlp_version,
+        latest,
+        outdated,
+    }
+}
+
+/// Latest release tag, read from the releases/latest redirect (no API quota).
+async fn latest_ytdlp_version() -> Option<String> {
+    let client = reqwest::Client::builder()
+        .user_agent("ApexDownloadManager/1.0")
+        .redirect(reqwest::redirect::Policy::none())
+        .connect_timeout(Duration::from_secs(10))
+        .build()
+        .ok()?;
+    let resp = client
+        .get("https://github.com/yt-dlp/yt-dlp/releases/latest")
+        .send()
+        .await
+        .ok()?;
+    let loc = resp.headers().get(reqwest::header::LOCATION)?.to_str().ok()?;
+    let tag = loc.trim_end_matches('/').rsplit('/').next()?.trim();
+    (!tag.is_empty() && tag != "releases").then(|| tag.to_string())
+}
+
 /// Stream `url` to `dest`, emitting `tools:progress` so the UI can show a bar.
 async fn fetch_to_file(app: &AppHandle, url: &str, dest: &Path, tool: &str) -> Result<(), String> {
     let client = reqwest::Client::builder()
@@ -204,6 +247,14 @@ pub struct FormatOption {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct PlaylistEntry {
+    pub url: String,
+    pub title: String,
+    pub duration_seconds: Option<f64>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct VideoProbe {
     pub title: String,
     pub uploader: Option<String>,
@@ -211,18 +262,29 @@ pub struct VideoProbe {
     pub thumbnail: Option<String>,
     pub has_ffmpeg: bool,
     pub options: Vec<FormatOption>,
+    /// Present when the URL is a playlist: its videos, in playlist order.
+    /// `options` then holds generic quality ladders (per-video formats vary).
+    pub playlist: Option<Vec<PlaylistEntry>>,
 }
+
+const MAX_PLAYLIST_ENTRIES: usize = 200;
 
 pub async fn probe(app: &AppHandle, url: &str) -> Result<VideoProbe, String> {
     let ytdlp = find_ytdlp(app)
         .ok_or("yt-dlp is not installed — install it under Settings → Video Grabber")?;
-    let output = tokio::time::timeout(
-        Duration::from_secs(90),
-        command(&ytdlp)
-            .args(["-J", "--no-playlist", "--no-warnings", "--"])
-            .arg(url)
-            .output(),
-    )
+    let proxy_url = app
+        .try_state::<crate::engine::DownloadManager>()
+        .map(|m| m.get_settings().proxy_url)
+        .unwrap_or_default();
+    // --flat-playlist: playlist URLs list their entries without probing each
+    // video (fast); plain video URLs still return full format data.
+    let mut cmd = command(&ytdlp);
+    cmd.args(["-J", "--flat-playlist", "--no-warnings"]);
+    if !proxy_url.is_empty() {
+        cmd.arg("--proxy").arg(&proxy_url);
+    }
+    cmd.arg("--").arg(url);
+    let output = tokio::time::timeout(Duration::from_secs(90), cmd.output())
     .await
     .map_err(|_| "yt-dlp timed out while analyzing the URL".to_string())?
     .map_err(|e| format!("cannot run yt-dlp: {e}"))?;
@@ -240,7 +302,90 @@ pub async fn probe(app: &AppHandle, url: &str) -> Result<VideoProbe, String> {
     let json: serde_json::Value =
         serde_json::from_slice(&output.stdout).map_err(|e| format!("bad yt-dlp output: {e}"))?;
     let has_ffmpeg = find_ffmpeg(app).is_some();
-    Ok(build_probe(&json, has_ffmpeg))
+    if json["_type"].as_str() == Some("playlist") {
+        Ok(build_playlist_probe(&json, has_ffmpeg))
+    } else {
+        Ok(build_probe(&json, has_ffmpeg))
+    }
+}
+
+fn build_playlist_probe(json: &serde_json::Value, has_ffmpeg: bool) -> VideoProbe {
+    let entries = json["entries"]
+        .as_array()
+        .map(|a| a.as_slice())
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|e| {
+            let title = e["title"].as_str().unwrap_or("video").to_string();
+            let url = e["webpage_url"]
+                .as_str()
+                .or_else(|| e["url"].as_str())
+                .filter(|u| u.starts_with("http"))
+                .map(String::from)
+                .or_else(|| {
+                    // Flat YouTube entries sometimes carry only the video id.
+                    let id = e["id"].as_str()?;
+                    let ie = e["ie_key"].as_str().unwrap_or_default().to_lowercase();
+                    ie.contains("youtube")
+                        .then(|| format!("https://www.youtube.com/watch?v={id}"))
+                })?;
+            Some(PlaylistEntry {
+                url,
+                title,
+                duration_seconds: e["duration"].as_f64(),
+            })
+        })
+        .take(MAX_PLAYLIST_ENTRIES)
+        .collect::<Vec<_>>();
+
+    // Generic ladder — per-video formats differ, so offer height caps.
+    let sel = |h: u64| {
+        if has_ffmpeg {
+            format!("bv*[height<={h}]+ba/b[height<={h}]")
+        } else {
+            format!("b[height<={h}]")
+        }
+    };
+    let mut options = vec![FormatOption {
+        selector: if has_ffmpeg { "bv*+ba/b".into() } else { "b".into() },
+        label: "Best available".into(),
+        ext: "mp4".into(),
+        audio_only: false,
+        size_bytes: None,
+    }];
+    for h in [1080u64, 720, 480, 360] {
+        options.push(FormatOption {
+            selector: sel(h),
+            label: format!("Up to {h}p"),
+            ext: "mp4".into(),
+            audio_only: false,
+            size_bytes: None,
+        });
+    }
+    options.push(FormatOption {
+        selector: "ba[ext=m4a]/ba/b".into(),
+        label: "Audio only".into(),
+        ext: "m4a".into(),
+        audio_only: true,
+        size_bytes: None,
+    });
+
+    VideoProbe {
+        title: json["title"].as_str().unwrap_or("Playlist").to_string(),
+        uploader: json["uploader"]
+            .as_str()
+            .or_else(|| json["channel"].as_str())
+            .map(String::from),
+        duration_seconds: None,
+        thumbnail: json["thumbnails"]
+            .as_array()
+            .and_then(|t| t.last())
+            .and_then(|t| t["url"].as_str())
+            .map(String::from),
+        has_ffmpeg,
+        options,
+        playlist: Some(entries),
+    }
 }
 
 fn build_probe(json: &serde_json::Value, has_ffmpeg: bool) -> VideoProbe {
@@ -377,6 +522,7 @@ fn build_probe(json: &serde_json::Value, has_ffmpeg: bool) -> VideoProbe {
         thumbnail: json["thumbnail"].as_str().map(String::from),
         has_ffmpeg,
         options,
+        playlist: None,
     }
 }
 
@@ -414,7 +560,16 @@ pub(crate) async fn drive_video(ctx: &TaskCtx, d: &mut Download) -> Result<bool,
         .video_format
         .clone()
         .unwrap_or_else(|| "bv*+ba/b".to_string());
-    let speed_limit = ctx.settings.lock().unwrap().speed_limit_kbps;
+    let (global_limit, proxy_url) = {
+        let s = ctx.settings.lock().unwrap();
+        (s.speed_limit_kbps, s.proxy_url.clone())
+    };
+    // yt-dlp takes a single -r, so honor the tighter of the two caps.
+    let speed_limit = match (d.speed_limit_kbps, global_limit) {
+        (0, g) => g,
+        (t, 0) => t,
+        (t, g) => t.min(g),
+    };
 
     let mut cmd = command(&ytdlp);
     cmd.args([
@@ -444,6 +599,9 @@ pub(crate) async fn drive_video(ctx: &TaskCtx, d: &mut Download) -> Result<bool,
     }
     if speed_limit > 0 {
         cmd.arg("-r").arg(format!("{speed_limit}K"));
+    }
+    if !proxy_url.is_empty() {
+        cmd.arg("--proxy").arg(&proxy_url);
     }
     cmd.arg("--").arg(&d.url);
     cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
@@ -644,3 +802,4 @@ pub fn remove_partials(d: &Download) {
         }
     }
 }
+

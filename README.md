@@ -18,11 +18,16 @@ restarts, and network drops — wrapped in a clean, minimal desktop UI.
 - Resume integrity: `ETag`/`If-Range` validation prevents silently corrupted files
 - Automatic retry with backoff on stalls and dropped connections
 - Download queue with a concurrency limit and global speed limiting
+- Per-download speed caps, adjustable live while the download runs
+- Proxy support (HTTP / HTTPS / SOCKS5, with authentication)
 - Scheduling: start any download at a chosen time, sleep/shut down when the queue finishes
+- Video grabber: yt-dlp integration with quality picker, playlists, and
+  one-click tool install (ffmpeg merging for highest resolutions)
 
 **Capture**
-- Browser extension (Chrome / Edge / Brave) that hands downloads to Apex —
-  and safely falls back to the browser when Apex isn't running
+- Browser extension (Chrome / Edge / Brave / Firefox) that hands downloads to
+  Apex — and safely falls back to the browser when Apex isn't running
+- Cookie/referer handoff so downloads behind logins just work
 - Clipboard watcher: copy a download link anywhere, get a one-click toast
 - Drag & drop URLs onto the window, batch-add multiple URLs at once
 
@@ -82,12 +87,15 @@ npm run tauri build    # produces MSI / NSIS installers
 
 ## Roadmap
 
-- [ ] Video grabber (yt-dlp integration)
-- [ ] Cookie handoff for authenticated downloads
-- [ ] Proxy support
+- [x] Video grabber (yt-dlp integration)
+- [x] Cookie handoff for authenticated downloads
+- [x] Proxy support
+- [x] Firefox extension
+- [x] Auto-updates (GitHub Releases)
 - [ ] Dynamic segment re-splitting
-- [ ] Firefox extension
-- [ ] Code signing + auto-updates
+- [ ] Code signing
+- [ ] Extension store publishing (Chrome Web Store / AMO)
+- [ ] Bandwidth scheduler (off-peak speed profiles)
 
 ## License
 

@@ -42,6 +42,15 @@ pub async fn get_download_segments(
 }
 
 #[tauri::command]
+pub async fn set_download_speed_limit(
+    mgr: State<'_, DownloadManager>,
+    id: String,
+    kbps: u64,
+) -> Result<(), String> {
+    mgr.set_speed_limit(&id, kbps)
+}
+
+#[tauri::command]
 pub async fn schedule_download(
     mgr: State<'_, DownloadManager>,
     id: String,
@@ -97,6 +106,13 @@ pub async fn resolve_capture(
 #[tauri::command]
 pub async fn ytdlp_status(app: tauri::AppHandle) -> Result<crate::ytdlp::ToolsStatus, String> {
     Ok(crate::ytdlp::status(&app).await)
+}
+
+#[tauri::command]
+pub async fn ytdlp_check_update(
+    app: tauri::AppHandle,
+) -> Result<crate::ytdlp::UpdateCheck, String> {
+    Ok(crate::ytdlp::check_update(&app).await)
 }
 
 #[tauri::command]

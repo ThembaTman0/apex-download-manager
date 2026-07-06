@@ -27,6 +27,8 @@ export interface Download {
   startAt: number | null;
   /** "http" = segmented engine, "video" = fetched via yt-dlp. */
   kind: "http" | "video";
+  /** Per-download speed cap in KB/s; 0 = uncapped (global limit still applies). */
+  speedLimitKbps: number;
   /** yt-dlp format selector (kind === "video"). */
   videoFormat?: string;
 }
@@ -48,6 +50,8 @@ export interface Settings {
   segmentsPerDownload: number;
   /** 0 = unlimited */
   speedLimitKbps: number;
+  /** "" = direct connection; http://, https:// or socks5:// URL otherwise. */
+  proxyUrl: string;
   notifyOnComplete: boolean;
   watchClipboard: boolean;
   autoOrganize: boolean;
@@ -88,6 +92,12 @@ export interface VideoFormatOption {
   sizeBytes: number | null;
 }
 
+export interface PlaylistEntry {
+  url: string;
+  title: string;
+  durationSeconds: number | null;
+}
+
 export interface VideoProbe {
   title: string;
   uploader: string | null;
@@ -95,6 +105,14 @@ export interface VideoProbe {
   thumbnail: string | null;
   hasFfmpeg: boolean;
   options: VideoFormatOption[];
+  /** Present when the URL is a playlist; options are generic ladders. */
+  playlist: PlaylistEntry[] | null;
+}
+
+export interface YtdlpUpdateCheck {
+  current: string | null;
+  latest: string | null;
+  outdated: boolean;
 }
 
 export interface DiskUsage {

@@ -58,9 +58,29 @@ pub struct DownloadManager {
     active: Arc<Mutex<HashMap<String, ActiveHandle>>>,
     settings: Arc<Mutex<Settings>>,
     limiter: Arc<RateLimiter>,
-    client: reqwest::Client,
+    /// Per-download limiters for running tasks, so a limit change applies to
+    /// an in-flight download immediately.
+    task_limiters: Arc<Mutex<HashMap<String, Arc<RateLimiter>>>>,
+    /// Rebuilt when the proxy setting changes; running tasks keep the client
+    /// they started with, new ones pick up the fresh one.
+    client: Arc<Mutex<reqwest::Client>>,
     /// Ordered so the approval window shows captures in arrival order.
     pending_captures: Arc<Mutex<Vec<PendingCapture>>>,
+}
+
+/// Build the shared HTTP client, optionally routed through a proxy
+/// (http://, https:// or socks5://, with optional user:pass@).
+fn build_client(proxy_url: &str) -> Result<reqwest::Client, String> {
+    let mut builder = reqwest::Client::builder()
+        .user_agent("ApexDownloadManager/1.0")
+        .connect_timeout(Duration::from_secs(30));
+    let proxy_url = proxy_url.trim();
+    if !proxy_url.is_empty() {
+        let proxy = reqwest::Proxy::all(proxy_url)
+            .map_err(|e| format!("invalid proxy \"{proxy_url}\": {e}"))?;
+        builder = builder.proxy(proxy);
+    }
+    builder.build().map_err(|e| e.to_string())
 }
 
 impl DownloadManager {
@@ -73,18 +93,17 @@ impl DownloadManager {
             db.save_settings(&settings)?;
         }
         let limiter = Arc::new(RateLimiter::new(settings.speed_limit_kbps * 1024));
-        let client = reqwest::Client::builder()
-            .user_agent("ApexDownloadManager/1.0")
-            .connect_timeout(Duration::from_secs(30))
-            .build()
-            .map_err(|e| e.to_string())?;
+        // A saved-but-now-invalid proxy must not brick startup; fall back to
+        // a direct connection (Settings still shows the configured value).
+        let client = build_client(&settings.proxy_url).or_else(|_| build_client(""))?;
         Ok(DownloadManager {
             app,
             db: Arc::new(Mutex::new(db)),
             active: Arc::new(Mutex::new(HashMap::new())),
             settings: Arc::new(Mutex::new(settings)),
             limiter,
-            client,
+            task_limiters: Arc::new(Mutex::new(HashMap::new())),
+            client: Arc::new(Mutex::new(client)),
             pending_captures: Arc::new(Mutex::new(Vec::new())),
         })
     }
@@ -96,6 +115,7 @@ impl DownloadManager {
             active: self.active.clone(),
             settings: self.settings.clone(),
             limiter: self.limiter.clone(),
+            task_limiters: self.task_limiters.clone(),
             client: self.client.clone(),
             pending_captures: self.pending_captures.clone(),
         }
@@ -117,8 +137,14 @@ impl DownloadManager {
         let s = Settings {
             max_concurrent: s.max_concurrent.clamp(1, 10),
             segments_per_download: s.segments_per_download.clamp(1, 32),
+            proxy_url: s.proxy_url.trim().to_string(),
             ..s
         };
+        // Validate + rebuild the client before persisting, so a bad proxy URL
+        // is rejected at save time instead of failing every download.
+        if s.proxy_url != self.settings.lock().unwrap().proxy_url {
+            *self.client.lock().unwrap() = build_client(&s.proxy_url)?;
+        }
         self.db.lock().unwrap().save_settings(&s)?;
         self.limiter.set_limit(s.speed_limit_kbps * 1024);
         *self.settings.lock().unwrap() = s.clone();
@@ -175,6 +201,7 @@ impl DownloadManager {
             created_at: now,
             start_at: None,
             kind: crate::models::default_kind(),
+            speed_limit_kbps: 0,
             video_format: None,
             etag: None,
             last_modified: None,
@@ -240,6 +267,7 @@ impl DownloadManager {
             created_at: now,
             start_at: None,
             kind: "video".into(),
+            speed_limit_kbps: 0,
             video_format: Some(selector),
             etag: None,
             last_modified: None,
@@ -382,6 +410,26 @@ impl DownloadManager {
             .or(pending.file_name);
         let d = self.add(pending.url, save_dir, name, pending.request_headers)?;
         Ok(Some(d))
+    }
+
+    /// Cap one download's speed (KB/s, 0 = uncapped). Takes effect
+    /// immediately when the download is running; yt-dlp downloads pick the
+    /// new limit up on their next start.
+    pub fn set_speed_limit(&self, id: &str, kbps: u64) -> Result<(), String> {
+        let mut d = self
+            .db
+            .lock()
+            .unwrap()
+            .get_download(id)?
+            .ok_or("download not found")?;
+        d.speed_limit_kbps = kbps;
+        d.modified_at = now_millis();
+        self.db.lock().unwrap().upsert_download(&d)?;
+        if let Some(l) = self.task_limiters.lock().unwrap().get(id) {
+            l.set_limit(kbps * 1024);
+        }
+        self.emit_changed(&d);
+        Ok(())
     }
 
     pub fn pause(&self, id: &str) -> Result<(), String> {
@@ -557,12 +605,18 @@ impl DownloadManager {
 
         let cancel = CancellationToken::new();
         let removing = Arc::new(AtomicBool::new(false));
+        let task_limiter = Arc::new(RateLimiter::new(d.speed_limit_kbps * 1024));
+        self.task_limiters
+            .lock()
+            .unwrap()
+            .insert(id.to_string(), task_limiter.clone());
         let ctx = TaskCtx {
             app: self.app.clone(),
             db: self.db.clone(),
             settings: self.settings.clone(),
             limiter: self.limiter.clone(),
-            client: self.client.clone(),
+            task_limiter,
+            client: self.client.lock().unwrap().clone(),
             cancel: cancel.clone(),
             removing: removing.clone(),
         };
@@ -617,16 +671,68 @@ pub(crate) struct TaskCtx {
     pub(crate) db: Arc<Mutex<Db>>,
     pub(crate) settings: Arc<Mutex<Settings>>,
     pub(crate) limiter: Arc<RateLimiter>,
+    /// This download's own cap, on top of the global limiter.
+    pub(crate) task_limiter: Arc<RateLimiter>,
     pub(crate) client: reqwest::Client,
     pub(crate) cancel: CancellationToken,
     pub(crate) removing: Arc<AtomicBool>,
 }
 
+/// Whole-download retry attempts after a failure (on top of the per-segment
+/// retries inside drive_download). Delays grow 5s → 15s → 45s.
+const MAX_RETRIES: u32 = 3;
+
+/// Errors worth retrying: transient network/server trouble. Permanent
+/// conditions (bad disk path, gone/private content, missing tools) fail fast.
+fn is_retryable(e: &str) -> bool {
+    let e = e.to_lowercase();
+    const PERMANENT: [&str; 8] = [
+        "cannot create",
+        "cannot allocate",
+        "cannot finalize",
+        "only http",
+        "not installed",
+        "404",
+        "video unavailable",
+        "private video",
+    ];
+    !PERMANENT.iter().any(|p| e.contains(p))
+}
+
 async fn run_download(ctx: TaskCtx, mgr: DownloadManager, mut d: Download) {
-    let outcome = if d.kind == "video" {
-        crate::ytdlp::drive_video(&ctx, &mut d).await
-    } else {
-        drive_download(&ctx, &mut d).await
+    let mut attempt: u32 = 0;
+    let outcome = loop {
+        let r = if d.kind == "video" {
+            crate::ytdlp::drive_video(&ctx, &mut d).await
+        } else {
+            drive_download(&ctx, &mut d).await
+        };
+        match &r {
+            Err(e)
+                if attempt < MAX_RETRIES
+                    && is_retryable(e)
+                    && !ctx.cancel.is_cancelled()
+                    && !ctx.removing.load(Ordering::SeqCst) =>
+            {
+                attempt += 1;
+                let delay = Duration::from_secs(5 * 3u64.pow(attempt - 1));
+                d.error = Some(format!(
+                    "{e} — retrying in {}s ({attempt}/{MAX_RETRIES})",
+                    delay.as_secs()
+                ));
+                d.speed_bytes_per_sec = 0;
+                d.eta_seconds = 0;
+                d.modified_at = now_millis();
+                let _ = ctx.db.lock().unwrap().upsert_download(&d);
+                let _ = ctx.app.emit(EVENT_CHANGED, &d);
+                tokio::select! {
+                    _ = ctx.cancel.cancelled() => break Ok(false),
+                    _ = tokio::time::sleep(delay) => {}
+                }
+                d.error = None;
+            }
+            _ => break r,
+        }
     };
 
     let removing = ctx.removing.load(Ordering::SeqCst);
@@ -668,6 +774,7 @@ async fn run_download(ctx: TaskCtx, mgr: DownloadManager, mut d: Download) {
 
     // Deregister (remove()/restart() may have already taken the entry).
     mgr.active.lock().unwrap().remove(&d.id);
+    mgr.task_limiters.lock().unwrap().remove(&d.id);
     if !removing {
         mgr.promote_queued();
 
@@ -811,6 +918,7 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
         let tmp = tmp.clone();
         let counters = counters.clone();
         let limiter = ctx.limiter.clone();
+        let task_limiter = ctx.task_limiter.clone();
         let token = fail_cancel.clone();
         let supports_ranges = d.supports_ranges;
         let known_size = d.size_bytes > 0;
@@ -825,6 +933,7 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
                 i,
                 &counters,
                 &limiter,
+                &task_limiter,
                 &token,
                 supports_ranges,
                 known_size,
@@ -1095,6 +1204,7 @@ async fn download_segment(
     index: usize,
     counters: &[AtomicU64],
     limiter: &RateLimiter,
+    task_limiter: &RateLimiter,
     token: &CancellationToken,
     supports_ranges: bool,
     known_size: bool,
@@ -1202,6 +1312,7 @@ async fn download_segment(
             match chunk {
                 Some(bytes) => {
                     limiter.acquire(bytes.len() as u64, token).await;
+                    task_limiter.acquire(bytes.len() as u64, token).await;
                     // Never write past our range (defensive against sloppy servers).
                     let bytes = if let Some(exp) = expected {
                         let remaining = exp - done;

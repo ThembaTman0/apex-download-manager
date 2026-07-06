@@ -56,6 +56,7 @@ interface DownloadsState {
   setCategoryFilter: (f: "all" | Category) => void;
   setQueueEmptyAction: (a: string | null) => void;
   scheduleDownload: (id: string, startAt: number | null) => Promise<void>;
+  setDownloadSpeedLimit: (id: string, kbps: number) => Promise<void>;
   toggleSelect: (id: string) => void;
   selectAll: () => void;
   clearSelection: () => void;
@@ -194,6 +195,14 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
   scheduleDownload: async (id, startAt) => {
     try {
       await backend.scheduleDownload(id, startAt);
+    } catch (e) {
+      set({ lastError: String(e) });
+    }
+  },
+
+  setDownloadSpeedLimit: async (id, kbps) => {
+    try {
+      await backend.setDownloadSpeedLimit(id, kbps);
     } catch (e) {
       set({ lastError: String(e) });
     }

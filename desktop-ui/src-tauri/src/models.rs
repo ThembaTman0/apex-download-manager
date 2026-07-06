@@ -72,6 +72,10 @@ pub struct Download {
     /// "http" (segmented engine) or "video" (driven by yt-dlp).
     #[serde(default = "default_kind")]
     pub kind: String,
+    /// Per-download speed cap in KB/s; 0 = no cap (the global limit still
+    /// applies on top). Adjustable while the download runs.
+    #[serde(default)]
+    pub speed_limit_kbps: u64,
     /// yt-dlp -f selector chosen in the quality picker (kind == "video").
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub video_format: Option<String>,
@@ -100,6 +104,10 @@ pub struct Settings {
     pub segments_per_download: u32,
     /// 0 = unlimited
     pub speed_limit_kbps: u64,
+    /// Proxy for all downloads: "" = direct connection. Accepts
+    /// http://host:port, https://host:port or socks5://host:port, with
+    /// optional user:pass@ credentials. Also passed to yt-dlp.
+    pub proxy_url: String,
     pub notify_on_complete: bool,
     /// Watch the clipboard for downloadable URLs and offer to grab them.
     pub watch_clipboard: bool,
@@ -126,6 +134,7 @@ impl Default for Settings {
             max_concurrent: 3,
             segments_per_download: 8,
             speed_limit_kbps: 0,
+            proxy_url: String::new(),
             notify_on_complete: true,
             watch_clipboard: true,
             auto_organize: false,

@@ -1,0 +1,50 @@
+# Builds the Windows installer + updater artifacts and publishes a GitHub
+# Release whenever a v* tag is pushed. The release includes latest.json,
+# which the in-app updater polls.
+#
+# Required repo secret:
+#   TAURI_SIGNING_PRIVATE_KEY — contents of ~/.tauri/apex-updater.key
+#   (TAURI_SIGNING_PRIVATE_KEY_PASSWORD too, if the key has a password)
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop-ui/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: desktop-ui/src-tauri
+
+      - name: Install frontend dependencies
+        working-directory: desktop-ui
+        run: npm ci
+
+      - name: Build and publish release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: desktop-ui
+          tagName: ${{ github.ref_name }}
+          releaseName: "Apex Download Manager ${{ github.ref_name }}"
+          releaseDraft: false
+          prerelease: false
