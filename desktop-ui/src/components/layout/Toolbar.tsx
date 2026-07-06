@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  ListOrdered,
   Pause,
   PauseCircle,
   Play,
   PlayCircle,
   Plus,
+  Power,
   Search,
   Trash2,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDownloadsStore } from "@/stores/downloadsStore";
+import type { QueueDoneAction } from "@/types";
 
 export function Toolbar() {
   const {
@@ -24,6 +27,9 @@ export function Toolbar() {
     resumeAll,
     setAddDialogOpen,
     setDeleteDialogOpen,
+    settings,
+    saveSettings,
+    setLastError,
   } = useDownloadsStore();
 
   const selected = [...selectedIds];
@@ -102,6 +108,48 @@ export function Toolbar() {
         />
       )}
 
+      {settings && (
+        <>
+          <div className="w-px h-4 bg-white/[0.08] mx-1.5" />
+
+          {/* Queue: how many run at once; the rest wait their turn */}
+          <QueueSelect
+            icon={ListOrdered}
+            title="How many downloads run at once — the rest wait in the queue"
+            value={String(settings.maxConcurrent)}
+            onChange={(v) =>
+              saveSettings({ ...settings, maxConcurrent: Number(v) }).catch((e) =>
+                setLastError(String(e))
+              )
+            }
+            options={Array.from({ length: 10 }, (_, i) => ({
+              value: String(i + 1),
+              label: i === 0 ? "1 at a time" : `${i + 1} at once`,
+            }))}
+          />
+
+          {/* Post-queue power action, with a cancellable countdown */}
+          <QueueSelect
+            icon={Power}
+            title="Run when the last download finishes (30s cancellable countdown)"
+            active={settings.queueDoneAction !== "none"}
+            value={settings.queueDoneAction}
+            onChange={(v) =>
+              saveSettings({
+                ...settings,
+                queueDoneAction: v as QueueDoneAction,
+              }).catch((e) => setLastError(String(e)))
+            }
+            options={[
+              { value: "none", label: "When done: nothing" },
+              { value: "sleep", label: "When done: sleep" },
+              { value: "hibernate", label: "When done: hibernate" },
+              { value: "shutdown", label: "When done: shut down" },
+            ]}
+          />
+        </>
+      )}
+
       <div className="flex-1" />
 
       {/* Search — scoped to this list */}
@@ -141,6 +189,50 @@ export function Toolbar() {
           : `${downloads.length} item${downloads.length !== 1 ? "s" : ""}`}
       </span>
     </div>
+  );
+}
+
+function QueueSelect({
+  icon: Icon,
+  title,
+  value,
+  onChange,
+  options,
+  active,
+}: {
+  icon: React.ElementType;
+  title: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  active?: boolean;
+}) {
+  return (
+    <label
+      title={title}
+      className={cn(
+        "flex items-center gap-1.5 pl-2 rounded-md border bg-white/[0.04] cursor-pointer transition-colors",
+        active
+          ? "border-[#FF8F40]/40 text-[#FF8F40]"
+          : "border-white/[0.08] text-[#8A9199] hover:text-[#E6E1CF]"
+      )}
+    >
+      <Icon className="w-3.5 h-3.5 shrink-0" />
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={cn(
+          "bg-transparent text-xs font-medium py-1.5 pr-1.5 outline-none cursor-pointer [color-scheme:dark]",
+          active ? "text-[#FF8F40]" : "text-inherit"
+        )}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value} className="bg-[#161B24] text-[#E6E1CF]">
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

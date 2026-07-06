@@ -200,6 +200,7 @@ export function SettingsPage() {
           >
             <option value="none">Do nothing</option>
             <option value="sleep">Sleep</option>
+            <option value="hibernate">Hibernate</option>
             <option value="shutdown">Shut down</option>
           </select>
         </Field>

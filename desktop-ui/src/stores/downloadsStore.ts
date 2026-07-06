@@ -34,7 +34,7 @@ interface DownloadsState {
   detailsId: string | null;
   statusFilter: "all" | "active" | "scheduled" | "completed" | "failed";
   categoryFilter: "all" | Category;
-  /** Pending post-queue action ("sleep"/"shutdown") awaiting countdown. */
+  /** Pending post-queue action ("sleep"/"hibernate"/"shutdown") awaiting countdown. */
   queueEmptyAction: string | null;
 
   init: () => Promise<void>;

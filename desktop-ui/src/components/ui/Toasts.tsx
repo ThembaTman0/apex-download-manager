@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Download, Link2, Moon, Power, X } from "lucide-react";
+import { Download, Link2, Moon, Power, Snowflake, X } from "lucide-react";
 import { backend } from "@/services/backend";
 import { useDownloadsStore } from "@/stores/downloadsStore";
 
@@ -69,7 +69,7 @@ export function ClipboardToast() {
   );
 }
 
-/** Cancellable countdown before the post-queue action (sleep/shutdown) runs. */
+/** Cancellable countdown before the post-queue action (sleep/hibernate/shutdown) runs. */
 export function QueueActionToast() {
   const action = useDownloadsStore((s) => s.queueEmptyAction);
   const setAction = useDownloadsStore((s) => s.setQueueEmptyAction);
@@ -90,8 +90,10 @@ export function QueueActionToast() {
   }, [action, secondsLeft, setAction]);
 
   if (!action) return null;
-  const Icon = action === "sleep" ? Moon : Power;
-  const label = action === "sleep" ? "Sleep" : "Shut down";
+  const Icon =
+    action === "sleep" ? Moon : action === "hibernate" ? Snowflake : Power;
+  const label =
+    action === "sleep" ? "Sleep" : action === "hibernate" ? "Hibernate" : "Shut down";
 
   return (
     <motion.div
@@ -105,7 +107,7 @@ export function QueueActionToast() {
           All downloads finished — {label.toLowerCase()} in {Math.max(0, secondsLeft)}s
         </p>
         <p className="text-xs text-[#8A9199]">
-          Configured in Settings → When queue finishes
+          Change it in the toolbar or Settings → When queue finishes
         </p>
       </div>
       <button

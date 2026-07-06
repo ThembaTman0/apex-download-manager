@@ -17,6 +17,10 @@ use tokio_util::sync::CancellationToken;
 
 const MIN_SEGMENT_BYTES: u64 = 256 * 1024;
 const TEMP_SUFFIX: &str = ".adm";
+/// Windows caps a path component at 255 chars; stay well under so the
+/// save dir + name + ".adm" suffix still fit (tokenized CDN URLs can put
+/// 1000+ chars in the last path segment).
+const MAX_NAME_CHARS: usize = 150;
 const EVENT_CHANGED: &str = "download:changed";
 const EVENT_REMOVED: &str = "download:removed";
 
@@ -514,9 +518,22 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
         d.etag = probe.etag;
         d.last_modified = probe.last_modified;
         if let Some(name) = probe.file_name {
-            // Only adopt the server's name if the URL gave us nothing usable.
-            if d.name.is_empty() || d.name == "download" {
+            // Adopt the server's name unless we already have a real one —
+            // tokenized CDN URLs (Google video links etc.) put hundreds of
+            // random chars and no extension in the last path segment.
+            if d.name.is_empty()
+                || d.name == "download"
+                || Path::new(&d.name).extension().is_none()
+            {
                 d.name = sanitize_filename(&name);
+                d.file_type = file_type_from_name(&d.name);
+            }
+        }
+        // Still extensionless? Borrow the extension from Content-Type so the
+        // file opens with the right app and the UI shows a real type.
+        if Path::new(&d.name).extension().is_none() {
+            if let Some(ext) = probe.content_type.as_deref().and_then(ext_for_content_type) {
+                d.name = format!("{}.{ext}", d.name);
                 d.file_type = file_type_from_name(&d.name);
             }
         }
@@ -695,6 +712,7 @@ struct ProbeResult {
     file_name: Option<String>,
     etag: Option<String>,
     last_modified: Option<String>,
+    content_type: Option<String>,
 }
 
 async fn probe_url(client: &reqwest::Client, url: &str) -> Result<ProbeResult, String> {
@@ -717,6 +735,7 @@ async fn probe_url(client: &reqwest::Client, url: &str) -> Result<ProbeResult, S
     };
     let etag = header_str(header::ETAG);
     let last_modified = header_str(header::LAST_MODIFIED);
+    let content_type = header_str(header::CONTENT_TYPE);
     if status == reqwest::StatusCode::PARTIAL_CONTENT {
         // Content-Range: bytes 0-0/123456
         let size = resp
@@ -732,6 +751,7 @@ async fn probe_url(client: &reqwest::Client, url: &str) -> Result<ProbeResult, S
             file_name,
             etag,
             last_modified,
+            content_type,
         })
     } else {
         let size = resp.content_length().unwrap_or(0);
@@ -741,7 +761,41 @@ async fn probe_url(client: &reqwest::Client, url: &str) -> Result<ProbeResult, S
             file_name,
             etag,
             last_modified,
+            content_type,
         })
+    }
+}
+
+/// Map a Content-Type to a filename extension. Returns None for generic or
+/// unrecognizable types (octet-stream and friends).
+fn ext_for_content_type(ct: &str) -> Option<String> {
+    let essence = ct.split(';').next().unwrap_or("").trim().to_ascii_lowercase();
+    let (kind, sub) = essence.split_once('/')?;
+    let mapped = match (kind, sub) {
+        (_, "octet-stream") => return None,
+        ("video", "x-matroska" | "matroska") => "mkv",
+        ("video", "quicktime") => "mov",
+        ("video", "x-msvideo") => "avi",
+        ("audio", "mpeg") => "mp3",
+        ("audio", "x-wav") => "wav",
+        ("image", "jpeg") => "jpg",
+        ("image", "svg+xml") => "svg",
+        ("text", "plain") => "txt",
+        ("text", "html") => "html",
+        ("application", "x-msdownload" | "x-msdos-program") => "exe",
+        ("application", "x-7z-compressed") => "7z",
+        ("application", "vnd.rar" | "x-rar-compressed") => "rar",
+        ("application", "gzip" | "x-gzip") => "gz",
+        ("application", "x-tar") => "tar",
+        ("application", "x-iso9660-image") => "iso",
+        // mp4, mkv, webm, zip, pdf, png, json, … already look like extensions.
+        _ => sub,
+    };
+    if !mapped.is_empty() && mapped.len() <= 5 && mapped.chars().all(|c| c.is_ascii_alphanumeric())
+    {
+        Some(mapped.to_string())
+    } else {
+        None
     }
 }
 
@@ -895,6 +949,10 @@ async fn download_segment(
                         .map_err(|e| format!("write failed: {e}"))?;
                     done += bytes.len() as u64;
                     counters[index].store(done, Ordering::Relaxed);
+                    // Data is flowing again — only consecutive dead attempts
+                    // should count toward the retry limit, or multi-hour
+                    // downloads die from a handful of scattered hiccups.
+                    attempts = 0;
                     if let Some(exp) = expected {
                         if done >= exp {
                             let _ = file.flush().await;
@@ -1010,7 +1068,20 @@ pub fn sanitize_filename(name: &str) -> String {
             c => c,
         })
         .collect();
-    let cleaned = cleaned.trim().trim_matches('.').to_string();
+    let mut cleaned = cleaned.trim().trim_matches('.').to_string();
+    if cleaned.chars().count() > MAX_NAME_CHARS {
+        let ext = Path::new(&cleaned)
+            .extension()
+            .map(|e| e.to_string_lossy().to_string())
+            .filter(|e| e.chars().count() <= 12)
+            .map(|e| format!(".{e}"))
+            .unwrap_or_default();
+        let stem: String = cleaned
+            .chars()
+            .take(MAX_NAME_CHARS - ext.chars().count())
+            .collect();
+        cleaned = format!("{}{ext}", stem.trim_end_matches(['.', ' ']));
+    }
     if cleaned.is_empty() {
         "download".into()
     } else {

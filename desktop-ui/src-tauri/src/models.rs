@@ -90,7 +90,7 @@ pub struct Settings {
     pub watch_clipboard: bool,
     /// Save into per-category subfolders (Video, Music, Programs, …).
     pub auto_organize: bool,
-    /// What to do when the queue drains: "none" | "sleep" | "shutdown".
+    /// What to do when the queue drains: "none" | "sleep" | "hibernate" | "shutdown".
     pub queue_done_action: String,
     /// Accept downloads pushed by the browser extension.
     pub capture_enabled: bool,

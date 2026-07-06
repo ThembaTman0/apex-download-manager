@@ -84,6 +84,12 @@ pub async fn execute_queue_action(action: String) -> Result<(), String> {
                 .spawn()
                 .map_err(|e| e.to_string())?;
         }
+        "hibernate" => {
+            std::process::Command::new("shutdown")
+                .args(["/h"])
+                .spawn()
+                .map_err(|e| e.to_string())?;
+        }
         "sleep" => {
             std::process::Command::new("rundll32.exe")
                 .args(["powrprof.dll,SetSuspendState", "0,1,0"])

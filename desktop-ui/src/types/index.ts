@@ -36,7 +36,7 @@ export type Category =
   | "Images"
   | "Other";
 
-export type QueueDoneAction = "none" | "sleep" | "shutdown";
+export type QueueDoneAction = "none" | "sleep" | "hibernate" | "shutdown";
 
 export interface Settings {
   downloadDir: string;
