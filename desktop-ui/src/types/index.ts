@@ -60,6 +60,8 @@ export interface Settings {
   captureConfirm: boolean;
   capturePort: number;
   captureToken: string;
+  /** Hosts whose captures skip the approval prompt (lowercase). */
+  captureAllowedHosts: string[];
 }
 
 /** A browser capture awaiting the user's approval before it downloads. */
@@ -68,6 +70,12 @@ export interface PendingCapture {
   url: string;
   name: string;
   folder: string;
+  /** Page that linked the file ("" when unknown). */
+  referrer: string;
+  /** Filled by a quick probe after staging; 0 while unknown. */
+  sizeBytes: number;
+  /** Probe hint, e.g. the link already returns 403 ("" = nothing to warn). */
+  warning: string;
 }
 
 /** yt-dlp / ffmpeg availability, shown in Settings → Video Grabber. */

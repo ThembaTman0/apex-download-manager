@@ -40,6 +40,37 @@ struct PendingCapture {
     /// Display values shown in the approval window.
     name: String,
     folder: String,
+    /// Unix millis when staged; stale entries are pruned (tokenized URLs
+    /// expire long before a day passes anyway).
+    staged_at: i64,
+    /// From the post-stage probe; 0 until (unless) the server tells us.
+    size_bytes: u64,
+    /// Probe found the link refused (4xx) — shown as a hint in the prompt.
+    warning: String,
+}
+
+/// The page that linked the file, from the browser-captured Referer —
+/// shown in the approval window so the user can tell which site asked.
+fn referrer_of(headers: &[(String, String)]) -> String {
+    headers
+        .iter()
+        .find(|(k, _)| k == "referer")
+        .map(|(_, v)| v.clone())
+        .unwrap_or_default()
+}
+
+/// More prompts than this means something is auto-retrying, not a user
+/// clicking links; further captures are rejected so the extension hands the
+/// download back to the browser instead.
+const MAX_PENDING_CAPTURES: usize = 25;
+const MAX_PENDING_AGE_MS: i64 = 24 * 60 * 60 * 1000;
+
+/// Identity of a capture for dedup: pages that auto-retry a canceled
+/// download mint a fresh URL each attempt (rotating token/correlationId
+/// query params), so compare the URL without its query plus the file name.
+fn capture_key(url: &str, name: &str) -> String {
+    let base = url.split(['?', '#']).next().unwrap_or(url);
+    format!("{}|{}", base, name.to_ascii_lowercase())
 }
 
 /// The subset of a pending capture the approval window renders.
@@ -50,6 +81,12 @@ pub struct CaptureView {
     url: String,
     name: String,
     folder: String,
+    /// Page that linked the file ("" when unknown).
+    referrer: String,
+    /// 0 while unknown.
+    size_bytes: u64,
+    /// "" when there is nothing to warn about.
+    warning: String,
 }
 
 pub struct DownloadManager {
@@ -314,14 +351,49 @@ impl DownloadManager {
             settings.download_dir.clone()
         };
         let id = uuid::Uuid::new_v4().to_string();
-        self.pending_captures.lock().unwrap().push(PendingCapture {
-            id: id.clone(),
-            url: url.clone(),
-            file_name,
-            request_headers,
-            name: preview_name.clone(),
-            folder: folder.clone(),
-        });
+        {
+            let mut list = self.pending_captures.lock().unwrap();
+            let now = now_millis();
+            list.retain(|p| now - p.staged_at < MAX_PENDING_AGE_MS);
+
+            // Retry of something already awaiting approval? Refresh the held
+            // entry (the newest URL carries the freshest access token) and
+            // re-raise the window instead of stacking another prompt.
+            let key = capture_key(&url, &preview_name);
+            if let Some(existing) = list
+                .iter_mut()
+                .find(|p| capture_key(&p.url, &p.name) == key)
+            {
+                existing.url = url;
+                if file_name.is_some() {
+                    existing.file_name = file_name;
+                }
+                existing.request_headers = request_headers;
+                existing.staged_at = now;
+                let id = existing.id.clone();
+                drop(list);
+                self.ensure_capture_window();
+                return Ok(id);
+            }
+
+            if list.len() >= MAX_PENDING_CAPTURES {
+                return Err(
+                    "too many downloads awaiting approval — approve or block them in Apex first"
+                        .into(),
+                );
+            }
+            list.push(PendingCapture {
+                id: id.clone(),
+                url: url.clone(),
+                file_name,
+                request_headers: request_headers.clone(),
+                name: preview_name.clone(),
+                folder: folder.clone(),
+                staged_at: now,
+                size_bytes: 0,
+                warning: String::new(),
+            });
+        }
         // Pop up a small always-on-top approval window (IDM-style), separate
         // from the main app. Created hidden; it shows itself once its React
         // side has loaded the pending list. Subsequent captures reuse it.
@@ -333,9 +405,104 @@ impl DownloadManager {
                 url,
                 name: preview_name,
                 folder,
+                referrer: referrer_of(&request_headers),
+                size_bytes: 0,
+                warning: String::new(),
             },
         );
+        // Probe in the background for the server's real file name and size —
+        // onCreated fires before the browser resolves the filename, and
+        // tokenized URLs name the file uselessly. The prompt should show
+        // what the user is actually approving.
+        let mgr = self.clone_ref();
+        let probe_id = id.clone();
+        tauri::async_runtime::spawn(async move {
+            mgr.refine_capture(&probe_id).await;
+        });
         Ok(id)
+    }
+
+    /// Fill in a staged capture's size and (when the URL name is garbage)
+    /// its Content-Disposition file name via a 1-byte probe, then tell the
+    /// approval window. Best-effort: any failure just leaves the preview.
+    async fn refine_capture(&self, id: &str) {
+        let (url, headers) = {
+            let list = self.pending_captures.lock().unwrap();
+            match list.iter().find(|p| p.id == id) {
+                Some(p) => (p.url.clone(), p.request_headers.clone()),
+                None => return,
+            }
+        };
+        let client = self.client.lock().unwrap().clone();
+        let probe = match tokio::time::timeout(
+            Duration::from_secs(15),
+            probe_url(&client, &url, &headers),
+        )
+        .await
+        {
+            Ok(Ok(p)) => p,
+            // A 4xx means the link itself is bad (tokenized URLs expire fast)
+            // — worth telling the user before they approve into a failure.
+            // Network errors and timeouts stay silent; the engine retries
+            // those on its own after approval.
+            Ok(Err(e)) if e.contains("server returned 4") => {
+                let view = {
+                    let mut list = self.pending_captures.lock().unwrap();
+                    let Some(p) = list.iter_mut().find(|p| p.id == id) else {
+                        return;
+                    };
+                    p.warning = format!(
+                        "{e} — the link may have expired; try downloading again from the page"
+                    );
+                    CaptureView {
+                        id: p.id.clone(),
+                        url: p.url.clone(),
+                        name: p.name.clone(),
+                        folder: p.folder.clone(),
+                        referrer: referrer_of(&p.request_headers),
+                        size_bytes: p.size_bytes,
+                        warning: p.warning.clone(),
+                    }
+                };
+                let _ = self.app.emit("capture:updated", view);
+                return;
+            }
+            _ => return,
+        };
+        let settings = self.get_settings();
+        let view = {
+            let mut list = self.pending_captures.lock().unwrap();
+            let Some(p) = list.iter_mut().find(|p| p.id == id) else {
+                return; // resolved while we probed
+            };
+            p.size_bytes = probe.size;
+            // Adopt the server's name by the same rule the engine applies on
+            // download start, so the prompt previews the final outcome.
+            if let Some(server_name) = probe.file_name {
+                if p.file_name.is_none()
+                    && (p.name == "download" || Path::new(&p.name).extension().is_none())
+                {
+                    p.name = sanitize_filename(&server_name);
+                    p.file_name = Some(p.name.clone());
+                    if settings.auto_organize {
+                        p.folder = Path::new(&settings.download_dir)
+                            .join(category_for_type(&file_type_from_name(&p.name)))
+                            .to_string_lossy()
+                            .to_string();
+                    }
+                }
+            }
+            CaptureView {
+                id: p.id.clone(),
+                url: p.url.clone(),
+                name: p.name.clone(),
+                folder: p.folder.clone(),
+                referrer: referrer_of(&p.request_headers),
+                size_bytes: p.size_bytes,
+                warning: String::new(),
+            }
+        };
+        let _ = self.app.emit("capture:updated", view);
     }
 
     fn ensure_capture_window(&self) {
@@ -357,7 +524,7 @@ impl DownloadManager {
                 tauri::WebviewUrl::App("index.html".into()),
             )
             .title("Apex — Approve download")
-            .inner_size(440.0, 412.0)
+            .inner_size(440.0, 516.0)
             .resizable(false)
             .decorations(false)
             .always_on_top(true)
@@ -372,15 +539,18 @@ impl DownloadManager {
 
     /// Captures currently waiting for approval, in arrival order.
     pub fn list_pending_captures(&self) -> Vec<CaptureView> {
-        self.pending_captures
-            .lock()
-            .unwrap()
-            .iter()
+        let mut list = self.pending_captures.lock().unwrap();
+        let now = now_millis();
+        list.retain(|p| now - p.staged_at < MAX_PENDING_AGE_MS);
+        list.iter()
             .map(|p| CaptureView {
                 id: p.id.clone(),
                 url: p.url.clone(),
                 name: p.name.clone(),
                 folder: p.folder.clone(),
+                referrer: referrer_of(&p.request_headers),
+                size_bytes: p.size_bytes,
+                warning: p.warning.clone(),
             })
             .collect()
     }

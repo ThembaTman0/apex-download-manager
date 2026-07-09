@@ -124,6 +124,9 @@ pub struct Settings {
     pub capture_port: u16,
     /// Shared secret the extension must present; empty until first run.
     pub capture_token: String,
+    /// Hosts whose captures skip the approval prompt (lowercase). Built via
+    /// "Always allow downloads from this site" in the approval window.
+    pub capture_allowed_hosts: Vec<String>,
 }
 
 impl Default for Settings {
@@ -143,6 +146,7 @@ impl Default for Settings {
             capture_confirm: true,
             capture_port: 43666,
             capture_token: String::new(),
+            capture_allowed_hosts: Vec::new(),
         }
     }
 }

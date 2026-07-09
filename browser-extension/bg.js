@@ -97,6 +97,26 @@ function basename(path) {
 // event must pass through untouched or we'd loop cancel/restart forever.
 const handedBack = new Set();
 
+// Pages that auto-retry a canceled download (Office setup, some file hosts)
+// fire a new download every few seconds, each with a fresh tokenized URL —
+// without suppression every retry becomes another Apex prompt. Key on the
+// URL minus its query plus the file name; the window slides, so an active
+// retry loop stays suppressed while a genuine re-download a minute later
+// goes through.
+const RESEND_WINDOW_MS = 30_000;
+const recentSends = new Map(); // key -> ms of last attempt
+
+function isDuplicateSend(url, fileName) {
+  const key = `${url.split(/[?#]/)[0]}|${(fileName || "").toLowerCase()}`;
+  const now = Date.now();
+  for (const [k, t] of recentSends) {
+    if (now - t > RESEND_WINDOW_MS) recentSends.delete(k);
+  }
+  const dup = recentSends.has(key);
+  recentSends.set(key, now);
+  return dup;
+}
+
 chrome.downloads.onCreated.addListener(async (item) => {
   await configReady;
   if (!config.enabled || !config.token) return;
@@ -111,6 +131,10 @@ chrome.downloads.onCreated.addListener(async (item) => {
     void chrome.runtime.lastError;
     chrome.downloads.erase({ id: item.id }, () => void chrome.runtime.lastError);
   });
+
+  // A retry of something we sent to Apex moments ago: already canceled
+  // above (so the page's loop stays quiet), but don't prompt again.
+  if (isDuplicateSend(url, basename(item.filename))) return;
 
   try {
     await sendToApex(url, basename(item.filename), item.referrer);

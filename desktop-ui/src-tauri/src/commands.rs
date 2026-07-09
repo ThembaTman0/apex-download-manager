@@ -74,6 +74,34 @@ pub async fn compute_checksum(mgr: State<'_, DownloadManager>, id: String) -> Re
     .map_err(|e| e.to_string())?
 }
 
+/// Add a host to the "always allow" capture list (skips the approval prompt).
+#[tauri::command]
+pub async fn allow_capture_host(
+    mgr: State<'_, DownloadManager>,
+    host: String,
+) -> Result<Settings, String> {
+    let host = host.trim().to_ascii_lowercase();
+    if host.is_empty() {
+        return Err("empty host".into());
+    }
+    let mut s = mgr.get_settings();
+    if !s.capture_allowed_hosts.contains(&host) {
+        s.capture_allowed_hosts.push(host);
+    }
+    mgr.update_settings(s)
+}
+
+/// Free bytes on the drive holding `dir` (or its nearest existing ancestor),
+/// so the approval prompt can warn when a file won't fit.
+#[tauri::command]
+pub async fn disk_free(dir: String) -> Result<u64, String> {
+    let mut p = std::path::Path::new(&dir);
+    while !p.exists() {
+        p = p.parent().ok_or("path not found")?;
+    }
+    fs2::free_space(p).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 pub async fn regenerate_capture_token(
     mgr: State<'_, DownloadManager>,

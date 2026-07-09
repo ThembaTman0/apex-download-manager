@@ -106,6 +106,9 @@ export const backend = {
 
   getSettings: () => invoke<Settings>("get_settings"),
   regenerateCaptureToken: () => invoke<Settings>("regenerate_capture_token"),
+  allowCaptureHost: (host: string) =>
+    invoke<Settings>("allow_capture_host", { host }),
+  diskFree: (dir: string) => invoke<number>("disk_free", { dir }),
   updateSettings: (settings: Settings) =>
     invoke<Settings>("update_settings", { settings }),
   getDiskUsage: () => invoke<DiskUsage>("get_disk_usage"),
@@ -128,5 +131,10 @@ export const backend = {
 
   onCapturePending(cb: (c: PendingCapture) => void): Promise<UnlistenFn> {
     return listen<PendingCapture>("capture:pending", (e) => cb(e.payload));
+  },
+
+  /** A staged capture's probe finished: real file name / size are known. */
+  onCaptureUpdated(cb: (c: PendingCapture) => void): Promise<UnlistenFn> {
+    return listen<PendingCapture>("capture:updated", (e) => cb(e.payload));
   },
 };

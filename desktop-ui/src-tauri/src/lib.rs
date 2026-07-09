@@ -164,6 +164,8 @@ pub fn run() {
             commands::compute_checksum,
             commands::execute_queue_action,
             commands::regenerate_capture_token,
+            commands::allow_capture_host,
+            commands::disk_free,
             commands::resolve_capture,
             commands::list_pending_captures,
             commands::ytdlp_status,

@@ -141,10 +141,17 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
                 })
                 .collect();
 
+            // Hosts the user marked "always allow" skip the approval prompt.
+            let host_allowed = reqwest::Url::parse(&req.url)
+                .ok()
+                .and_then(|u| u.host_str().map(|h| h.to_ascii_lowercase()))
+                .map(|h| settings.capture_allowed_hosts.iter().any(|a| a == &h))
+                .unwrap_or(false);
+
             // With confirmation on, hold the capture for user approval rather
             // than downloading it silently. The extension has already canceled
             // the browser's copy, so a rejected capture downloads nowhere.
-            if settings.capture_confirm {
+            if settings.capture_confirm && !host_allowed {
                 return match mgr.stage_capture(req.url, req.file_name, request_headers) {
                     Ok(id) => {
                         let reply = format!(

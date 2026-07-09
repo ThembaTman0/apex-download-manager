@@ -18,6 +18,7 @@ import {
   Power,
   RefreshCw,
   Save,
+  X,
 } from "lucide-react";
 import { backend } from "@/services/backend";
 import { useDownloadsStore } from "@/stores/downloadsStore";
@@ -269,6 +270,38 @@ export function SettingsPage() {
             </span>
           </label>
         </Field>
+
+        {form.captureAllowedHosts.length > 0 && (
+          <Field
+            icon={Globe}
+            label="Always-allowed sites"
+            hint="Downloads from these sites start without an approval prompt. Click × to remove"
+          >
+            <div className="flex flex-wrap gap-1.5">
+              {form.captureAllowedHosts.map((h) => (
+                <span
+                  key={h}
+                  className="flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full bg-white/[0.06] border border-white/[0.08] text-xs text-[#BFBDB6]"
+                >
+                  {h}
+                  <button
+                    onClick={() =>
+                      update({
+                        captureAllowedHosts: form.captureAllowedHosts.filter(
+                          (x) => x !== h
+                        ),
+                      })
+                    }
+                    className="text-[#8A9199] hover:text-[#F07178] transition-colors"
+                    title={`Remove ${h}`}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          </Field>
+        )}
 
         <Field
           icon={Copy}
