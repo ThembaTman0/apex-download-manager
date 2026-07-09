@@ -1,0 +1,17 @@
+# Cloudflare Pages config for the Apex Download Manager site + stats API.
+#
+# One-time setup:
+#   1. cd website
+#   2. npx wrangler kv namespace create STATS
+#      -> copy the returned "id" into the binding below
+#   3. npx wrangler pages deploy . --project-name=apex-download-manager
+#   (or connect the repo in the Cloudflare dashboard and set the same
+#   KV binding there under Pages > Settings > Functions > KV namespace bindings)
+
+name = "apex-download-manager"
+pages_build_output_dir = "."
+compatibility_date = "2026-07-08"
+
+[[kv_namespaces]]
+binding = "STATS"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"

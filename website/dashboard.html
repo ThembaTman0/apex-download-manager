@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Apex Download Manager — Download Stats</title>
+  <meta name="description" content="Public download stats for Apex Download Manager: total downloads and where in the world they're coming from." />
+  <style>
+    :root {
+      --bg: #0B0E14;
+      --card: #0F131A;
+      --border: rgba(255, 255, 255, 0.07);
+      --accent: #E6B450;
+      --text: #E6E1CF;
+      --text-2: #8A9199;
+      --text-3: #565B66;
+      --radius: 10px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 48px 24px 80px; }
+    nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 48px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; text-decoration: none; color: var(--text); }
+    .brand-mark {
+      width: 28px; height: 28px; border-radius: 8px; background: var(--accent);
+      display: grid; place-items: center; font-size: 15px; color: #0B0E14;
+    }
+    nav a.back { color: var(--text-2); text-decoration: none; font-size: 13.5px; }
+    nav a.back:hover { color: var(--text); }
+
+    h1 { font-size: 26px; letter-spacing: -0.02em; margin-bottom: 6px; }
+    p.lead { color: var(--text-2); font-size: 14.5px; margin-bottom: 36px; }
+
+    .totals { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 32px; }
+    .stat {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 24px;
+    }
+    .stat .num { font-size: 36px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .stat .label { color: var(--text-2); font-size: 13px; margin-top: 4px; }
+
+    .panel {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 24px;
+    }
+    .panel h2 { font-size: 14px; color: var(--text-2); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 18px; }
+
+    .country-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+    .country-row .flag { font-size: 18px; width: 26px; text-align: center; flex-shrink: 0; }
+    .country-row .name { width: 150px; flex-shrink: 0; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .country-row .bar-track { flex: 1; height: 10px; background: rgba(255,255,255,.06); border-radius: 99px; overflow: hidden; }
+    .country-row .bar-fill { height: 100%; background: var(--accent); border-radius: 99px; }
+    .country-row .count { width: 56px; text-align: right; font-variant-numeric: tabular-nums; color: var(--text-2); font-size: 13px; flex-shrink: 0; }
+
+    .empty, .error { color: var(--text-3); font-size: 13.5px; text-align: center; padding: 24px 0; }
+    .updated { color: var(--text-3); font-size: 12px; margin-top: 20px; text-align: right; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="index.html"><span class="brand-mark">⚡</span> Apex Download Manager</a>
+      <a class="back" href="index.html">← Back to site</a>
+    </nav>
+
+    <h1>Download stats</h1>
+    <p class="lead">Live count of installer downloads and where in the world they're coming from. Counted at the download link only — the app itself has no telemetry.</p>
+
+    <div class="totals">
+      <div class="stat">
+        <div class="num" id="total">—</div>
+        <div class="label">Total downloads</div>
+      </div>
+      <div class="stat">
+        <div class="num" id="countryCount">—</div>
+        <div class="label">Countries reached</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>By country</h2>
+      <div id="countryList"><div class="empty">Loading…</div></div>
+    </div>
+
+    <div class="updated" id="updated"></div>
+  </div>
+
+  <script>
+    function flagEmoji(code) {
+      if (!code || code.length !== 2 || code === "XX") return "🌐";
+      return String.fromCodePoint(...[...code.toUpperCase()].map((c) => 127397 + c.charCodeAt(0)));
+    }
+
+    function countryName(code) {
+      if (!code || code === "XX") return "Unknown";
+      try {
+        return new Intl.DisplayNames(["en"], { type: "region" }).of(code) || code;
+      } catch {
+        return code;
+      }
+    }
+
+    async function loadStats() {
+      const listEl = document.getElementById("countryList");
+      try {
+        const res = await fetch("/api/stats");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        document.getElementById("total").textContent = data.total.toLocaleString();
+        document.getElementById("countryCount").textContent = data.countries.length.toLocaleString();
+        document.getElementById("updated").textContent = "Updated " + new Date(data.updated).toLocaleString();
+
+        if (!data.countries.length) {
+          listEl.innerHTML = '<div class="empty">No downloads recorded yet.</div>';
+          return;
+        }
+
+        const max = data.countries[0].count;
+        listEl.innerHTML = data.countries
+          .map(
+            (c) => `
+          <div class="country-row">
+            <span class="flag">${flagEmoji(c.code)}</span>
+            <span class="name">${countryName(c.code)}</span>
+            <span class="bar-track"><span class="bar-fill" style="width:${(c.count / max) * 100}%"></span></span>
+            <span class="count">${c.count.toLocaleString()}</span>
+          </div>`
+          )
+          .join("");
+      } catch (err) {
+        listEl.innerHTML = '<div class="error">Couldn’t load stats right now.</div>';
+      }
+    }
+
+    loadStats();
+  </script>
+</body>
+</html>
