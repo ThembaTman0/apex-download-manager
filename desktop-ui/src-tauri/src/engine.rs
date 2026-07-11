@@ -73,6 +73,15 @@ fn capture_key(url: &str, name: &str) -> String {
     format!("{}|{}", base, name.to_ascii_lowercase())
 }
 
+/// What a fresh capture matches among the downloads we already have.
+pub enum DupStatus {
+    New,
+    /// Same file is queued/downloading/paused right now (name of the match).
+    Active(String),
+    /// Same file finished earlier and is still on disk.
+    Done,
+}
+
 /// The subset of a pending capture the approval window renders.
 #[derive(serde::Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -105,11 +114,23 @@ pub struct DownloadManager {
     pending_captures: Arc<Mutex<Vec<PendingCapture>>>,
 }
 
+/// Default User-Agent when the browser didn't supply its own (manual adds).
+/// A browser UA, not an honest product string: WAFs commonly 403 download-tool
+/// UAs (verified against Cloudflare — "ApexDownloadManager/1.0" was refused
+/// where this exact string passed). Captures override it with the real
+/// browser's UA via request_headers.
+const DEFAULT_UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+
 /// Build the shared HTTP client, optionally routed through a proxy
 /// (http://, https:// or socks5://, with optional user:pass@).
+///
+/// rustls rather than the platform TLS: Cloudflare's bot scoring 403s the
+/// schannel ClientHello outright (same request, same headers passes with
+/// rustls). Native roots keep corporate/AV MITM proxies working.
 fn build_client(proxy_url: &str) -> Result<reqwest::Client, String> {
     let mut builder = reqwest::Client::builder()
-        .user_agent("ApexDownloadManager/1.0")
+        .user_agent(DEFAULT_UA)
+        .use_rustls_tls()
         .connect_timeout(Duration::from_secs(30));
     let proxy_url = proxy_url.trim();
     if !proxy_url.is_empty() {
@@ -201,6 +222,8 @@ impl DownloadManager {
         if !url.starts_with("http://") && !url.starts_with("https://") {
             return Err("Only http(s) URLs are supported".into());
         }
+        let mut request_headers = request_headers;
+        ensure_referer(&url, &mut request_headers);
         let settings = self.get_settings();
         let explicit_dir = save_dir.filter(|d| !d.trim().is_empty());
         let name = file_name
@@ -321,6 +344,39 @@ impl DownloadManager {
             .ok_or_else(|| "download vanished".to_string())
     }
 
+    /// Compare a capture against existing downloads, using the same
+    /// url-minus-query + name identity as pending dedup so repeat clicks
+    /// carrying fresh tokenized URLs still line up with the original.
+    pub fn duplicate_status(&self, url: &str, file_name: Option<&str>) -> DupStatus {
+        let name = file_name
+            .filter(|n| !n.trim().is_empty())
+            .map(sanitize_filename)
+            .unwrap_or_else(|| filename_from_url(url));
+        let key = capture_key(url, &name);
+        let Ok(downloads) = self.db.lock().unwrap().list_downloads() else {
+            return DupStatus::New;
+        };
+        for d in downloads {
+            if d.url != url && capture_key(&d.url, &d.name) != key {
+                continue;
+            }
+            match d.status {
+                DownloadStatus::Downloading
+                | DownloadStatus::Queued
+                | DownloadStatus::Merging
+                | DownloadStatus::Paused => return DupStatus::Active(d.name),
+                DownloadStatus::Completed => {
+                    // Deleted from disk since then → nothing to warn about.
+                    if Path::new(&d.save_path).join(&d.name).exists() {
+                        return DupStatus::Done;
+                    }
+                }
+                DownloadStatus::Failed => {}
+            }
+        }
+        DupStatus::New
+    }
+
     /// Hold a browser capture for user approval instead of downloading it
     /// immediately. Emits `capture:pending` and brings the window forward so
     /// the prompt is seen even when Apex sits in the tray. Nothing is written
@@ -335,6 +391,8 @@ impl DownloadManager {
         if !url.starts_with("http://") && !url.starts_with("https://") {
             return Err("Only http(s) URLs are supported".into());
         }
+        let mut request_headers = request_headers;
+        ensure_referer(&url, &mut request_headers);
         let settings = self.get_settings();
         let preview_name = file_name
             .clone()
@@ -349,6 +407,15 @@ impl DownloadManager {
                 .to_string()
         } else {
             settings.download_dir.clone()
+        };
+        // A repeat of something already downloaded gets flagged in the prompt,
+        // so approving is a conscious "yes, again" (the new copy is renamed
+        // alongside the old one, never overwriting it).
+        let warning = match self.duplicate_status(&url, Some(&preview_name)) {
+            DupStatus::Done => {
+                "you've already downloaded this file — Download saves a new copy".to_string()
+            }
+            _ => String::new(),
         };
         let id = uuid::Uuid::new_v4().to_string();
         {
@@ -391,7 +458,7 @@ impl DownloadManager {
                 folder: folder.clone(),
                 staged_at: now,
                 size_bytes: 0,
-                warning: String::new(),
+                warning: warning.clone(),
             });
         }
         // Pop up a small always-on-top approval window (IDM-style), separate
@@ -407,7 +474,7 @@ impl DownloadManager {
                 folder,
                 referrer: referrer_of(&request_headers),
                 size_bytes: 0,
-                warning: String::new(),
+                warning,
             },
         );
         // Probe in the background for the server's real file name and size —
@@ -499,7 +566,8 @@ impl DownloadManager {
                 folder: p.folder.clone(),
                 referrer: referrer_of(&p.request_headers),
                 size_bytes: p.size_bytes,
-                warning: String::new(),
+                // Keep any duplicate-download note the staging attached.
+                warning: p.warning.clone(),
             }
         };
         let _ = self.app.emit("capture:updated", view);
@@ -532,6 +600,7 @@ impl DownloadManager {
             .center()
             .build()
             {
+                let _ = win.show();
                 let _ = win.set_focus();
             }
         });
@@ -1236,6 +1305,28 @@ struct ProbeResult {
     content_type: Option<String>,
 }
 
+/// Give downloads that arrived without a Referer (manual adds, direct URL
+/// navigations) one matching the URL's origin. Some WAF configurations
+/// (observed on Cloudflare) refuse ranged requests that carry no Referer,
+/// so a bare header set would break both the probe and segmented transfer.
+fn ensure_referer(url: &str, headers: &mut Vec<(String, String)>) {
+    if headers
+        .iter()
+        .any(|(k, _)| k.eq_ignore_ascii_case("referer"))
+    {
+        return;
+    }
+    if let Ok(u) = reqwest::Url::parse(url) {
+        if let Some(host) = u.host_str() {
+            let port = u.port().map(|p| format!(":{p}")).unwrap_or_default();
+            headers.push((
+                "referer".to_string(),
+                format!("{}://{host}{port}/", u.scheme()),
+            ));
+        }
+    }
+}
+
 /// Apply browser-captured headers (Cookie, Referer, User-Agent). Invalid
 /// names/values are skipped rather than failing the download; reqwest strips
 /// sensitive headers itself if a redirect leaves the original host.
@@ -1259,15 +1350,26 @@ async fn probe_url(
     url: &str,
     request_headers: &[(String, String)],
 ) -> Result<ProbeResult, String> {
-    let resp = with_headers(client.get(url), request_headers)
+    let mut resp = with_headers(client.get(url), request_headers)
         .header(header::RANGE, "bytes=0-0")
         .send()
         .await
         .map_err(|e| format!("connection failed: {e}"))?;
-    let status = resp.status();
-    if !status.is_success() {
-        return Err(format!("server returned {status}"));
+    // Some WAFs refuse a ranged request they would serve plain. Retry without
+    // Range once; range support then comes from Accept-Ranges instead of the
+    // 206 (headers only — the body is never read, so no full transfer here).
+    let mut via_plain_retry = false;
+    if !resp.status().is_success() {
+        let ranged_status = resp.status();
+        match with_headers(client.get(url), request_headers).send().await {
+            Ok(r) if r.status().is_success() => {
+                resp = r;
+                via_plain_retry = true;
+            }
+            _ => return Err(format!("server returned {ranged_status}")),
+        }
     }
+    let status = resp.status();
     let file_name = filename_from_headers(resp.headers());
     let header_str = |name: header::HeaderName| {
         resp.headers()
@@ -1297,9 +1399,20 @@ async fn probe_url(
         })
     } else {
         let size = resp.content_length().unwrap_or(0);
+        // On the plain retry the server never saw our Range header, so its
+        // Accept-Ranges claim is the only signal. A 200 to the ranged probe,
+        // by contrast, is the server demonstrating it ignores Range — don't
+        // trust Accept-Ranges there.
+        let supports_ranges = via_plain_retry
+            && size > 0
+            && resp
+                .headers()
+                .get(header::ACCEPT_RANGES)
+                .and_then(|v| v.to_str().ok())
+                .is_some_and(|v| v.eq_ignore_ascii_case("bytes"));
         Ok(ProbeResult {
             size,
-            supports_ranges: false,
+            supports_ranges,
             file_name,
             etag,
             last_modified,

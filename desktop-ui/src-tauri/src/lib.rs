@@ -28,7 +28,15 @@ pub fn run() {
             // Second launch: surface the existing window instead.
             show_main_window(app);
         }))
-        .plugin(tauri_plugin_window_state::Builder::default().build())
+        // The capture prompt must NOT have its state restored: it manages its
+        // own size (auto-fits content) and visibility (Rust shows it per
+        // capture) — a session that ended with it hidden would otherwise
+        // resurrect every future prompt invisible and mis-sized.
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_denylist(&["capture"])
+                .build(),
+        )
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_opener::init())

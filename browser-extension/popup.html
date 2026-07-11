@@ -64,6 +64,13 @@
       cursor: pointer;
     }
     button:hover { background: #f0c266; }
+    button:disabled { opacity: 0.55; cursor: default; }
+    button.secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: #e6e1cf;
+      margin-bottom: 12px;
+    }
+    button.secondary:hover { background: rgba(255, 255, 255, 0.14); }
     .saved { color: #7fd962; font-size: 11px; text-align: center; margin-top: 8px; height: 14px; }
     .hint { font-size: 10px; color: #565b66; margin-top: 10px; line-height: 1.5; }
   </style>
@@ -82,9 +89,12 @@
     <label for="hideShelf">Hide browser download popup</label>
   </div>
 
+  <button id="pair" class="secondary">Pair with Apex app</button>
+  <div class="saved" id="pairStatus" style="margin: -6px 0 8px;"></div>
+
   <label>
     Token
-    <input type="text" id="token" placeholder="Paste from Apex → Settings" spellcheck="false" />
+    <input type="text" id="token" placeholder="Pair above, or paste from Apex → Settings" spellcheck="false" />
   </label>
 
   <label>
@@ -96,7 +106,9 @@
   <div class="saved" id="saved"></div>
 
   <div class="hint">
-    Find the token in the Apex app under Settings → Browser Integration.
+    “Pair with Apex app” connects automatically — just approve the prompt that
+    opens in Apex. The token can also be pasted manually from Apex →
+    Settings → Browser Integration.
     Right-click any link for “Download with Apex”.
     For seamless capture, turn <b>off</b> “Ask where to save each file before
     downloading” in your browser’s download settings — that dialog is shown

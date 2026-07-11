@@ -5,7 +5,7 @@ import {
   Settings,
   HardDrive,
 } from "lucide-react";
-import apexIcon from "@/assets/apex-icon.png";
+import { LogoBadge } from "@/components/ui/LogoMark";
 import { cn, formatBytes } from "@/lib/utils";
 import { useDownloadsStore } from "@/stores/downloadsStore";
 import type { NavItem } from "@/types";
@@ -29,10 +29,10 @@ export function Sidebar() {
     <aside className="flex flex-col flex-1 py-4 gap-1 overflow-hidden">
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-4 mb-4">
-        <img src={apexIcon} alt="Apex" className="w-7 h-7" draggable={false} />
+        <LogoBadge className="w-7 h-7" />
         <div>
-          <p className="text-sm font-bold text-[#E6E1CF] leading-none">Apex</p>
-          <p className="text-[10px] text-[#8A9199] leading-none mt-0.5">Download Manager</p>
+          <p className="text-sm font-bold text-ink leading-none">Apex</p>
+          <p className="text-[10px] text-ink-muted leading-none mt-0.5">Download Manager</p>
         </div>
       </div>
 
@@ -48,8 +48,8 @@ export function Sidebar() {
               className={cn(
                 "relative flex items-center gap-3 px-3 py-1.5 rounded-md text-sm font-medium transition-colors text-left w-full",
                 active
-                  ? "text-[#E6E1CF]"
-                  : "text-[#8A9199] hover:text-[#E6E1CF] hover:bg-white/[0.04]"
+                  ? "text-ink"
+                  : "text-ink-muted hover:text-ink hover:bg-white/[0.04]"
               )}
             >
               {active && (
@@ -81,24 +81,24 @@ function DiskUsageWidget() {
   return (
     <div className="mx-2 p-3 rounded-lg bg-white/[0.03] border border-white/[0.06]">
       <div className="flex items-center gap-2 mb-2">
-        <HardDrive className="w-3.5 h-3.5 text-[#8A9199]" />
-        <span className="text-xs text-[#8A9199] font-medium">
+        <HardDrive className="w-3.5 h-3.5 text-ink-muted" />
+        <span className="text-xs text-ink-muted font-medium">
           Disk {diskUsage.label}
         </span>
       </div>
       <div className="h-1.5 bg-white/[0.08] rounded-full overflow-hidden mb-1.5">
         <motion.div
-          className="h-full bg-[#E6B450] rounded-full"
+          className="h-full bg-accent rounded-full"
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
           transition={{ duration: 1, ease: "easeOut" }}
         />
       </div>
       <div className="flex justify-between">
-        <span className="text-[10px] text-[#8A9199]">
+        <span className="text-[10px] text-ink-muted">
           {formatBytes(diskUsage.usedBytes)} used
         </span>
-        <span className="text-[10px] text-[#8A9199]">{pct}%</span>
+        <span className="text-[10px] text-ink-muted">{pct}%</span>
       </div>
     </div>
   );

@@ -154,26 +154,26 @@ export function GrabVideoDialog() {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 10 }}
                 transition={{ duration: 0.18 }}
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[520px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-48px)] overflow-y-auto rounded-xl bg-[#0F131A] border border-white/[0.08] shadow-2xl shadow-black/40 p-6"
+                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[520px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-48px)] overflow-y-auto rounded-xl bg-card border border-white/[0.08] shadow-2xl shadow-black/40 p-6"
               >
                 <div className="flex items-center justify-between mb-5">
-                  <Dialog.Title className="text-base font-semibold text-[#E6E1CF] flex items-center gap-2">
-                    <span className="w-7 h-7 rounded-lg bg-[#E6B450] flex items-center justify-center">
-                      <Clapperboard className="w-4 h-4 text-[#0B0E14]" />
+                  <Dialog.Title className="text-base font-semibold text-ink flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
+                      <Clapperboard className="w-4 h-4 text-on-accent" />
                     </span>
                     Grab Video
                   </Dialog.Title>
-                  <Dialog.Close className="text-[#8A9199] hover:text-[#E6E1CF] transition-colors">
+                  <Dialog.Close aria-label="Close" className="text-ink-muted hover:text-ink transition-colors">
                     <X className="w-4 h-4" />
                   </Dialog.Close>
                 </div>
 
                 {ytdlpMissing ? (
                   <div className="rounded-lg bg-white/[0.04] border border-white/[0.08] p-4 mb-5">
-                    <p className="text-sm text-[#E6E1CF] mb-1.5 font-medium">
+                    <p className="text-sm text-ink mb-1.5 font-medium">
                       yt-dlp is not installed
                     </p>
-                    <p className="text-xs text-[#8A9199] leading-relaxed mb-3">
+                    <p className="text-xs text-ink-muted leading-relaxed mb-3">
                       The video grabber uses yt-dlp to fetch video and audio from
                       YouTube and a thousand other sites. Install it once under
                       Settings → Video Grabber.
@@ -183,7 +183,7 @@ export function GrabVideoDialog() {
                         setOpen(false);
                         setActiveNav("settings");
                       }}
-                      className="px-3.5 py-2 rounded-lg bg-[#E6B450] hover:bg-[#F0C266] text-[#0B0E14] text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                      className="px-3.5 py-2 rounded-lg bg-accent hover:bg-accent-hover text-on-accent text-xs font-semibold flex items-center gap-1.5 transition-colors"
                     >
                       <SettingsIcon className="w-3.5 h-3.5" />
                       Open Settings
@@ -192,12 +192,12 @@ export function GrabVideoDialog() {
                 ) : (
                   <>
                     <label className="block mb-4">
-                      <span className="text-xs font-medium text-[#8A9199] mb-1.5 block">
+                      <span className="text-xs font-medium text-ink-muted mb-1.5 block">
                         Video page URL
                       </span>
                       <div className="flex gap-2">
                         <div className="relative flex-1">
-                          <Link2 className="absolute left-3 top-3 w-3.5 h-3.5 text-[#8A9199]" />
+                          <Link2 className="absolute left-3 top-3 w-3.5 h-3.5 text-ink-muted" />
                           <input
                             autoFocus
                             value={url}
@@ -206,13 +206,13 @@ export function GrabVideoDialog() {
                               if (e.key === "Enter" && !probing) analyze();
                             }}
                             placeholder="https://www.youtube.com/watch?v=…"
-                            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-[#E6E1CF] placeholder:text-[#8A9199]/50 pl-9 pr-3 py-2.5 outline-none focus:border-[#E6B450]/50 transition-colors"
+                            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-ink placeholder:text-ink-faint pl-9 pr-3 py-2.5 outline-none focus:border-accent/50 transition-colors"
                           />
                         </div>
                         <button
                           onClick={analyze}
                           disabled={probing}
-                          className="px-3.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[#8A9199] hover:text-[#E6E1CF] hover:bg-white/[0.1] disabled:opacity-50 text-xs font-medium flex items-center gap-1.5 transition-colors"
+                          className="px-3.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-ink-muted hover:text-ink hover:bg-white/[0.1] disabled:opacity-50 text-xs font-medium flex items-center gap-1.5 transition-colors"
                         >
                           {probing ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -225,7 +225,7 @@ export function GrabVideoDialog() {
                     </label>
 
                     {probing && (
-                      <p className="text-xs text-[#8A9199] mb-4 flex items-center gap-2">
+                      <p className="text-xs text-ink-muted mb-4 flex items-center gap-2">
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         Fetching available formats…
                       </p>
@@ -245,10 +245,10 @@ export function GrabVideoDialog() {
                             />
                           )}
                           <div className="min-w-0">
-                            <p className="text-sm text-[#E6E1CF] font-medium line-clamp-2">
+                            <p className="text-sm text-ink font-medium line-clamp-2">
                               {probe.title}
                             </p>
-                            <p className="text-[11px] text-[#8A9199] mt-0.5 flex items-center gap-1">
+                            <p className="text-[11px] text-ink-muted mt-0.5 flex items-center gap-1">
                               {probe.playlist && <ListVideo className="w-3 h-3" />}
                               {[
                                 probe.playlist
@@ -269,7 +269,7 @@ export function GrabVideoDialog() {
 
                         {probe.playlist && (
                           <div className="mb-4">
-                            <span className="text-xs font-medium text-[#8A9199] mb-1.5 flex items-center">
+                            <span className="text-xs font-medium text-ink-muted mb-1.5 flex items-center">
                               Videos ({pickedCount} of {probe.playlist.length} selected)
                               <button
                                 type="button"
@@ -280,7 +280,7 @@ export function GrabVideoDialog() {
                                       : new Set(probe.playlist!.map((_, i) => i))
                                   )
                                 }
-                                className="ml-auto text-[11px] text-[#8A9199] hover:text-[#E6E1CF] transition-colors"
+                                className="ml-auto text-[11px] text-ink-muted hover:text-ink transition-colors"
                               >
                                 {excluded.size > 0 ? "Select all" : "Select none"}
                               </button>
@@ -300,13 +300,13 @@ export function GrabVideoDialog() {
                                       else next.add(i);
                                       setExcluded(next);
                                     }}
-                                    className="accent-[#E6B450] w-3.5 h-3.5 shrink-0"
+                                    className="accent-accent w-3.5 h-3.5 shrink-0"
                                   />
-                                  <span className="text-xs text-[#E6E1CF] truncate flex-1">
+                                  <span className="text-xs text-ink truncate flex-1">
                                     {entry.title}
                                   </span>
                                   {entry.durationSeconds != null && (
-                                    <span className="text-[10px] text-[#8A9199] tabular-nums shrink-0">
+                                    <span className="text-[10px] text-ink-muted tabular-nums shrink-0">
                                       {formatDuration(entry.durationSeconds)}
                                     </span>
                                   )}
@@ -317,7 +317,7 @@ export function GrabVideoDialog() {
                         )}
 
                         <div className="mb-4">
-                          <span className="text-xs font-medium text-[#8A9199] mb-1.5 block">
+                          <span className="text-xs font-medium text-ink-muted mb-1.5 block">
                             Quality
                           </span>
                           <div className="rounded-lg border border-white/[0.08] divide-y divide-white/[0.06] overflow-hidden">
@@ -328,7 +328,7 @@ export function GrabVideoDialog() {
                                 className={cn(
                                   "w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors",
                                   i === selected
-                                    ? "bg-[#E6B450]/10"
+                                    ? "bg-accent/10"
                                     : "hover:bg-white/[0.03]"
                                 )}
                               >
@@ -336,29 +336,29 @@ export function GrabVideoDialog() {
                                   className={cn(
                                     "w-3.5 h-3.5 rounded-full border-2 shrink-0",
                                     i === selected
-                                      ? "border-[#E6B450] bg-[#E6B450]"
-                                      : "border-[#8A9199]/50"
+                                      ? "border-accent bg-accent"
+                                      : "border-ink-muted/50"
                                   )}
                                 />
                                 {opt.audioOnly ? (
-                                  <Music className="w-3.5 h-3.5 text-[#8A9199] shrink-0" />
+                                  <Music className="w-3.5 h-3.5 text-ink-muted shrink-0" />
                                 ) : (
-                                  <Clapperboard className="w-3.5 h-3.5 text-[#8A9199] shrink-0" />
+                                  <Clapperboard className="w-3.5 h-3.5 text-ink-muted shrink-0" />
                                 )}
-                                <span className="text-sm text-[#E6E1CF] font-medium">
+                                <span className="text-sm text-ink font-medium">
                                   {opt.label}
                                 </span>
-                                <span className="text-[10px] text-[#8A9199] uppercase border border-white/[0.1] rounded px-1 py-px">
+                                <span className="text-[10px] text-ink-muted uppercase border border-white/[0.1] rounded px-1 py-px">
                                   {opt.ext}
                                 </span>
-                                <span className="text-xs text-[#8A9199] ml-auto tabular-nums">
+                                <span className="text-xs text-ink-muted ml-auto tabular-nums">
                                   {opt.sizeBytes ? `≈ ${formatBytes(opt.sizeBytes)}` : ""}
                                 </span>
                               </button>
                             ))}
                           </div>
                           {!probe.hasFfmpeg && (
-                            <p className="text-[10px] text-[#FF8F40]/90 mt-1.5 leading-relaxed">
+                            <p className="text-[10px] text-warning/90 mt-1.5 leading-relaxed">
                               FFmpeg is not installed, so only qualities that come as a
                               single file are offered. Install it under Settings → Video
                               Grabber to unlock the highest resolutions.
@@ -367,18 +367,18 @@ export function GrabVideoDialog() {
                         </div>
 
                         <label className="block mb-5">
-                          <span className="text-xs font-medium text-[#8A9199] mb-1.5 block">
+                          <span className="text-xs font-medium text-ink-muted mb-1.5 block">
                             Save to
                           </span>
                           <div className="flex gap-2">
                             <input
                               value={saveDir}
                               onChange={(e) => setSaveDir(e.target.value)}
-                              className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-[#E6E1CF] px-3 py-2.5 outline-none focus:border-[#E6B450]/50 transition-colors"
+                              className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-ink px-3 py-2.5 outline-none focus:border-accent/50 transition-colors"
                             />
                             <button
                               onClick={browse}
-                              className="px-3 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[#8A9199] hover:text-[#E6E1CF] hover:bg-white/[0.1] transition-colors"
+                              className="px-3 rounded-lg bg-white/[0.06] border border-white/[0.08] text-ink-muted hover:text-ink hover:bg-white/[0.1] transition-colors"
                               title="Browse…"
                             >
                               <FolderOpen className="w-4 h-4" />
@@ -391,10 +391,10 @@ export function GrabVideoDialog() {
                 )}
 
                 {error && (
-                  <p className="text-xs text-[#F07178] mb-4 break-all">{error}</p>
+                  <p className="text-xs text-error-soft mb-4 break-all">{error}</p>
                 )}
                 {updateHint && (
-                  <p className="text-[11px] text-[#FF8F40] mb-4">
+                  <p className="text-[11px] text-warning mb-4">
                     A yt-dlp update is available — sites change often, and updating
                     usually fixes this. Settings → Video Grabber → Update.
                   </p>
@@ -402,7 +402,7 @@ export function GrabVideoDialog() {
 
                 <div className="flex justify-end gap-2">
                   <Dialog.Close asChild>
-                    <button className="px-4 py-2 rounded-lg text-sm font-medium text-[#8A9199] hover:text-[#E6E1CF] hover:bg-white/[0.06] transition-colors">
+                    <button className="px-4 py-2 rounded-lg text-sm font-medium text-ink-muted hover:text-ink hover:bg-white/[0.06] transition-colors">
                       Cancel
                     </button>
                   </Dialog.Close>
@@ -410,7 +410,7 @@ export function GrabVideoDialog() {
                     <button
                       disabled={busy || pickedCount === 0}
                       onClick={grab}
-                      className="px-5 py-2 rounded-lg bg-[#E6B450] hover:bg-[#F0C266] text-[#0B0E14] text-sm font-semibold disabled:opacity-60 flex items-center gap-2 transition-colors"
+                      className="px-5 py-2 rounded-lg bg-accent hover:bg-accent-hover text-on-accent text-sm font-semibold disabled:opacity-60 flex items-center gap-2 transition-colors"
                     >
                       {busy ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />

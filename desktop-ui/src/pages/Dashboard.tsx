@@ -5,7 +5,7 @@ import { useDownloadsStore } from "@/stores/downloadsStore";
 import { ProgressCell } from "@/components/downloads/ProgressCell";
 import { StatusBadge } from "@/components/downloads/StatusBadge";
 import { formatBytes } from "@/lib/utils";
-import apexLogo from "@/assets/apex-logo.png";
+import { LogoMark } from "@/components/ui/LogoMark";
 
 export function DashboardPage() {
   const downloads = useDownloadsStore((s) => s.downloads);
@@ -21,20 +21,15 @@ export function DashboardPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.15 }}
-            className="rounded-[10px] bg-[#0F131A] border border-white/[0.06] overflow-hidden"
+            className="rounded-[10px] bg-card border border-white/[0.06] overflow-hidden"
           >
             <div className="px-5 py-3 border-b border-white/[0.06]">
-              <h2 className="text-sm font-semibold text-[#E6E1CF]">Recent Downloads</h2>
+              <h2 className="text-sm font-semibold text-ink">Recent Downloads</h2>
             </div>
             {recent.length === 0 ? (
               <div className="py-8 flex flex-col items-center gap-3">
-                <img
-                  src={apexLogo}
-                  alt=""
-                  className="w-28 opacity-30 select-none"
-                  draggable={false}
-                />
-                <p className="text-xs text-[#8A9199]/60 text-center">
+                <LogoMark className="w-20 text-ink opacity-30 select-none" />
+                <p className="text-xs text-ink-faint text-center">
                   No downloads yet
                 </p>
               </div>
@@ -46,8 +41,8 @@ export function DashboardPage() {
                     className="flex items-center gap-4 px-5 py-2.5 hover:bg-white/[0.02] transition-colors"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-[#E6E1CF] font-medium truncate">{d.name}</p>
-                      <p className="text-[10px] text-[#8A9199] mt-0.5">
+                      <p className="text-sm text-ink font-medium truncate">{d.name}</p>
+                      <p className="text-[10px] text-ink-muted mt-0.5">
                         {d.sizeBytes > 0 ? formatBytes(d.sizeBytes) : "—"}
                       </p>
                     </div>

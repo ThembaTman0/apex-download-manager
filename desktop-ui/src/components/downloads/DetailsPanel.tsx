@@ -49,13 +49,13 @@ export function DetailsPanel() {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 16 }}
           transition={{ duration: 0.15, ease: "easeOut" }}
-          className="w-80 shrink-0 border-l border-white/[0.06] bg-[#0E1219] flex flex-col overflow-hidden"
+          className="w-80 shrink-0 border-l border-white/[0.06] bg-surface flex flex-col overflow-hidden"
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] shrink-0">
-            <h2 className="text-sm font-semibold text-[#E6E1CF]">Properties</h2>
+            <h2 className="text-sm font-semibold text-ink">Properties</h2>
             <button
               onClick={() => setDetailsId(null)}
-              className="text-[#8A9199] hover:text-[#E6E1CF] transition-colors"
+              className="text-ink-muted hover:text-ink transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -63,12 +63,12 @@ export function DetailsPanel() {
 
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
             <div>
-              <p className="text-sm text-[#E6E1CF] font-medium break-all">{download.name}</p>
+              <p className="text-sm text-ink font-medium break-all">{download.name}</p>
               <div className="mt-1.5">
                 <StatusBadge status={download.status} />
               </div>
               {download.error && (
-                <p className="text-xs text-[#F07178] mt-2 break-all">{download.error}</p>
+                <p className="text-xs text-error-soft mt-2 break-all">{download.error}</p>
               )}
             </div>
 
@@ -93,39 +93,39 @@ export function DetailsPanel() {
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] text-[#8A9199]">URL</span>
+                <span className="text-[11px] text-ink-muted">URL</span>
                 <button
                   onClick={() => copyUrls([download.id])}
-                  className="text-[#8A9199] hover:text-[#E6E1CF] transition-colors"
+                  className="text-ink-muted hover:text-ink transition-colors"
                   title="Copy URL"
                 >
                   <Copy className="w-3 h-3" />
                 </button>
               </div>
-              <p className="text-[11px] text-[#BFBDB6] break-all font-mono leading-relaxed select-text">
+              <p className="text-[11px] text-ink-mid break-all font-mono leading-relaxed select-text">
                 {download.url}
               </p>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] text-[#8A9199]">Folder</span>
+                <span className="text-[11px] text-ink-muted">Folder</span>
                 <button
                   onClick={() => showInFolder(download.id)}
-                  className="text-[#8A9199] hover:text-[#E6E1CF] transition-colors"
+                  className="text-ink-muted hover:text-ink transition-colors"
                   title="Show in folder"
                 >
                   <FolderOpen className="w-3 h-3" />
                 </button>
               </div>
-              <p className="text-[11px] text-[#BFBDB6] break-all font-mono leading-relaxed select-text">
+              <p className="text-[11px] text-ink-mid break-all font-mono leading-relaxed select-text">
                 {download.savePath}
               </p>
             </div>
 
             {segments.length > 1 && (
               <div>
-                <span className="text-[11px] text-[#8A9199] block mb-2">
+                <span className="text-[11px] text-ink-muted block mb-2">
                   Segments
                 </span>
                 <div className="flex flex-col gap-1.5">
@@ -135,16 +135,16 @@ export function DetailsPanel() {
                       total > 0 ? Math.min(100, (s.downloaded / total) * 100) : 0;
                     return (
                       <div key={i} className="flex items-center gap-2">
-                        <span className="w-5 text-[10px] text-[#8A9199]/60 tabular-nums text-right">
+                        <span className="w-5 text-[10px] text-ink-faint tabular-nums text-right">
                           {i + 1}
                         </span>
                         <div className="flex-1 h-1 bg-white/[0.07] rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-[#E6B450] rounded-full transition-[width] duration-500"
+                            className="h-full bg-accent rounded-full transition-[width] duration-500"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
-                        <span className="w-9 text-[10px] text-[#8A9199] tabular-nums text-right">
+                        <span className="w-9 text-[10px] text-ink-muted tabular-nums text-right">
                           {Math.round(pct)}%
                         </span>
                       </div>
@@ -177,7 +177,7 @@ function SpeedLimitRow({ id, limit }: { id: string; limit: number }) {
 
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <span className="text-[11px] text-[#8A9199] shrink-0">Speed limit</span>
+      <span className="text-[11px] text-ink-muted shrink-0">Speed limit</span>
       <span className="flex items-center gap-1.5">
         <input
           value={value}
@@ -185,9 +185,9 @@ function SpeedLimitRow({ id, limit }: { id: string; limit: number }) {
           onBlur={apply}
           onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
           placeholder="unlimited"
-          className="w-20 bg-white/[0.04] border border-white/[0.08] rounded-md text-xs text-[#E6E1CF] text-right px-2 py-1 outline-none focus:border-[#E6B450]/50 transition-colors tabular-nums placeholder:text-[#8A9199]/50"
+          className="w-20 bg-white/[0.04] border border-white/[0.08] rounded-md text-xs text-ink text-right px-2 py-1 outline-none focus:border-accent/50 transition-colors tabular-nums placeholder:text-ink-faint"
         />
-        <span className="text-[10px] text-[#8A9199]">KB/s</span>
+        <span className="text-[10px] text-ink-muted">KB/s</span>
       </span>
     </div>
   );
@@ -196,8 +196,8 @@ function SpeedLimitRow({ id, limit }: { id: string; limit: number }) {
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <span className="text-[11px] text-[#8A9199] shrink-0">{label}</span>
-      <span className="text-xs text-[#BFBDB6] text-right tabular-nums">{children}</span>
+      <span className="text-[11px] text-ink-muted shrink-0">{label}</span>
+      <span className="text-xs text-ink-mid text-right tabular-nums">{children}</span>
     </div>
   );
 }

@@ -1,15 +1,19 @@
 # Cloudflare Pages config for the Apex Download Manager site + stats API.
+# The site is a Vite + React app; Functions live in ./functions and are
+# picked up automatically because this file sits next to them.
 #
 # One-time setup:
 #   1. cd website
-#   2. npx wrangler kv namespace create STATS
+#   2. npm install
+#   3. npx wrangler kv namespace create STATS
 #      -> copy the returned "id" into the binding below
-#   3. npx wrangler pages deploy . --project-name=apex-download-manager
-#   (or connect the repo in the Cloudflare dashboard and set the same
-#   KV binding there under Pages > Settings > Functions > KV namespace bindings)
+#   4. npm run deploy   (builds to dist/, then wrangler pages deploy)
+#   (or connect the repo in the Cloudflare dashboard with build command
+#   "npm run build", output "dist", and set the same KV binding there under
+#   Pages > Settings > Functions > KV namespace bindings)
 
 name = "apex-download-manager"
-pages_build_output_dir = "."
+pages_build_output_dir = "dist"
 compatibility_date = "2026-07-08"
 
 [[kv_namespaces]]

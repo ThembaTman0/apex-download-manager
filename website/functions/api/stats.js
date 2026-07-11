@@ -1,25 +1,14 @@
-// GET /api/stats — public read-only JSON for the stats dashboard.
-// { total: number, countries: [{ code, count }], updated: ISO string }
+// GET /api/stats: total download count only, { total, updated }.
+// Nothing per-user or per-region is stored, so nothing more can be served.
 
 export async function onRequest(context) {
   const { env } = context;
 
-  const list = await env.STATS.list({ prefix: "country:" });
-  const countries = [];
-  let total = 0;
-
-  for (const { name } of list.keys) {
-    const raw = await env.STATS.get(name);
-    const count = raw ? parseInt(raw, 10) : 0;
-    if (count <= 0) continue;
-    total += count;
-    countries.push({ code: name.slice("country:".length), count });
-  }
-
-  countries.sort((a, b) => b.count - a.count);
+  const raw = await env.STATS.get("downloads:total");
+  const total = raw ? parseInt(raw, 10) : 0;
 
   return new Response(
-    JSON.stringify({ total, countries, updated: new Date().toISOString() }),
+    JSON.stringify({ total, updated: new Date().toISOString() }),
     {
       headers: {
         "content-type": "application/json",

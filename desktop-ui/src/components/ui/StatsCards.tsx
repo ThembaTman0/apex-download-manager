@@ -27,14 +27,14 @@ export function StatsCards() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.15 }}
-            className="p-4 rounded-[10px] bg-[#0F131A] border border-white/[0.06]"
+            className="p-4 rounded-[10px] bg-card border border-white/[0.06]"
           >
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs text-[#8A9199] font-medium">{card.label}</span>
-              <Icon className="w-4 h-4 text-[#8A9199]/70" />
+              <span className="text-xs text-ink-muted font-medium">{card.label}</span>
+              <Icon className="w-4 h-4 text-ink-faint" />
             </div>
-            <p className="text-xl font-semibold text-[#E6E1CF] tabular-nums">{card.value}</p>
-            <p className="text-[10px] text-[#8A9199] mt-0.5">{card.sub}</p>
+            <p className="text-xl font-semibold text-ink tabular-nums">{card.value}</p>
+            <p className="text-[10px] text-ink-muted mt-0.5">{card.sub}</p>
           </motion.div>
         );
       })}

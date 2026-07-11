@@ -40,7 +40,7 @@ export function SettingsPage() {
 
   if (!form) {
     return (
-      <div className="flex-1 flex items-center justify-center text-sm text-[#8A9199]">
+      <div className="flex-1 flex items-center justify-center text-sm text-ink-muted">
         Loading settings…
       </div>
     );
@@ -77,9 +77,9 @@ export function SettingsPage() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="max-w-2xl mx-auto rounded-[10px] bg-[#0F131A] border border-white/[0.06] p-6"
+        className="max-w-2xl mx-auto rounded-[10px] bg-card border border-white/[0.06] p-6"
       >
-        <h1 className="text-base font-semibold text-[#E6E1CF] mb-6">Settings</h1>
+        <h1 className="text-base font-semibold text-ink mb-6">Settings</h1>
 
         <Field
           icon={FolderOpen}
@@ -90,11 +90,11 @@ export function SettingsPage() {
             <input
               value={form.downloadDir}
               onChange={(e) => update({ downloadDir: e.target.value })}
-              className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-[#E6E1CF] px-3 py-2.5 outline-none focus:border-[#E6B450]/50 transition-colors"
+              className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-ink px-3 py-2.5 outline-none focus:border-accent/50 transition-colors"
             />
             <button
               onClick={browse}
-              className="px-3 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[#8A9199] hover:text-[#E6E1CF] hover:bg-white/[0.1] transition-colors"
+              className="px-3 rounded-lg bg-white/[0.06] border border-white/[0.08] text-ink-muted hover:text-ink hover:bg-white/[0.1] transition-colors"
             >
               Browse…
             </button>
@@ -152,7 +152,7 @@ export function SettingsPage() {
             onChange={(e) => update({ proxyUrl: e.target.value })}
             placeholder="Direct connection (no proxy)"
             spellCheck={false}
-            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-[#E6E1CF] font-mono placeholder:text-[#8A9199]/50 placeholder:font-sans px-3 py-2.5 outline-none focus:border-[#E6B450]/50 transition-colors"
+            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-ink font-mono placeholder:text-ink-faint placeholder:font-sans px-3 py-2.5 outline-none focus:border-accent/50 transition-colors"
           />
         </Field>
 
@@ -162,9 +162,9 @@ export function SettingsPage() {
               type="checkbox"
               checked={form.notifyOnComplete}
               onChange={(e) => update({ notifyOnComplete: e.target.checked })}
-              className="accent-[#E6B450] w-4 h-4"
+              className="accent-accent w-4 h-4"
             />
-            <span className="text-sm text-[#BFBDB6]">
+            <span className="text-sm text-ink-mid">
               Notify when a download completes
             </span>
           </label>
@@ -180,9 +180,9 @@ export function SettingsPage() {
               type="checkbox"
               checked={form.watchClipboard}
               onChange={(e) => update({ watchClipboard: e.target.checked })}
-              className="accent-[#E6B450] w-4 h-4"
+              className="accent-accent w-4 h-4"
             />
-            <span className="text-sm text-[#BFBDB6]">
+            <span className="text-sm text-ink-mid">
               Watch clipboard for download URLs
             </span>
           </label>
@@ -198,9 +198,9 @@ export function SettingsPage() {
               type="checkbox"
               checked={form.autoOrganize}
               onChange={(e) => update({ autoOrganize: e.target.checked })}
-              className="accent-[#E6B450] w-4 h-4"
+              className="accent-accent w-4 h-4"
             />
-            <span className="text-sm text-[#BFBDB6]">
+            <span className="text-sm text-ink-mid">
               Sort downloads into category folders
             </span>
           </label>
@@ -216,7 +216,7 @@ export function SettingsPage() {
             onChange={(e) =>
               update({ queueDoneAction: e.target.value as QueueDoneAction })
             }
-            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-[#E6E1CF] px-3 py-2.5 outline-none focus:border-[#E6B450]/50 transition-colors [color-scheme:dark]"
+            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-ink px-3 py-2.5 outline-none focus:border-accent/50 transition-colors [color-scheme:dark]"
           >
             <option value="none">Do nothing</option>
             <option value="sleep">Sleep</option>
@@ -232,13 +232,13 @@ export function SettingsPage() {
         <VideoGrabberSection />
 
         <div className="border-t border-white/[0.06] my-6" />
-        <h2 className="text-sm font-semibold text-[#E6E1CF] mb-1 flex items-center gap-2">
-          <Globe className="w-4 h-4 text-[#8A9199]" />
+        <h2 className="text-sm font-semibold text-ink mb-1 flex items-center gap-2">
+          <Globe className="w-4 h-4 text-ink-muted" />
           Browser Integration
         </h2>
-        <p className="text-[11px] text-[#8A9199] mb-4 leading-relaxed">
+        <p className="text-[11px] text-ink-muted mb-4 leading-relaxed">
           Install the extension from the{" "}
-          <code className="text-[#BFBDB6]">browser-extension</code> folder —
+          <code className="text-ink-mid">browser-extension</code> folder —
           Chrome/Edge: chrome://extensions → Load unpacked · Firefox:
           about:debugging → Load Temporary Add-on — then paste this token into
           its popup. Downloads you start in the browser are then captured by
@@ -251,9 +251,9 @@ export function SettingsPage() {
               type="checkbox"
               checked={form.captureEnabled}
               onChange={(e) => update({ captureEnabled: e.target.checked })}
-              className="accent-[#E6B450] w-4 h-4"
+              className="accent-accent w-4 h-4"
             />
-            <span className="text-sm text-[#BFBDB6]">
+            <span className="text-sm text-ink-mid">
               Accept downloads from the browser extension
             </span>
           </label>
@@ -263,9 +263,9 @@ export function SettingsPage() {
               checked={form.captureConfirm}
               disabled={!form.captureEnabled}
               onChange={(e) => update({ captureConfirm: e.target.checked })}
-              className="accent-[#E6B450] w-4 h-4 disabled:opacity-40"
+              className="accent-accent w-4 h-4 disabled:opacity-40"
             />
-            <span className="text-sm text-[#BFBDB6] disabled:opacity-40">
+            <span className="text-sm text-ink-mid disabled:opacity-40">
               Ask me to approve each capture before it downloads
             </span>
           </label>
@@ -281,7 +281,7 @@ export function SettingsPage() {
               {form.captureAllowedHosts.map((h) => (
                 <span
                   key={h}
-                  className="flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full bg-white/[0.06] border border-white/[0.08] text-xs text-[#BFBDB6]"
+                  className="flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full bg-white/[0.06] border border-white/[0.08] text-xs text-ink-mid"
                 >
                   {h}
                   <button
@@ -292,7 +292,7 @@ export function SettingsPage() {
                         ),
                       })
                     }
-                    className="text-[#8A9199] hover:text-[#F07178] transition-colors"
+                    className="text-ink-muted hover:text-error-soft transition-colors"
                     title={`Remove ${h}`}
                   >
                     <X className="w-3 h-3" />
@@ -309,7 +309,7 @@ export function SettingsPage() {
           hint="The extension must present this token; regenerate if it ever leaks"
         >
           <div className="flex gap-2">
-            <code className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg text-xs text-[#E6E1CF] font-mono px-3 py-2.5 truncate select-text">
+            <code className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg text-xs text-ink font-mono px-3 py-2.5 truncate select-text">
               {form.captureToken || "—"}
             </code>
             <button
@@ -321,11 +321,11 @@ export function SettingsPage() {
                 setTokenCopied(true);
                 setTimeout(() => setTokenCopied(false), 1500);
               }}
-              className="px-3 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[#8A9199] hover:text-[#E6E1CF] hover:bg-white/[0.1] transition-colors"
+              className="px-3 rounded-lg bg-white/[0.06] border border-white/[0.08] text-ink-muted hover:text-ink hover:bg-white/[0.1] transition-colors"
               title="Copy token"
             >
               {tokenCopied ? (
-                <Check className="w-4 h-4 text-[#7FD962]" />
+                <Check className="w-4 h-4 text-success" />
               ) : (
                 <Copy className="w-4 h-4" />
               )}
@@ -336,7 +336,7 @@ export function SettingsPage() {
                 setForm(s);
                 useDownloadsStore.setState({ settings: s });
               }}
-              className="px-3 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[#8A9199] hover:text-[#E6E1CF] hover:bg-white/[0.1] transition-colors"
+              className="px-3 rounded-lg bg-white/[0.06] border border-white/[0.08] text-ink-muted hover:text-ink hover:bg-white/[0.1] transition-colors"
               title="Regenerate token"
             >
               <RefreshCw className="w-4 h-4" />
@@ -357,12 +357,12 @@ export function SettingsPage() {
           />
         </Field>
 
-        {error && <p className="text-xs text-[#F07178] mb-4 break-all">{error}</p>}
+        {error && <p className="text-xs text-error-soft mb-4 break-all">{error}</p>}
 
         <div className="flex items-center gap-3 mt-2">
           <button
             onClick={save}
-            className="px-5 py-2.5 rounded-lg bg-[#E6B450] hover:bg-[#F0C266] text-[#0B0E14] text-sm font-semibold flex items-center gap-2 transition-colors"
+            className="px-5 py-2.5 rounded-lg bg-accent hover:bg-accent-hover text-on-accent text-sm font-semibold flex items-center gap-2 transition-colors"
           >
             <Save className="w-3.5 h-3.5" />
             Save Settings
@@ -371,7 +371,7 @@ export function SettingsPage() {
             <motion.span
               initial={{ opacity: 0, x: -6 }}
               animate={{ opacity: 1, x: 0 }}
-              className="text-xs text-[#7FD962] font-medium"
+              className="text-xs text-success font-medium"
             >
               Saved ✓
             </motion.span>
@@ -448,11 +448,11 @@ function AppUpdatesSection() {
 
   return (
     <>
-      <h2 className="text-sm font-semibold text-[#E6E1CF] mb-1 flex items-center gap-2">
-        <RefreshCw className="w-4 h-4 text-[#8A9199]" />
+      <h2 className="text-sm font-semibold text-ink mb-1 flex items-center gap-2">
+        <RefreshCw className="w-4 h-4 text-ink-muted" />
         Updates
       </h2>
-      <p className="text-[11px] text-[#8A9199] mb-4 leading-relaxed">
+      <p className="text-[11px] text-ink-muted mb-4 leading-relaxed">
         Apex {version ? `v${version}` : ""} — updates are downloaded from GitHub
         Releases and verified before installing.
       </p>
@@ -460,7 +460,7 @@ function AppUpdatesSection() {
         <button
           onClick={available ? installNow : checkNow}
           disabled={state === "checking" || state === "installing"}
-          className="px-4 py-2 rounded-lg bg-white/[0.06] border border-white/[0.08] text-xs font-medium text-[#8A9199] hover:text-[#E6E1CF] hover:bg-white/[0.1] disabled:opacity-50 flex items-center gap-1.5 transition-colors"
+          className="px-4 py-2 rounded-lg bg-white/[0.06] border border-white/[0.08] text-xs font-medium text-ink-muted hover:text-ink hover:bg-white/[0.1] disabled:opacity-50 flex items-center gap-1.5 transition-colors"
         >
           {(state === "checking" || state === "installing") && (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -476,13 +476,13 @@ function AppUpdatesSection() {
             : "Check for Updates"}
         </button>
         {state === "none" && (
-          <span className="text-xs text-[#7FD962]">You're up to date ✓</span>
+          <span className="text-xs text-success">You're up to date ✓</span>
         )}
         {available && state !== "installing" && (
-          <span className="text-xs text-[#FF8F40]">Update v{available} available</span>
+          <span className="text-xs text-warning">Update v{available} available</span>
         )}
       </div>
-      {error && <p className="text-xs text-[#F07178] mb-4 break-all">{error}</p>}
+      {error && <p className="text-xs text-error-soft mb-4 break-all">{error}</p>}
     </>
   );
 }
@@ -526,13 +526,13 @@ function VideoGrabberSection() {
 
   return (
     <>
-      <h2 className="text-sm font-semibold text-[#E6E1CF] mb-1 flex items-center gap-2">
-        <Clapperboard className="w-4 h-4 text-[#8A9199]" />
+      <h2 className="text-sm font-semibold text-ink mb-1 flex items-center gap-2">
+        <Clapperboard className="w-4 h-4 text-ink-muted" />
         Video Grabber
       </h2>
-      <p className="text-[11px] text-[#8A9199] mb-4 leading-relaxed">
+      <p className="text-[11px] text-ink-muted mb-4 leading-relaxed">
         “Grab Video” downloads video/audio from YouTube and 1000+ other sites
-        using <code className="text-[#BFBDB6]">yt-dlp</code>. FFmpeg is optional
+        using <code className="text-ink-mid">yt-dlp</code>. FFmpeg is optional
         — it unlocks the highest resolutions by merging separate video and audio
         streams.
       </p>
@@ -564,7 +564,7 @@ function VideoGrabberSection() {
         installLabel={tools?.ffmpegPath ? "Reinstall" : "Install (~180 MB)"}
         disabled={installing !== null}
       />
-      {error && <p className="text-xs text-[#F07178] mb-4 break-all">{error}</p>}
+      {error && <p className="text-xs text-error-soft mb-4 break-all">{error}</p>}
     </>
   );
 }
@@ -593,14 +593,14 @@ function ToolRow({
   return (
     <div className="flex items-center gap-3 mb-3 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
       <span
-        className={`w-2 h-2 rounded-full shrink-0 ${ok ? "bg-[#7FD962]" : "bg-[#FF8F40]"}`}
+        className={`w-2 h-2 rounded-full shrink-0 ${ok ? "bg-success" : "bg-warning"}`}
       />
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-[#E6E1CF] font-medium">
+        <p className="text-sm text-ink font-medium">
           {name}
-          {required && <span className="text-[10px] text-[#8A9199] ml-1.5">required</span>}
+          {required && <span className="text-[10px] text-ink-muted ml-1.5">required</span>}
         </p>
-        <p className="text-[11px] text-[#8A9199] truncate">
+        <p className="text-[11px] text-ink-muted truncate">
           {installing && progress
             ? `Downloading… ${formatBytes(progress.downloaded)}${progress.total ? ` / ${formatBytes(progress.total)}` : ""}`
             : status}
@@ -609,7 +609,7 @@ function ToolRow({
       <button
         onClick={onInstall}
         disabled={disabled}
-        className="px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-xs font-medium text-[#8A9199] hover:text-[#E6E1CF] hover:bg-white/[0.1] disabled:opacity-50 flex items-center gap-1.5 transition-colors shrink-0"
+        className="px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-xs font-medium text-ink-muted hover:text-ink hover:bg-white/[0.1] disabled:opacity-50 flex items-center gap-1.5 transition-colors shrink-0"
       >
         {installing ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -636,11 +636,11 @@ function Field({
   return (
     <div className="mb-5">
       <div className="flex items-center gap-2 mb-1.5">
-        <Icon className="w-3.5 h-3.5 text-[#8A9199]" />
-        <span className="text-xs font-medium text-[#E6E1CF]">{label}</span>
+        <Icon className="w-3.5 h-3.5 text-ink-muted" />
+        <span className="text-xs font-medium text-ink">{label}</span>
       </div>
       {children}
-      {hint && <p className="text-[10px] text-[#8A9199]/70 mt-1.5">{hint}</p>}
+      {hint && <p className="text-[10px] text-ink-faint mt-1.5">{hint}</p>}
     </div>
   );
 }
@@ -666,7 +666,7 @@ function NumberInput({
         const v = parseInt(e.target.value, 10);
         if (!Number.isNaN(v)) onChange(Math.min(max, Math.max(min, v)));
       }}
-      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-[#E6E1CF] px-3 py-2.5 outline-none focus:border-[#E6B450]/50 transition-colors tabular-nums"
+      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-ink px-3 py-2.5 outline-none focus:border-accent/50 transition-colors tabular-nums"
     />
   );
 }

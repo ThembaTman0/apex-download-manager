@@ -66,10 +66,10 @@ export function Toolbar() {
   }, []);
 
   return (
-    <div className="flex items-center gap-1 px-3 py-1.5 bg-[#0D1017] border-b border-white/[0.06] shrink-0">
+    <div className="flex items-center gap-1 px-3 py-1.5 bg-surface border-b border-white/[0.06] shrink-0">
       <button
         onClick={() => setAddDialogOpen(true)}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-[#E6B450] hover:bg-[#F0C266] text-[#0B0E14] transition-colors"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-accent hover:bg-accent-hover text-on-accent transition-colors"
       >
         <Plus className="w-3.5 h-3.5" />
         Add URL
@@ -78,7 +78,7 @@ export function Toolbar() {
       <button
         onClick={() => setVideoDialogOpen(true)}
         title="Download video/audio from YouTube and other sites"
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.1] text-[#E6E1CF] transition-colors ml-1"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.1] text-ink transition-colors ml-1"
       >
         <Clapperboard className="w-3.5 h-3.5" />
         Grab Video
@@ -167,10 +167,10 @@ export function Toolbar() {
       <div
         className={cn(
           "relative flex items-center w-52 rounded-md border bg-white/[0.04] transition-colors",
-          focused ? "border-[#E6B450]/50" : "border-white/[0.08]"
+          focused ? "border-accent/50" : "border-white/[0.08]"
         )}
       >
-        <Search className="absolute left-2.5 w-3.5 h-3.5 text-[#8A9199]" />
+        <Search className="absolute left-2.5 w-3.5 h-3.5 text-ink-muted" />
         <input
           ref={inputRef}
           value={searchQuery}
@@ -178,23 +178,25 @@ export function Toolbar() {
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           placeholder="Search downloads"
-          className="w-full bg-transparent text-xs text-[#E6E1CF] placeholder:text-[#8A9199]/50 pl-8 pr-12 py-1.5 outline-none"
+          aria-label="Search downloads"
+          className="w-full bg-transparent text-xs text-ink placeholder:text-ink-faint pl-8 pr-12 py-1.5 outline-none"
         />
         {searchQuery ? (
           <button
             onClick={() => setSearchQuery("")}
-            className="absolute right-2.5 text-[#8A9199] hover:text-[#E6E1CF] transition-colors"
+            aria-label="Clear search"
+            className="absolute right-2.5 text-ink-muted hover:text-ink transition-colors"
           >
             <X className="w-3.5 h-3.5" />
           </button>
         ) : (
-          <kbd className="absolute right-2 text-[10px] text-[#8A9199]/50 border border-white/[0.08] rounded px-1 select-none">
+          <kbd className="absolute right-2 text-[10px] text-ink-faint border border-white/[0.08] rounded px-1 select-none">
             Ctrl F
           </kbd>
         )}
       </div>
 
-      <span className="text-[11px] text-[#8A9199]/70 tabular-nums ml-2 shrink-0">
+      <span className="text-[11px] text-ink-faint tabular-nums ml-2 shrink-0">
         {hasSelection
           ? `${selected.length} of ${downloads.length} selected`
           : `${downloads.length} item${downloads.length !== 1 ? "s" : ""}`}
@@ -224,21 +226,22 @@ function QueueSelect({
       className={cn(
         "flex items-center gap-1.5 pl-2 rounded-md border bg-white/[0.04] cursor-pointer transition-colors",
         active
-          ? "border-[#FF8F40]/40 text-[#FF8F40]"
-          : "border-white/[0.08] text-[#8A9199] hover:text-[#E6E1CF]"
+          ? "border-warning/40 text-warning"
+          : "border-white/[0.08] text-ink-muted hover:text-ink"
       )}
     >
       <Icon className="w-3.5 h-3.5 shrink-0" />
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        aria-label={title}
         className={cn(
           "bg-transparent text-xs font-medium py-1.5 pr-1.5 outline-none cursor-pointer [color-scheme:dark]",
-          active ? "text-[#FF8F40]" : "text-inherit"
+          active ? "text-warning" : "text-inherit"
         )}
       >
         {options.map((o) => (
-          <option key={o.value} value={o.value} className="bg-[#161B24] text-[#E6E1CF]">
+          <option key={o.value} value={o.value} className="bg-raised text-ink">
             {o.label}
           </option>
         ))}
@@ -267,10 +270,10 @@ function GhostButton({
       className={cn(
         "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
         disabled
-          ? "opacity-30 cursor-not-allowed text-[#8A9199]"
+          ? "opacity-30 cursor-not-allowed text-ink-muted"
           : danger
-          ? "text-[#8A9199] hover:bg-[#D95757]/10 hover:text-[#F07178]"
-          : "text-[#8A9199] hover:bg-white/[0.06] hover:text-[#E6E1CF]"
+          ? "text-ink-muted hover:bg-error/10 hover:text-error-soft"
+          : "text-ink-muted hover:bg-white/[0.06] hover:text-ink"
       )}
     >
       <Icon className="w-3.5 h-3.5" />

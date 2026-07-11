@@ -151,29 +151,30 @@ export default function App() {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-[#0B0E14] overflow-hidden rounded-[10px]">
+    <div className="flex flex-col h-screen bg-bg overflow-hidden rounded-[10px]">
       <TopBar />
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar column */}
-        <div className="flex flex-col h-full bg-[#0D1017] border-r border-white/[0.06] w-56 shrink-0">
+        <div className="flex flex-col h-full bg-surface border-r border-white/[0.06] w-56 shrink-0">
           <Sidebar />
         </div>
 
         {/* Main content */}
         <main className="flex flex-col flex-1 overflow-hidden">
           {activeNav === "downloads" && <Toolbar />}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeNav}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.12 }}
-              className="flex flex-col flex-1 overflow-hidden"
-            >
-              {pageMap[activeNav]}
-            </motion.div>
-          </AnimatePresence>
+          {/* Enter-only fade on page switch. An AnimatePresence mode="wait"
+              crossfade here wedged under React 19 StrictMode (the exit's
+              completion was swallowed, leaving the old page stuck at
+              opacity 0), so pages swap instantly and fade in. */}
+          <motion.div
+            key={activeNav}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.12 }}
+            className="flex flex-col flex-1 overflow-hidden"
+          >
+            {pageMap[activeNav]}
+          </motion.div>
         </main>
       </div>
       <StatusBar />
@@ -190,24 +191,27 @@ export default function App() {
       <AnimatePresence>
         {updateVersion && (
           <motion.div
+            role="status"
+            aria-live="polite"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 rounded-xl bg-[#161B24] border border-[#E6B450]/30 shadow-2xl shadow-black/50 px-4 py-3 flex items-center gap-3"
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 rounded-xl bg-raised border border-accent/30 shadow-2xl shadow-black/50 px-4 py-3 flex items-center gap-3"
           >
-            <p className="text-xs text-[#BFBDB6]">
+            <p className="text-xs text-ink-mid">
               Apex v{updateVersion} is available.
             </p>
             <button
               onClick={installUpdate}
               disabled={updateBusy}
-              className="px-3 py-1.5 rounded-lg bg-[#E6B450] hover:bg-[#F0C266] text-[#0B0E14] text-xs font-semibold disabled:opacity-60 transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-accent hover:bg-accent-hover text-on-accent text-xs font-semibold disabled:opacity-60 transition-colors"
             >
               {updateBusy ? "Installing…" : "Install & Restart"}
             </button>
             <button
               onClick={() => setUpdateVersion(null)}
-              className="text-[#8A9199] hover:text-[#E6E1CF] transition-colors"
+              aria-label="Dismiss update notification"
+              className="text-ink-muted hover:text-ink transition-colors"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -219,16 +223,18 @@ export default function App() {
       <AnimatePresence>
         {lastError && (
           <motion.div
+            role="alert"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-10 right-4 z-50 max-w-sm rounded-xl bg-[#161B24] border border-[#D95757]/30 shadow-2xl shadow-black/50 p-3 flex items-start gap-2.5"
+            className="fixed bottom-10 right-4 z-50 max-w-sm rounded-xl bg-raised border border-error/30 shadow-2xl shadow-black/50 p-3 flex items-start gap-2.5"
           >
-            <AlertTriangle className="w-4 h-4 text-[#F07178] shrink-0 mt-0.5" />
-            <p className="text-xs text-[#BFBDB6] break-all flex-1">{lastError}</p>
+            <AlertTriangle className="w-4 h-4 text-error-soft shrink-0 mt-0.5" />
+            <p className="text-xs text-ink-mid break-all flex-1">{lastError}</p>
             <button
               onClick={() => setLastError(null)}
-              className="text-[#8A9199] hover:text-[#E6E1CF] transition-colors shrink-0"
+              aria-label="Dismiss error"
+              className="text-ink-muted hover:text-ink transition-colors shrink-0"
             >
               <X className="w-3.5 h-3.5" />
             </button>

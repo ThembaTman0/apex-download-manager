@@ -10,12 +10,12 @@ interface Props {
 export function ProgressCell({ progress, status }: Props) {
   const color =
     status === "completed"
-      ? "bg-[#7FD962]"
+      ? "bg-success"
       : status === "failed"
-      ? "bg-[#D95757]"
+      ? "bg-error"
       : status === "paused"
-      ? "bg-[#FF8F40]"
-      : "bg-[#E6B450]";
+      ? "bg-warning"
+      : "bg-accent";
 
   return (
     <div className="flex items-center gap-2 min-w-[120px]">
@@ -27,7 +27,7 @@ export function ProgressCell({ progress, status }: Props) {
           transition={{ duration: 0.6, ease: "easeOut" }}
         />
       </div>
-      <span className="text-xs text-[#8A9199] w-8 text-right tabular-nums">
+      <span className="text-xs text-ink-muted w-8 text-right tabular-nums">
         {Math.round(progress)}%
       </span>
     </div>

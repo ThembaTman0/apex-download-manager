@@ -58,6 +58,7 @@ interface DownloadsState {
   scheduleDownload: (id: string, startAt: number | null) => Promise<void>;
   setDownloadSpeedLimit: (id: string, kbps: number) => Promise<void>;
   toggleSelect: (id: string) => void;
+  selectOnly: (id: string) => void;
   selectAll: () => void;
   clearSelection: () => void;
 
@@ -218,6 +219,8 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
       }
       return { selectedIds: next };
     }),
+
+  selectOnly: (id) => set({ selectedIds: new Set([id]) }),
 
   selectAll: () =>
     set((s) => ({ selectedIds: new Set(s.downloads.map((d) => d.id)) })),

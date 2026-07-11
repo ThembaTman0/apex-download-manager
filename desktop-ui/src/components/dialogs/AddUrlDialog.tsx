@@ -150,7 +150,7 @@ export function AddUrlDialog() {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 10 }}
                 transition={{ duration: 0.18 }}
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[480px] max-w-[calc(100vw-32px)] rounded-xl bg-[#0F131A] border border-white/[0.08] shadow-2xl shadow-black/40 p-6"
+                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[480px] max-w-[calc(100vw-32px)] rounded-xl bg-card border border-white/[0.08] shadow-2xl shadow-black/40 p-6"
                 onKeyDown={(e) => {
                   const inTextarea = e.target instanceof HTMLTextAreaElement;
                   if (e.key === "Enter" && !busy && (!inTextarea || e.ctrlKey)) {
@@ -159,19 +159,19 @@ export function AddUrlDialog() {
                 }}
               >
                 <div className="flex items-center justify-between mb-5">
-                  <Dialog.Title className="text-base font-semibold text-[#E6E1CF] flex items-center gap-2">
-                    <span className="w-7 h-7 rounded-lg bg-[#E6B450] flex items-center justify-center">
-                      <Plus className="w-4 h-4 text-[#0B0E14]" />
+                  <Dialog.Title className="text-base font-semibold text-ink flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
+                      <Plus className="w-4 h-4 text-on-accent" />
                     </span>
                     New Download
                   </Dialog.Title>
-                  <Dialog.Close className="text-[#8A9199] hover:text-[#E6E1CF] transition-colors">
+                  <Dialog.Close aria-label="Close" className="text-ink-muted hover:text-ink transition-colors">
                     <X className="w-4 h-4" />
                   </Dialog.Close>
                 </div>
 
                 <label className="block mb-4">
-                  <span className="text-xs font-medium text-[#8A9199] mb-1.5 flex items-center">
+                  <span className="text-xs font-medium text-ink-muted mb-1.5 flex items-center">
                     <span>
                       URL{urls.length > 1 ? `s (${urls.length})` : ""}{" "}
                       <span className="opacity-50">
@@ -182,7 +182,7 @@ export function AddUrlDialog() {
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       title="Append URLs from a .txt file (one per line)"
-                      className="ml-auto flex items-center gap-1 text-[11px] text-[#8A9199] hover:text-[#E6E1CF] transition-colors"
+                      className="ml-auto flex items-center gap-1 text-[11px] text-ink-muted hover:text-ink transition-colors"
                     >
                       <FileUp className="w-3 h-3" />
                       Import .txt
@@ -200,19 +200,19 @@ export function AddUrlDialog() {
                     />
                   </span>
                   <div className="relative flex">
-                    <Link2 className="absolute left-3 top-3.5 w-3.5 h-3.5 text-[#8A9199]" />
+                    <Link2 className="absolute left-3 top-3.5 w-3.5 h-3.5 text-ink-muted" />
                     <textarea
                       autoFocus
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
                       rows={urls.length > 1 ? 4 : 1}
                       placeholder="https://example.com/file.zip"
-                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-[#E6E1CF] placeholder:text-[#8A9199]/50 pl-9 pr-3 py-2.5 outline-none focus:border-[#E6B450]/50 transition-colors resize-none leading-relaxed"
+                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-ink placeholder:text-ink-faint pl-9 pr-3 py-2.5 outline-none focus:border-accent/50 transition-colors resize-none leading-relaxed"
                     />
                   </div>
                   {duplicates.length > 0 && (
                     <div className="mt-1.5">
-                      <p className="text-[11px] text-[#FF8F40]">
+                      <p className="text-[11px] text-warning">
                         {urls.length === 1
                           ? "This URL is already in your list."
                           : `${duplicates.length} of these URLs ${
@@ -224,9 +224,9 @@ export function AddUrlDialog() {
                           type="checkbox"
                           checked={skipDuplicates}
                           onChange={(e) => setSkipDuplicates(e.target.checked)}
-                          className="accent-[#E6B450] w-3.5 h-3.5"
+                          className="accent-accent w-3.5 h-3.5"
                         />
-                        <span className="text-[11px] text-[#BFBDB6]">
+                        <span className="text-[11px] text-ink-mid">
                           Skip duplicate{duplicates.length !== 1 ? "s" : ""} (uncheck to
                           download again)
                         </span>
@@ -236,18 +236,18 @@ export function AddUrlDialog() {
                 </label>
 
                 <label className="block mb-4">
-                  <span className="text-xs font-medium text-[#8A9199] mb-1.5 block">
+                  <span className="text-xs font-medium text-ink-muted mb-1.5 block">
                     Save to
                   </span>
                   <div className="flex gap-2">
                     <input
                       value={saveDir}
                       onChange={(e) => setSaveDir(e.target.value)}
-                      className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-[#E6E1CF] px-3 py-2.5 outline-none focus:border-[#E6B450]/50 transition-colors"
+                      className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-ink px-3 py-2.5 outline-none focus:border-accent/50 transition-colors"
                     />
                     <button
                       onClick={browse}
-                      className="px-3 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[#8A9199] hover:text-[#E6E1CF] hover:bg-white/[0.1] transition-colors"
+                      className="px-3 rounded-lg bg-white/[0.06] border border-white/[0.08] text-ink-muted hover:text-ink hover:bg-white/[0.1] transition-colors"
                       title="Browse…"
                     >
                       <FolderOpen className="w-4 h-4" />
@@ -256,7 +256,7 @@ export function AddUrlDialog() {
                 </label>
 
                 <label className="block mb-5">
-                  <span className="text-xs font-medium text-[#8A9199] mb-1.5 block">
+                  <span className="text-xs font-medium text-ink-muted mb-1.5 block">
                     File name{" "}
                     <span className="opacity-50">(optional — auto-detected)</span>
                   </span>
@@ -264,24 +264,24 @@ export function AddUrlDialog() {
                     value={fileName}
                     onChange={(e) => setFileName(e.target.value)}
                     placeholder="Leave empty to detect from URL"
-                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-[#E6E1CF] placeholder:text-[#8A9199]/50 px-3 py-2.5 outline-none focus:border-[#E6B450]/50 transition-colors"
+                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-ink placeholder:text-ink-faint px-3 py-2.5 outline-none focus:border-accent/50 transition-colors"
                   />
                 </label>
 
                 {error && (
-                  <p className="text-xs text-[#F07178] mb-4 break-all">{error}</p>
+                  <p className="text-xs text-error-soft mb-4 break-all">{error}</p>
                 )}
 
                 <div className="flex justify-end gap-2">
                   <Dialog.Close asChild>
-                    <button className="px-4 py-2 rounded-lg text-sm font-medium text-[#8A9199] hover:text-[#E6E1CF] hover:bg-white/[0.06] transition-colors">
+                    <button className="px-4 py-2 rounded-lg text-sm font-medium text-ink-muted hover:text-ink hover:bg-white/[0.06] transition-colors">
                       Cancel
                     </button>
                   </Dialog.Close>
                   <button
                     disabled={busy}
                     onClick={submit}
-                    className="px-5 py-2 rounded-lg bg-[#E6B450] hover:bg-[#F0C266] text-[#0B0E14] text-sm font-semibold disabled:opacity-60 flex items-center gap-2 transition-colors"
+                    className="px-5 py-2 rounded-lg bg-accent hover:bg-accent-hover text-on-accent text-sm font-semibold disabled:opacity-60 flex items-center gap-2 transition-colors"
                   >
                     {busy && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                     {(() => {

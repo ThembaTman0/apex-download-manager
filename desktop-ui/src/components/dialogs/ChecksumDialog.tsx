@@ -58,33 +58,33 @@ export function ChecksumDialog() {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 10 }}
                 transition={{ duration: 0.18 }}
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[520px] max-w-[calc(100vw-32px)] rounded-xl bg-[#0F131A] border border-white/[0.08] shadow-2xl shadow-black/40 p-6"
+                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[520px] max-w-[calc(100vw-32px)] rounded-xl bg-card border border-white/[0.08] shadow-2xl shadow-black/40 p-6"
               >
                 <div className="flex items-center justify-between mb-1">
-                  <Dialog.Title className="text-base font-semibold text-[#E6E1CF] flex items-center gap-2">
-                    <span className="w-7 h-7 rounded-lg bg-[#7FD962]/15 flex items-center justify-center">
-                      <ShieldCheck className="w-4 h-4 text-[#7FD962]" />
+                  <Dialog.Title className="text-base font-semibold text-ink flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-lg bg-success/15 flex items-center justify-center">
+                      <ShieldCheck className="w-4 h-4 text-success" />
                     </span>
                     Verify Checksum
                   </Dialog.Title>
-                  <Dialog.Close className="text-[#8A9199] hover:text-[#E6E1CF] transition-colors">
+                  <Dialog.Close aria-label="Close" className="text-ink-muted hover:text-ink transition-colors">
                     <X className="w-4 h-4" />
                   </Dialog.Close>
                 </div>
-                <p className="text-xs text-[#8A9199] mb-5 truncate">{target?.name}</p>
+                <p className="text-xs text-ink-muted mb-5 truncate">{target?.name}</p>
 
                 <div className="mb-4">
-                  <span className="text-xs font-medium text-[#8A9199] mb-1.5 block">
+                  <span className="text-xs font-medium text-ink-muted mb-1.5 block">
                     SHA-256 of downloaded file
                   </span>
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[11px] text-[#E6E1CF] font-mono px-3 py-2.5 break-all select-text">
+                    <code className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg text-[11px] text-ink font-mono px-3 py-2.5 break-all select-text">
                       {error ? (
-                        <span className="text-[#F07178]">{error}</span>
+                        <span className="text-error-soft">{error}</span>
                       ) : hash ? (
                         hash
                       ) : (
-                        <span className="flex items-center gap-2 text-[#8A9199]">
+                        <span className="flex items-center gap-2 text-ink-muted">
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           Computing…
                         </span>
@@ -93,11 +93,11 @@ export function ChecksumDialog() {
                     <button
                       onClick={copy}
                       disabled={!hash}
-                      className="px-3 py-2.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[#8A9199] hover:text-[#E6E1CF] hover:bg-white/[0.1] transition-colors disabled:opacity-40"
+                      className="px-3 py-2.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-ink-muted hover:text-ink hover:bg-white/[0.1] transition-colors disabled:opacity-40"
                       title="Copy hash"
                     >
                       {copied ? (
-                        <CheckCircle2 className="w-4 h-4 text-[#7FD962]" />
+                        <CheckCircle2 className="w-4 h-4 text-success" />
                       ) : (
                         <Copy className="w-4 h-4" />
                       )}
@@ -106,7 +106,7 @@ export function ChecksumDialog() {
                 </div>
 
                 <div className="mb-5">
-                  <span className="text-xs font-medium text-[#8A9199] mb-1.5 block">
+                  <span className="text-xs font-medium text-ink-muted mb-1.5 block">
                     Expected hash{" "}
                     <span className="opacity-50">(paste from the download page)</span>
                   </span>
@@ -115,7 +115,7 @@ export function ChecksumDialog() {
                     onChange={(e) => setExpected(e.target.value)}
                     placeholder="e.g. 3f5a09c1…"
                     spellCheck={false}
-                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-[#E6E1CF] font-mono placeholder:text-[#8A9199]/50 px-3 py-2.5 outline-none focus:border-[#E6B450]/50 transition-colors"
+                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-ink font-mono placeholder:text-ink-faint px-3 py-2.5 outline-none focus:border-accent/50 transition-colors"
                   />
                 </div>
 
@@ -123,8 +123,8 @@ export function ChecksumDialog() {
                   <div
                     className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold ${
                       match
-                        ? "bg-[#7FD962]/10 text-[#7FD962]"
-                        : "bg-[#D95757]/10 text-[#F07178]"
+                        ? "bg-success/10 text-success"
+                        : "bg-error/10 text-error-soft"
                     }`}
                   >
                     {match ? (

@@ -1,10 +1,11 @@
-// GET /dl — logs a country-level hit, then 302s to the latest Windows installer
-// on GitHub Releases. Keeps the desktop app itself telemetry-free; only this
-// public download link is counted.
+// GET /dl: bumps an anonymous total-downloads counter, then 302s to the
+// latest Windows installer on GitHub Releases. No IP, country, or any other
+// request data is read or stored; the desktop app itself stays telemetry-free.
 
 const REPO = "ThembaTman0/apex-download-manager";
 const ASSET_CACHE_KEY = "latest_asset_url";
 const ASSET_CACHE_TTL_SECONDS = 300;
+const TOTAL_KEY = "downloads:total";
 
 async function resolveInstallerUrl(env) {
   const cached = await env.STATS.get(ASSET_CACHE_KEY);
@@ -29,18 +30,16 @@ async function resolveInstallerUrl(env) {
   return installer.browser_download_url;
 }
 
-async function recordDownload(env, country) {
-  const key = `country:${country}`;
-  const current = await env.STATS.get(key);
+async function recordDownload(env) {
+  const current = await env.STATS.get(TOTAL_KEY);
   const next = (current ? parseInt(current, 10) : 0) + 1;
-  await env.STATS.put(key, String(next));
+  await env.STATS.put(TOTAL_KEY, String(next));
 }
 
 export async function onRequest(context) {
-  const { request, env, waitUntil } = context;
-  const country = request.cf?.country || "XX";
+  const { env, waitUntil } = context;
 
-  waitUntil(recordDownload(env, country));
+  waitUntil(recordDownload(env));
 
   try {
     const url = await resolveInstallerUrl(env);

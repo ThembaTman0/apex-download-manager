@@ -50,7 +50,7 @@ export function DownloadsPage() {
           />
         ))}
       </div>
-      <div className="flex-1 overflow-hidden mx-4 mb-4 rounded-[10px] bg-[#0F131A] border border-white/[0.06] flex">
+      <div className="flex-1 overflow-hidden mx-4 mb-4 rounded-[10px] bg-card border border-white/[0.06] flex">
         <DownloadsTable />
         <DetailsPanel />
       </div>
@@ -73,8 +73,8 @@ function Chip({
       className={cn(
         "px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors border",
         active
-          ? "bg-white/[0.08] border-[#E6B450]/50 text-[#E6E1CF]"
-          : "bg-white/[0.03] border-white/[0.07] text-[#8A9199] hover:text-[#E6E1CF] hover:bg-white/[0.06]"
+          ? "bg-white/[0.08] border-accent/50 text-ink"
+          : "bg-white/[0.03] border-white/[0.07] text-ink-muted hover:text-ink hover:bg-white/[0.06]"
       )}
     >
       {label}

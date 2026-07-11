@@ -31,6 +31,41 @@ async function ping(port) {
   }
 }
 
+// One-click pairing: ask Apex for the token; the user approves in a native
+// Apex dialog. Long timeout — the request blocks until they click Allow.
+$("pair").addEventListener("click", async () => {
+  const status = $("pairStatus");
+  const port = parseInt($("port").value, 10) || DEFAULTS.port;
+  status.textContent = "Approve the prompt in the Apex window…";
+  $("pair").disabled = true;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 120_000);
+    const res = await fetch(`http://127.0.0.1:${port}/pair`, {
+      method: "POST",
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok && data.token) {
+      $("token").value = data.token;
+      chrome.storage.sync.set({ token: data.token, port }, () => {
+        status.textContent = "Paired ✓";
+        setTimeout(() => (status.textContent = ""), 2500);
+        ping(port);
+      });
+    } else if (data.error === "denied") {
+      status.textContent = "Denied in Apex";
+    } else {
+      status.textContent = data.error || "Pairing failed — is Apex running?";
+    }
+  } catch {
+    status.textContent = "Pairing failed — is Apex running?";
+  } finally {
+    $("pair").disabled = false;
+  }
+});
+
 $("save").addEventListener("click", () => {
   const cfg = {
     enabled: $("enabled").checked,

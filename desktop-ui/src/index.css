@@ -1,5 +1,31 @@
 @import "tailwindcss";
 
+/* Semantic palette (Ayu-dark derived). Components must use these tokens —
+   never raw hex — so the theme stays consistent and swappable. */
+@theme {
+  --color-bg: #0b0e14; /* window background */
+  --color-surface: #0d1017; /* sidebar / bars */
+  --color-card: #0f131a; /* cards, dialogs */
+  --color-raised: #161b24; /* popovers, toasts, menus */
+
+  --color-accent: #e6b450;
+  --color-accent-hover: #f0c266;
+  --color-on-accent: #0b0e14; /* text on accent-filled controls */
+
+  --color-info: #39bae6; /* live speed, links */
+  --color-success: #7fd962;
+  --color-warning: #ff8f40;
+  --color-error: #d95757;
+  --color-error-hover: #c24747;
+  --color-error-soft: #f07178; /* error text on dark */
+
+  --color-ink: #e6e1cf; /* primary text */
+  --color-ink-mid: #bfbdb6; /* secondary text */
+  --color-ink-muted: #8a9199; /* labels, captions (4.5:1+ on bg) */
+  --color-ink-faint: #7a828e; /* dimmest text allowed for readable copy */
+  --color-ink-dim: #565b66; /* non-text only: idle dots, decorations */
+}
+
 @layer base {
   * {
     box-sizing: border-box;
@@ -8,40 +34,52 @@
   }
 
   :root {
-    --bg: #0B0E14;
-    --surface: #0D1017;
-    --card: #0F131A;
-    --border: rgba(255,255,255,0.08);
-    --accent: #E6B450;
-    --accent-secondary: #39BAE6;
-    --success: #7FD962;
-    --warning: #FF8F40;
-    --error: #D95757;
-    --text-primary: #E6E1CF;
-    --text-secondary: #8A9199;
     color-scheme: dark;
   }
 
-  html, body, #root {
+  html,
+  body,
+  #root {
     height: 100%;
     overflow: hidden;
-    font-family: 'Inter', system-ui, sans-serif;
-    background: var(--bg);
-    color: var(--text-primary);
+    font-family: "Inter", system-ui, sans-serif;
+    background: var(--color-bg);
+    color: var(--color-ink);
     -webkit-font-smoothing: antialiased;
     user-select: none;
+  }
+
+  /* Keyboard-only focus ring; mouse users are unaffected. */
+  :focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-accent) 75%, transparent);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
-  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
   ::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.12);
+    background: rgba(255, 255, 255, 0.12);
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255,255,255,0.2);
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Framer-motion honors this via MotionConfig; this covers CSS
+     transitions/animations (progress shimmer, hover fades, etc.). */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

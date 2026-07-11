@@ -1,9 +1,11 @@
 // Apex Download Manager — capture service worker.
 //
 // Strategy: cancel the browser's download IMMEDIATELY, then hand the URL to
-// Apex. Canceling first keeps the browser's download UI (bubble / Save As
-// dialog) from lingering. If Apex turns out to be unreachable or rejects the
-// URL, the download is restarted in the browser so nothing is ever lost.
+// Apex. On Chromium the cancel happens during filename determination
+// (onDeterminingFilename), which runs before the Save As dialog — so the
+// browser's download UI never appears at all. If Apex turns out to be
+// unreachable or rejects the URL, the download is restarted in the browser
+// so nothing is ever lost.
 // While capture is active we also disable the browser's download bubble via
 // downloads.setUiOptions (re-enabled whenever a download is handed back).
 
@@ -97,13 +99,13 @@ function basename(path) {
 // event must pass through untouched or we'd loop cancel/restart forever.
 const handedBack = new Set();
 
-// Pages that auto-retry a canceled download (Office setup, some file hosts)
-// fire a new download every few seconds, each with a fresh tokenized URL —
-// without suppression every retry becomes another Apex prompt. Key on the
-// URL minus its query plus the file name; the window slides, so an active
-// retry loop stays suppressed while a genuine re-download a minute later
-// goes through.
-const RESEND_WINDOW_MS = 30_000;
+// Absorb only the double-fire of a single click (some pages emit two
+// download events for one click). Anything slower goes straight to Apex,
+// which owns dedup: a repeat while the prompt is up refreshes that prompt, an
+// actively-downloading duplicate is acknowledged silently, and an
+// already-completed one re-prompts with a "download again?" warning. Longer
+// windows here made second clicks feel dead — the prompt must be instant.
+const RESEND_WINDOW_MS = 1_500;
 const recentSends = new Map(); // key -> ms of last attempt
 
 function isDuplicateSend(url, fileName) {
@@ -117,7 +119,7 @@ function isDuplicateSend(url, fileName) {
   return dup;
 }
 
-chrome.downloads.onCreated.addListener(async (item) => {
+async function captureDownload(item) {
   await configReady;
   if (!config.enabled || !config.token) return;
 
@@ -150,6 +152,42 @@ chrome.downloads.onCreated.addListener(async (item) => {
       if (chrome.runtime.lastError) handedBack.delete(url);
     });
   }
+}
+
+// Chromium: intercept during filename determination. This event fires BEFORE
+// the "Ask where to save each file" dialog, and the browser holds that dialog
+// until suggest() is called — so cancelling here means the Save As prompt
+// never opens. Cancelling from onCreated is too late for users with that
+// setting on: the native dialog is already up, and cancel() doesn't close it.
+const seenByDeterminer = new Set();
+if (chrome.downloads.onDeterminingFilename) {
+  chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
+    seenByDeterminer.add(item.id);
+    captureDownload(item)
+      .catch(() => {})
+      .finally(() => {
+        // No-op for downloads we cancelled; releases the ones we passed on.
+        try {
+          suggest();
+        } catch {
+          // determination already over (download cancelled/erased)
+        }
+      });
+    return true; // suggest() is called asynchronously
+  });
+}
+
+// Fallback: Firefox has no onDeterminingFilename, and Chromium dispatches it
+// to only one extension — if another extension owns it, ours never fires. So
+// give the determiner a moment to claim the download, then handle it here.
+chrome.downloads.onCreated.addListener((item) => {
+  if (!chrome.downloads.onDeterminingFilename) {
+    captureDownload(item);
+    return;
+  }
+  setTimeout(() => {
+    if (!seenByDeterminer.delete(item.id)) captureDownload(item);
+  }, 500);
 });
 
 // --- Context menu -------------------------------------------------------
