@@ -8,11 +8,11 @@ const ITEMS: Array<{ q: string; a: string }> = [
   },
   {
     q: "Is it safe to replace my browser's downloader?",
-    a: "Apex keeps the browser's protections instead of bypassing them: finished files carry the Windows mark of the web so SmartScreen and Defender still scan them, insecure HTTP links are flagged before the transfer starts, and you can verify a publisher's SHA-256 checksum against the finished file.",
+    a: "Apex keeps the browser's protections instead of bypassing them: finished files carry the Windows Mark of the Web, so SmartScreen and Defender still scan them, and insecure HTTP links are flagged before the transfer starts. You can also verify a publisher's SHA-256 checksum against the finished file.",
   },
   {
     q: "Which browsers does the extension support?",
-    a: "Chrome, Edge and Brave today, with Firefox support in testing. Even without the extension you can paste a link, use the clipboard watcher, or drag a URL into the window.",
+    a: "Chrome, Edge, and Brave today, with Firefox support in testing. Even without the extension, you can paste a link, use the clipboard watcher, or drag a URL into the window.",
   },
   {
     q: "What does Apex send over the network?",

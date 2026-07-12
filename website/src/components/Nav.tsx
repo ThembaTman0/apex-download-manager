@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { GitHubIcon, LogoMark } from "./icons";
 
-const REPO_URL = "https://github.com/ThembaTman0/apex-download-manager";
+// The public releases repo — the source repo is private.
+const REPO_URL = "https://github.com/ThembaTman0/apex-download-manager-releases";
 
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);

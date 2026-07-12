@@ -2,9 +2,15 @@
 # Release whenever a v* tag is pushed. The release includes latest.json,
 # which the in-app updater polls.
 #
-# Required repo secret:
+# This source repo is PRIVATE, so releases are published to the separate
+# PUBLIC repo apex-download-manager-releases — the website's /dl redirect
+# and the in-app updater both need anonymous access to the assets.
+#
+# Required repo secrets:
 #   TAURI_SIGNING_PRIVATE_KEY — contents of ~/.tauri/apex-updater.key
 #   (TAURI_SIGNING_PRIVATE_KEY_PASSWORD too, if the key has a password)
+#   RELEASES_TOKEN — fine-grained PAT with "Contents: read and write" on
+#   the public releases repo (the default GITHUB_TOKEN can't write there)
 name: Release
 
 on:
@@ -39,11 +45,13 @@ jobs:
       - name: Build and publish release
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: desktop-ui
+          owner: ThembaTman0
+          repo: apex-download-manager-releases
           tagName: ${{ github.ref_name }}
           releaseName: "Apex Download Manager ${{ github.ref_name }}"
           releaseDraft: false

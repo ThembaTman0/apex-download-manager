@@ -17,7 +17,7 @@ export default function Capture() {
               <span className="step-num">1</span>
               <span>
                 <strong>Apex catches the download</strong> and shows the file
-                name, size and host before anything is saved.
+                name, size, and host before anything is saved.
               </span>
             </li>
             <li>

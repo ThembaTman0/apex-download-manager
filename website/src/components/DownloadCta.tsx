@@ -59,7 +59,7 @@ export default function DownloadCta() {
             Download Apex for Windows
           </a>
           <p className="download-note">
-            Includes the browser extension for Chrome, Edge and Brave.
+            Includes the browser extension for Chrome, Edge, and Brave.
           </p>
           <StatLine />
         </Reveal>

@@ -2,12 +2,38 @@
 // (no Rust backend) for design work and website screenshots.
 // Inside the real app `window.__TAURI_INTERNALS__` already exists,
 // so this file does nothing there.
+//
+// Write commands (add/pause/resume/remove/…) are implemented against an
+// in-memory table with simulated transfer progress, so the whole UI is
+// exercisable in a browser — not just rendered.
 
 const now = Date.now();
 const GB = 1024 * 1024 * 1024;
 const MB = 1024 * 1024;
 
-const demoDownloads = [
+type RawDemoDownload = {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+  sizeBytes: number;
+  downloadedBytes: number;
+  progress: number;
+  speedBytesPerSec: number;
+  etaSeconds: number;
+  status: string;
+  segments: number;
+  modifiedAt: number;
+  createdAt: number;
+  savePath: string;
+  supportsRanges: boolean;
+  startAt: number | null;
+  kind: string;
+  speedLimitKbps: number;
+  error?: string | null;
+};
+
+const demoDownloads: RawDemoDownload[] = [
   {
     id: "demo-1",
     name: "ubuntu-24.04.2-desktop-amd64.iso",
@@ -127,21 +153,190 @@ const demoSettings = {
   captureAllowedHosts: [],
 };
 
-const responses: Record<string, unknown> = {
-  list_downloads: demoDownloads,
-  get_settings: demoSettings,
-  update_settings: demoSettings,
-  get_disk_usage: {
-    usedBytes: Math.round(317 * GB),
-    totalBytes: Math.round(512 * GB),
-    label: "C:",
-  },
-  list_pending_captures: [],
-  ytdlp_status: { ytdlpPath: null, ytdlpVersion: null, ffmpegPath: null },
-};
-
 if (!("__TAURI_INTERNALS__" in window)) {
+  const state = new Map<string, RawDemoDownload>(
+    demoDownloads.map((d) => [d.id, d]),
+  );
+  let nextId = state.size;
+
+  // --- event plumbing -------------------------------------------------
   let callbackId = 0;
+  const listeners = new Map<string, Set<(e: unknown) => void>>();
+
+  const emit = (event: string, payload: unknown) => {
+    for (const cb of listeners.get(event) ?? []) {
+      cb({ event, id: 0, payload });
+    }
+  };
+
+  const touch = (d: RawDemoDownload) => {
+    d.modifiedAt = Date.now();
+    emit("download:changed", { ...d });
+  };
+
+  // --- transfer simulation ---------------------------------------------
+  const TICK_MS = 800;
+  setInterval(() => {
+    for (const d of state.values()) {
+      if (d.status !== "downloading") continue;
+      const base = 25 * MB + (d.id.charCodeAt(d.id.length - 1) % 5) * 4 * MB;
+      d.speedBytesPerSec = Math.round(base * (0.85 + Math.random() * 0.3));
+      d.downloadedBytes = Math.min(
+        d.sizeBytes,
+        d.downloadedBytes + d.speedBytesPerSec * (TICK_MS / 1000),
+      );
+      d.progress = Math.min(100, (d.downloadedBytes / d.sizeBytes) * 100);
+      d.etaSeconds = Math.max(
+        0,
+        Math.round((d.sizeBytes - d.downloadedBytes) / d.speedBytesPerSec),
+      );
+      if (d.downloadedBytes >= d.sizeBytes) {
+        d.status = "completed";
+        d.progress = 100;
+        d.speedBytesPerSec = 0;
+        d.etaSeconds = 0;
+      }
+      touch(d);
+    }
+  }, TICK_MS);
+
+  // --- command handlers --------------------------------------------------
+  const fileNameFromUrl = (url: string): string => {
+    try {
+      const base = decodeURIComponent(
+        new URL(url).pathname.split("/").pop() ?? "",
+      );
+      return base || "download.bin";
+    } catch {
+      return "download.bin";
+    }
+  };
+
+  const commands: Record<string, (args: any) => unknown> = {
+    list_downloads: () => [...state.values()],
+    get_settings: () => demoSettings,
+    update_settings: (a) => Object.assign(demoSettings, a?.settings),
+    get_disk_usage: () => ({
+      usedBytes: Math.round(317 * GB),
+      totalBytes: Math.round(512 * GB),
+      label: "C:",
+    }),
+    list_pending_captures: () => [],
+    ytdlp_status: () => ({ ytdlpPath: null, ytdlpVersion: null, ffmpegPath: null }),
+    disk_free: () => Math.round(195 * GB),
+
+    add_download: (a) => {
+      const name = a?.fileName || fileNameFromUrl(a?.url ?? "");
+      const ext = name.includes(".") ? name.split(".").pop()! : "";
+      const d: RawDemoDownload = {
+        id: `demo-${++nextId}`,
+        name,
+        url: a?.url ?? "",
+        type: ext.length <= 4 ? ext.toUpperCase() : "",
+        sizeBytes: Math.round((80 + Math.random() * 900) * MB),
+        downloadedBytes: 0,
+        progress: 0,
+        speedBytesPerSec: 0,
+        etaSeconds: 0,
+        status: "downloading",
+        segments: demoSettings.segmentsPerDownload,
+        modifiedAt: Date.now(),
+        createdAt: Date.now(),
+        savePath: `${a?.saveDir || demoSettings.downloadDir}\\${name}`,
+        supportsRanges: true,
+        startAt: null,
+        kind: "http",
+        speedLimitKbps: 0,
+      };
+      state.set(d.id, d);
+      return { ...d };
+    },
+
+    pause_download: (a) => {
+      const d = state.get(a?.id);
+      if (d && (d.status === "downloading" || d.status === "queued")) {
+        d.status = "paused";
+        d.speedBytesPerSec = 0;
+        d.etaSeconds = 0;
+        touch(d);
+      }
+    },
+    resume_download: (a) => {
+      const d = state.get(a?.id);
+      if (d && (d.status === "paused" || d.status === "failed")) {
+        d.status = "downloading";
+        d.error = null;
+        touch(d);
+      }
+    },
+    restart_download: (a) => {
+      const d = state.get(a?.id);
+      if (d) {
+        d.status = "downloading";
+        d.downloadedBytes = 0;
+        d.progress = 0;
+        d.error = null;
+        touch(d);
+      }
+    },
+    remove_download: (a) => {
+      if (state.delete(a?.id)) emit("download:removed", a.id);
+    },
+    pause_all: () => {
+      for (const d of state.values()) {
+        if (d.status === "downloading" || d.status === "queued") {
+          d.status = "paused";
+          d.speedBytesPerSec = 0;
+          d.etaSeconds = 0;
+          touch(d);
+        }
+      }
+    },
+    resume_all: () => {
+      for (const d of state.values()) {
+        if (d.status === "paused" || d.status === "failed") {
+          d.status = "downloading";
+          touch(d);
+        }
+      }
+    },
+    schedule_download: (a) => {
+      const d = state.get(a?.id);
+      if (d) {
+        d.startAt = a?.startAt ?? null;
+        if (d.startAt) {
+          d.status = "queued";
+          d.speedBytesPerSec = 0;
+        }
+        touch(d);
+      }
+    },
+    set_download_speed_limit: (a) => {
+      const d = state.get(a?.id);
+      if (d) {
+        d.speedLimitKbps = a?.kbps ?? 0;
+        touch(d);
+      }
+    },
+    get_download_segments: (a) => {
+      const d = state.get(a?.id);
+      if (!d) return [];
+      const per = d.sizeBytes / d.segments;
+      return Array.from({ length: d.segments }, (_, i) => ({
+        index: i,
+        startByte: Math.round(i * per),
+        endByte: Math.round((i + 1) * per) - 1,
+        downloadedBytes: Math.round(per * (d.progress / 100)),
+        done: d.progress >= 100,
+      }));
+    },
+    compute_checksum: () =>
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    open_download: () => null,
+    show_in_folder: () => null,
+    execute_queue_action: () => null,
+  };
+
   (window as any).__TAURI_INTERNALS__ = {
     metadata: {
       currentWindow: { label: "main" },
@@ -152,9 +347,17 @@ if (!("__TAURI_INTERNALS__" in window)) {
       (window as any)[`_${id}`] = cb ?? (() => {});
       return id;
     },
-    async invoke(cmd: string) {
-      if (cmd in responses) return responses[cmd];
-      if (cmd === "plugin:event|listen") return ++callbackId;
+    async invoke(cmd: string, args?: any) {
+      if (cmd === "plugin:event|listen") {
+        const cb = (window as any)[`_${args?.handler}`];
+        if (args?.event && typeof cb === "function") {
+          if (!listeners.has(args.event)) listeners.set(args.event, new Set());
+          listeners.get(args.event)!.add(cb);
+        }
+        return ++callbackId;
+      }
+      if (cmd === "plugin:event|unlisten") return null;
+      if (cmd in commands) return commands[cmd](args);
       return null;
     },
   };
