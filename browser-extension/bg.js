@@ -8,6 +8,14 @@
 // so nothing is ever lost.
 // While capture is active we also disable the browser's download bubble via
 // downloads.setUiOptions (re-enabled whenever a download is handed back).
+//
+// Startup: downloads interrupted by a browser/OS shutdown are auto-resumed by
+// Chromium at the next launch — typically before Apex is running. Left alone,
+// each of those resumes re-enters capture, fails to reach Apex, and gets
+// restarted in the browser, popping a Save As dialog with no user action at
+// every boot. Two defenses: a startup sweep erases leftover entries for URLs
+// Apex already owns, and a restored (old-startTime) download that can't reach
+// Apex is dropped with a notification instead of being handed back.
 
 const DEFAULTS = { enabled: true, port: 43666, token: "", hideShelf: true };
 
@@ -93,6 +101,60 @@ function basename(path) {
   return last || null;
 }
 
+function cancelAndErase(id) {
+  chrome.downloads.cancel(id, () => {
+    void chrome.runtime.lastError;
+    chrome.downloads.erase({ id }, () => void chrome.runtime.lastError);
+  });
+}
+
+// --- Captured-download records (persisted) ------------------------------
+
+// URLs successfully handed to Apex, kept in storage.local so they survive
+// service-worker restarts. The cancel+erase after a capture is fire-and-
+// forget; if the browser exits before it lands, the download entry survives
+// as shutdown-interrupted and Chromium auto-resumes it at the next launch.
+// These records let the startup sweep recognize and erase such zombies.
+const CAPTURED_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+
+function rememberCaptured(url) {
+  chrome.storage.local.get({ captured: {} }, ({ captured }) => {
+    const now = Date.now();
+    for (const [u, t] of Object.entries(captured)) {
+      if (now - t > CAPTURED_TTL_MS) delete captured[u];
+    }
+    captured[url] = now;
+    chrome.storage.local.set({ captured });
+  });
+}
+
+// A hand-back means the browser owns this URL again; drop the record so the
+// startup sweep can't kill a browser download the user is relying on.
+function forgetCaptured(url) {
+  chrome.storage.local.get({ captured: {} }, ({ captured }) => {
+    if (!(url in captured)) return;
+    delete captured[url];
+    chrome.storage.local.set({ captured });
+  });
+}
+
+chrome.runtime.onStartup.addListener(() => {
+  chrome.storage.local.get({ captured: {} }, ({ captured }) => {
+    const urls = new Set(Object.keys(captured));
+    if (!urls.size) return;
+    for (const state of ["in_progress", "interrupted"]) {
+      chrome.downloads.search({ state }, (items) => {
+        void chrome.runtime.lastError;
+        for (const item of items || []) {
+          if (urls.has(item.finalUrl || item.url) || urls.has(item.url)) {
+            cancelAndErase(item.id);
+          }
+        }
+      });
+    }
+  });
+});
+
 // --- Intercept browser downloads ---------------------------------------
 
 // URLs we handed back to the browser after Apex failed; their onCreated
@@ -119,6 +181,11 @@ function isDuplicateSend(url, fileName) {
   return dup;
 }
 
+// A download whose startTime is this far in the past was not started by a
+// click just now — it's an entry the browser restored from a previous
+// session (shutdown-interrupted downloads auto-resume at launch).
+const RESTORED_AGE_MS = 60_000;
+
 async function captureDownload(item) {
   await configReady;
   if (!config.enabled || !config.token) return;
@@ -128,11 +195,11 @@ async function captureDownload(item) {
   if (url.startsWith(`http://127.0.0.1:${config.port}`)) return;
   if (handedBack.delete(url)) return;
 
+  const isRestored =
+    !!item.startTime && Date.now() - Date.parse(item.startTime) > RESTORED_AGE_MS;
+
   // Take it away from the browser right away so its UI never settles in.
-  chrome.downloads.cancel(item.id, () => {
-    void chrome.runtime.lastError;
-    chrome.downloads.erase({ id: item.id }, () => void chrome.runtime.lastError);
-  });
+  cancelAndErase(item.id);
 
   // A retry of something we sent to Apex moments ago: already canceled
   // above (so the page's loop stays quiet), but don't prompt again.
@@ -140,9 +207,25 @@ async function captureDownload(item) {
 
   try {
     await sendToApex(url, basename(item.filename), item.referrer);
+    rememberCaptured(url);
   } catch {
+    if (isRestored) {
+      // A restored leftover and Apex is down (typical right after boot):
+      // handing it back would pop a Save As dialog with no user action at
+      // every browser launch. Drop it and say so instead.
+      chrome.notifications.create({
+        type: "basic",
+        iconUrl: "icons/128.png",
+        title: "Apex Download Manager",
+        message: `Apex isn't running — dismissed an unfinished download from a previous session: ${
+          basename(item.filename) || url
+        }. Start it again once Apex is open.`,
+      });
+      return;
+    }
     // Apex unavailable — give the download back to the browser, with its UI
     // visible so the user can see it happening.
+    forgetCaptured(url);
     handedBack.add(url);
     if (chrome.downloads.setUiOptions) {
       await chrome.downloads.setUiOptions({ enabled: true }).catch(() => {});

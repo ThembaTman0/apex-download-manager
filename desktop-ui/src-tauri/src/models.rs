@@ -127,6 +127,9 @@ pub struct Settings {
     /// Hosts whose captures skip the approval prompt (lowercase). Built via
     /// "Always allow downloads from this site" in the approval window.
     pub capture_allowed_hosts: Vec<String>,
+    /// Launch Apex (hidden, in the tray) when the user signs in, so the
+    /// browser extension can reach it before any download is clicked.
+    pub launch_at_startup: bool,
 }
 
 impl Default for Settings {
@@ -147,6 +150,7 @@ impl Default for Settings {
             capture_port: 43666,
             capture_token: String::new(),
             capture_allowed_hosts: Vec::new(),
+            launch_at_startup: true,
         }
     }
 }

@@ -62,6 +62,8 @@ export interface Settings {
   captureToken: string;
   /** Hosts whose captures skip the approval prompt (lowercase). */
   captureAllowedHosts: string[];
+  /** Launch Apex hidden in the tray when the user signs in. */
+  launchAtStartup: boolean;
 }
 
 /** A browser capture awaiting the user's approval before it downloads. */

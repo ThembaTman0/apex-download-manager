@@ -21,6 +21,19 @@ fn show_main_window(app: &tauri::AppHandle) {
     }
 }
 
+/// Register or remove the OS launch-at-sign-in entry to match the setting.
+/// Errors are ignored: disabling an entry that was never registered fails
+/// harmlessly, and a failed enable will be retried on the next app start.
+pub(crate) fn apply_autostart(app: &tauri::AppHandle, enabled: bool) {
+    use tauri_plugin_autostart::ManagerExt;
+    let autolaunch = app.autolaunch();
+    let _ = if enabled {
+        autolaunch.enable()
+    } else {
+        autolaunch.disable()
+    };
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -38,6 +51,10 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            Some(vec!["--autostart"]),
+        ))
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
@@ -50,6 +67,22 @@ pub fn run() {
 
             // Browser-extension capture endpoint (127.0.0.1 only).
             capture::start(app.handle().clone());
+
+            // Keep the OS launch-at-sign-in entry in sync with the setting —
+            // also repairs the registry path after the app moves or updates.
+            apply_autostart(
+                app.handle(),
+                app.state::<DownloadManager>().get_settings().launch_at_startup,
+            );
+
+            // Launched by the OS at sign-in: stay hidden in the tray. The
+            // single-instance plugin surfaces this window when the user
+            // starts Apex themselves.
+            if std::env::args().any(|a| a == "--autostart") {
+                if let Some(w) = app.get_webview_window("main") {
+                    let _ = w.hide();
+                }
+            }
 
             // --- System tray: keep downloads alive with the window closed ---
             let show = MenuItem::with_id(app, "show", "Open Apex", true, None::<&str>)?;

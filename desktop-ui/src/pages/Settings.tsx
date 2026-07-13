@@ -17,6 +17,7 @@ import {
   Network,
   Power,
   RefreshCw,
+  Rocket,
   Save,
   X,
 } from "lucide-react";
@@ -202,6 +203,24 @@ export function SettingsPage() {
             />
             <span className="text-sm text-ink-mid">
               Sort downloads into category folders
+            </span>
+          </label>
+        </Field>
+
+        <Field
+          icon={Rocket}
+          label="Start with Windows"
+          hint="Starts hidden in the tray at sign-in, so browser downloads are captured even before you open Apex"
+        >
+          <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
+            <input
+              type="checkbox"
+              checked={form.launchAtStartup}
+              onChange={(e) => update({ launchAtStartup: e.target.checked })}
+              className="accent-accent w-4 h-4"
+            />
+            <span className="text-sm text-ink-mid">
+              Launch Apex when I sign in
             </span>
           </label>
         </Field>

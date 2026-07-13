@@ -254,10 +254,13 @@ pub async fn get_settings(mgr: State<'_, DownloadManager>) -> Result<Settings, S
 
 #[tauri::command]
 pub async fn update_settings(
+    app: tauri::AppHandle,
     mgr: State<'_, DownloadManager>,
     settings: Settings,
 ) -> Result<Settings, String> {
-    mgr.update_settings(settings)
+    let saved = mgr.update_settings(settings)?;
+    crate::apply_autostart(&app, saved.launch_at_startup);
+    Ok(saved)
 }
 
 #[tauri::command]
