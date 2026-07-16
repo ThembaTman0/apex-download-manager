@@ -6,8 +6,10 @@
 export default async function handler(req, res) {
   let total = 0;
 
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
+  // Accept both naming schemes: Vercel-KV style and the Upstash
+  // marketplace integration's defaults.
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
   if (url && token) {
     try {
       const r = await fetch(`${url}/get/downloads:total`, {
