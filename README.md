@@ -82,8 +82,9 @@ npm run tauri build    # produces MSI / NSIS installers
   all connections into one preallocated temp file (`.adm`), renamed on completion.
 - State lives in SQLite (WAL) under `%APPDATA%/com.apex.download-manager/`.
 - The extension talks to a token-gated HTTP endpoint bound to `127.0.0.1:43666`.
-  Interception is accept-then-cancel: the browser download is only cancelled
-  after Apex confirms it has taken over.
+  Interception is cancel-then-hand-off: the browser download is cancelled
+  immediately (before any Save As dialog), then handed to Apex — and restarted
+  in the browser if Apex is unreachable or rejects it, so nothing is lost.
 
 ## Roadmap
 
