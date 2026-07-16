@@ -29,7 +29,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDMzOTQwRTk4OEJCQjZDMwpSV1REdHJ1STZVQTVBNTVRcU5vZFhVWDc2VktlUFVjS2tNNHZuL2R5Yko4bnhIZEI4N0I1Qmt6bAo=",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdGNEY1MjFCM0EyRUVCMEYKUldRUDZ5NDZHMUpQZitSby90OVBIMkNQRVd0UmpnNVhKRWkvdWZKOTlzY2t1TitWdytRU2wvcTEK",
       "endpoints": [
         "https://github.com/ThembaTman0/apex-download-manager-releases/releases/latest/download/latest.json"
       ]
