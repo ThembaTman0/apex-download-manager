@@ -1,6 +1,6 @@
 [package]
 name = "apex-download-manager"
-version = "1.0.0"
+version = "1.0.1"
 description = "Apex Download Manager - Download Faster. Smarter. Better."
 authors = ["Apex"]
 edition = "2021"
