@@ -26,7 +26,7 @@ cd src-tauri; cargo check   # fast Rust-only verification
 
 There is no test suite or linter; `tsc` (via `npm run build`) and `cargo check` are the verification steps. Vite is pinned to port 1420 (`strictPort`). Rust builds require VS Build Tools (C++ workload + Windows SDK).
 
-Website (`website/`): `npm run dev` / `npm run build` / `npm run deploy` (build + `wrangler pages deploy`). `?static` URL param disables entrance animations and the live demo — used for screenshots/QA.
+Website (`website/`): `npm run dev` / `npm run build`. Deploys via the Vercel git integration (dashboard project with Root Directory = `website`) — there is no CLI deploy script. `?static` URL param disables entrance animations and the live demo — used for screenshots/QA.
 
 **Releases:** pushing a `v*` tag runs `.github/workflows/release.yml`, which builds installers + updater artifacts and publishes them to the separate **public** repo `ThembaTman0/apex-download-manager-releases` (this source repo is private; the in-app updater and the website's `/dl` redirect both fetch from there anonymously). Requires `RELEASES_TOKEN` and `TAURI_SIGNING_PRIVATE_KEY` secrets. Keep versions in sync across `tauri.conf.json` and `src-tauri/Cargo.toml` when bumping.
 
@@ -57,7 +57,7 @@ Backend → frontend communication is via Tauri events: `download:changed`, `dow
 
 ## Website
 
-Static landing page plus two Vercel-style serverless functions in `api/`: `dl.js` (302 to the latest Windows installer asset on the public releases repo, with a warm-lambda cache and an optional anonymous KV total-downloads counter — no per-user data) and `stats.js`. `vercel.json` rewrites `/dl` → `/api/dl`.
+Static landing page plus two Vercel serverless functions in `api/`: `dl.js` (302 to the latest Windows installer asset on the public releases repo, with a warm-lambda cache and an optional anonymous total-downloads counter via Upstash/Vercel-KV REST env vars — no per-user data) and `stats.js`. `vercel.json` rewrites `/dl` → `/api/dl`. Hosting is Vercel by deliberate choice (Cloudflare Pages pieces were removed 2026-07-11); don't reintroduce wrangler/Pages Functions. The counter is total-only by privacy decision — no per-region or per-user tracking.
 
 ## Privacy constraints (product invariants)
 
