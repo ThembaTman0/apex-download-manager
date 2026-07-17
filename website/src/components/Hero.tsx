@@ -36,7 +36,7 @@ export default function Hero() {
             </a>
           </div>
           <p className="hero-meta">
-            Version 1.0 · 10 MB installer · native Rust engine
+            Version 1.0.1 · 10 MB installer · native Rust engine
           </p>
         </Reveal>
 

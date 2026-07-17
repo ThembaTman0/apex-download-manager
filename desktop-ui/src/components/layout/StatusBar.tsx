@@ -22,6 +22,14 @@ export function StatusBar() {
     return () => clearInterval(t);
   }, []);
 
+  const [version, setVersion] = useState("");
+  useEffect(() => {
+    import("@tauri-apps/api/app")
+      .then(({ getVersion }) => getVersion())
+      .then(setVersion)
+      .catch(() => {});
+  }, []);
+
   const limit = settings?.speedLimitKbps ?? 0;
   const limitOptions = LIMIT_PRESETS.includes(limit)
     ? LIMIT_PRESETS
@@ -88,7 +96,7 @@ export function StatusBar() {
           {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </span>
       </div>
-      <span className="text-ink-faint">v1.0.0</span>
+      {version && <span className="text-ink-faint">v{version}</span>}
     </footer>
   );
 }
