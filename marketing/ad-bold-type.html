@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:1200px; height:675px; overflow:hidden; }
+  body {
+    background:#08090a; color:#f7f8f8;
+    font-family:"Inter","Segoe UI",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    display:flex; flex-direction:column; justify-content:center;
+    padding:0 96px; position:relative;
+  }
+  .glow { position:absolute; width:900px; height:900px; border-radius:50%;
+    background:radial-gradient(circle, rgba(230,180,80,0.10) 0%, transparent 60%);
+    top:-450px; right:-200px; }
+  .brand { display:flex; align-items:center; gap:14px; margin-bottom:44px; }
+  .mark { width:44px; height:44px; border-radius:11px; background:#000;
+    border:1px solid rgba(255,255,255,0.14);
+    display:flex; align-items:center; justify-content:center; }
+  .mark svg { width:22px; height:22px; }
+  .brand span { font-size:20px; font-weight:600; letter-spacing:-0.01em; }
+  h1 { font-size:76px; font-weight:700; letter-spacing:-0.035em; line-height:1.04; }
+  h1 .amber { color:#e6b450; }
+  .sub { margin-top:26px; font-size:26px; color:#8a8f98; letter-spacing:-0.01em; }
+  .row { margin-top:52px; display:flex; align-items:center; gap:28px; }
+  .cta { background:#f7f8f8; color:#08090a; font-weight:600; font-size:22px;
+    padding:16px 34px; border-radius:10px; }
+  .url { font-size:21px; color:#5b5f66; }
+</style></head><body>
+  <div class="glow"></div>
+  <div class="brand">
+    <div class="mark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3 L20 21 L15.5 21 L12 12.5 L8.5 21 L4 21 Z" fill="#fff"/></svg></div>
+    <span>Apex Download Manager</span>
+  </div>
+  <h1>Downloads that use your<br><span class="amber">whole connection.</span></h1>
+  <div class="sub">Up to 32 parallel streams per file. Pause, reboot, resume from the same byte. Free for Windows.</div>
+  <div class="row">
+    <div class="cta">Download free</div>
+    <div class="url">apex-download-manager.vercel.app</div>
+  </div>
+</body></html>

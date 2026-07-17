@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:1200px; height:675px; overflow:hidden; }
+  body {
+    background:#08090a; color:#f7f8f8;
+    font-family:"Inter","Segoe UI",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    display:flex; align-items:center; gap:64px; padding:0 80px; position:relative;
+  }
+  .glow { position:absolute; width:1000px; height:1000px; border-radius:50%;
+    background:radial-gradient(circle, rgba(88,166,255,0.07) 0%, transparent 60%);
+    bottom:-500px; right:-300px; }
+  .left { width:480px; flex-shrink:0; position:relative; }
+  .brand { display:flex; align-items:center; gap:12px; margin-bottom:34px; }
+  .mark { width:38px; height:38px; border-radius:10px; background:#000;
+    border:1px solid rgba(255,255,255,0.14);
+    display:flex; align-items:center; justify-content:center; }
+  .mark svg { width:19px; height:19px; }
+  .brand span { font-size:17px; font-weight:600; }
+  h1 { font-size:52px; font-weight:700; letter-spacing:-0.03em; line-height:1.08; }
+  .sub { margin-top:20px; font-size:21px; color:#8a8f98; line-height:1.45; }
+  .cta { margin-top:36px; display:inline-block; background:#f7f8f8; color:#08090a;
+    font-weight:600; font-size:19px; padding:14px 30px; border-radius:9px; }
+  .free { color:#5b5f66; font-size:17px; margin-left:18px; }
+
+  .win { flex:1; background:#0b0e14; border:1px solid rgba(255,255,255,0.09);
+    border-radius:14px; padding:26px 28px; position:relative;
+    box-shadow:0 40px 90px rgba(0,0,0,0.6); }
+  .win-head { display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:22px; }
+  .win-title { font-size:15px; color:#8a8f98; font-weight:500; }
+  .dots { display:flex; gap:7px; }
+  .dot { width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,0.12); }
+  .file { margin-bottom:20px; }
+  .file-row { display:flex; justify-content:space-between; font-size:15px;
+    margin-bottom:9px; color:#e2e5ea; }
+  .speed { color:#7fd962; font-variant-numeric:tabular-nums; }
+  .bar { height:7px; background:rgba(255,255,255,0.06); border-radius:4px; overflow:hidden; }
+  .fill { height:100%; border-radius:4px; background:#e6b450; }
+  .fill.blue { background:#58a6ff; }
+  .segs { display:flex; gap:3px; margin-top:8px; }
+  .seg { flex:1; height:4px; border-radius:2px; background:rgba(230,180,80,0.55); }
+  .seg.dim { background:rgba(255,255,255,0.08); }
+  .cap { margin-top:4px; font-size:12.5px; color:#5b5f66; }
+</style></head><body>
+  <div class="glow"></div>
+  <div class="left">
+    <div class="brand">
+      <div class="mark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3 L20 21 L15.5 21 L12 12.5 L8.5 21 L4 21 Z" fill="#fff"/></svg></div>
+      <span>Apex Download Manager</span>
+    </div>
+    <h1>One file.<br>32 connections.</h1>
+    <div class="sub">Segmented downloads with pause and resume that survive restarts. No accounts, no telemetry.</div>
+    <div><span class="cta">Get it free for Windows</span></div>
+  </div>
+  <div class="win">
+    <div class="win-head">
+      <span class="win-title">Downloads</span>
+      <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
+    </div>
+    <div class="file">
+      <div class="file-row"><span>ubuntu-24.04.2-desktop-amd64.iso</span><span class="speed">42.1 MB/s</span></div>
+      <div class="bar"><div class="fill" style="width:64%"></div></div>
+      <div class="segs">
+        <span class="seg"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span>
+        <span class="seg"></span><span class="seg"></span><span class="seg dim"></span><span class="seg dim"></span>
+      </div>
+      <div class="cap">8 segments · 51s remaining</div>
+    </div>
+    <div class="file">
+      <div class="file-row"><span>course-videos-part-04.mkv</span><span class="speed">18.6 MB/s</span></div>
+      <div class="bar"><div class="fill blue" style="width:31%"></div></div>
+    </div>
+    <div class="file" style="margin-bottom:4px">
+      <div class="file-row"><span style="color:#8a8f98">blender-4.2.1-windows-x64.msi</span><span style="color:#7fd962">Completed ✓</span></div>
+      <div class="bar"><div class="fill" style="width:100%; background:#7fd962"></div></div>
+    </div>
+  </div>
+</body></html>
