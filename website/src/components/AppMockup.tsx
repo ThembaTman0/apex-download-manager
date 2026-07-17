@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { STATIC_MODE, useInView, usePrefersReducedMotion } from "../lib/reveal";
+import { useLatestRelease } from "../lib/latestRelease";
 import {
   FileIcon,
   GearIcon,
@@ -112,6 +113,7 @@ const STATUS_META: Record<Status, { label: string; color: string }> = {
 };
 
 export default function AppMockup() {
+  const { version } = useLatestRelease();
   const reduced = usePrefersReducedMotion();
   const { ref, inView } = useInView<HTMLDivElement>("0px");
   const [rows, setRows] = useState<Row[]>(INITIAL_ROWS);
@@ -243,7 +245,7 @@ export default function AppMockup() {
               <span>{totalSpeed > 0 ? `${totalSpeed.toFixed(1)} MB/s` : "idle"}</span>
               <span className="right">
                 <span>No limit</span>
-                <span>v1.0.0</span>
+                <span>v{version ?? "1.0.1"}</span>
               </span>
             </div>
           </div>

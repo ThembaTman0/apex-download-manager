@@ -1,8 +1,10 @@
 import { Reveal } from "../lib/reveal";
+import { useLatestRelease } from "../lib/latestRelease";
 import AppMockup from "./AppMockup";
 import { DownloadIcon } from "./icons";
 
 export default function Hero() {
+  const { version, sizeMb } = useLatestRelease();
   return (
     <section className="hero" id="top">
       <div className="container">
@@ -36,7 +38,8 @@ export default function Hero() {
             </a>
           </div>
           <p className="hero-meta">
-            Version 1.0.1 · 10 MB installer · native Rust engine
+            Version {version ?? "1.0.1"} · {sizeMb ?? 4} MB installer · native
+            Rust engine
           </p>
         </Reveal>
 
