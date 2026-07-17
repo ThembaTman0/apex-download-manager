@@ -1,8 +1,21 @@
 # Store submission kit
 
-Everything needed to publish the extension. Upload file: the repo-root
-`browser-extension.zip` (manifest at zip root, rebuilt 2026-07-17; rebuild
-after any extension change with manifest at the zip root, not nested).
+Everything needed to publish the extension. Two zip flavors at the repo
+root (manifest at zip root, never nested):
+
+- `browser-extension.zip`: Firefox/AMO flavor. Manifest as-is (background
+  has both `service_worker` and `scripts`; `browser_specific_settings`
+  with the gecko id and data_collection_permissions). Also the sideload
+  zip: works for load-unpacked in every browser.
+- `browser-extension-chromium.zip`: Edge Add-ons and Chrome Web Store
+  flavor. Same files, manifest transformed: `background.service_worker`
+  only, no `browser_specific_settings`. Edge's validator hard-rejects
+  `background.scripts` in MV3 (Chrome merely ignores it), so the dual
+  manifest cannot be submitted there.
+
+Rebuild both after any extension change (bump `version` in manifest.json
+first; the chromium transform is scripted in the session notes: strip
+`browser_specific_settings`, set background to service_worker only).
 
 `web-ext lint`: 0 errors, 10 warnings (all "unsupported API" notices for
 Chromium-only APIs the code feature-detects; safe to ignore).
