@@ -18,12 +18,12 @@ const FEATURES: Array<{ icon: ReactNode; title: string; body: string }> = [
   {
     icon: <PauseResumeIcon />,
     title: "Pause and resume",
-    body: "Progress is saved per segment as it arrives. Pause, reboot, or lose your connection — the transfer picks up from the same byte.",
+    body: "Progress is saved per segment as it arrives. Pause, reboot, or lose your connection: the transfer picks up from the same byte.",
   },
   {
     icon: <CaptureIcon />,
     title: "Browser capture",
-    body: "The companion extension hands downloads to Apex automatically — or right-click any link and choose “Download with Apex.”",
+    body: "The companion extension hands downloads to Apex automatically, or right-click any link and choose “Download with Apex.”",
   },
   {
     icon: <ClockIcon />,

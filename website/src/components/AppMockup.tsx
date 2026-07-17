@@ -94,7 +94,7 @@ function fmtBytes(bytes: number): string {
 }
 
 function fmtSpeed(mbps: number | null): string {
-  return mbps === null ? "—" : `${mbps.toFixed(1)} MB/s`;
+  return mbps === null ? "-" : `${mbps.toFixed(1)} MB/s`;
 }
 
 function fmtEta(r: Row): string {

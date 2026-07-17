@@ -23,7 +23,7 @@ export default function Capture() {
             <li>
               <span className="step-num">2</span>
               <span>
-                <strong>It checks first</strong> — probes the server for resume
+                <strong>It checks first.</strong> It probes the server for resume
                 support, skips duplicates you already have, and confirms the
                 disk has room.
               </span>
@@ -32,7 +32,7 @@ export default function Capture() {
               <span className="step-num">3</span>
               <span>
                 <strong>You stay in control.</strong> Accept once, always allow
-                the host, or keep the download in the browser — your choice is
+                the host, or keep the download in the browser. Your choice is
                 remembered.
               </span>
             </li>

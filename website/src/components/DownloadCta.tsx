@@ -34,7 +34,7 @@ function StatLine() {
     <div className="stat-line" ref={ref}>
       <DownloadIcon size={14} />
       <span>
-        <strong>{shown.toLocaleString("en-US")}</strong> downloads counted — and
+        <strong>{shown.toLocaleString("en-US")}</strong> downloads counted, and
         that's all we know
       </span>
     </div>

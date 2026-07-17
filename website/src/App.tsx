@@ -4,6 +4,7 @@ import Features from "./components/Features";
 import Capture from "./components/Capture";
 import Safety from "./components/Safety";
 import Faq from "./components/Faq";
+import Support from "./components/Support";
 import DownloadCta from "./components/DownloadCta";
 import Footer from "./components/Footer";
 
@@ -20,6 +21,7 @@ export default function App() {
         <Capture />
         <Safety />
         <Faq />
+        <Support />
         <DownloadCta />
       </main>
       <Footer />

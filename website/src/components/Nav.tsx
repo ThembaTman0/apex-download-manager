@@ -17,7 +17,7 @@ export default function Nav() {
   return (
     <header className={`nav ${scrolled ? "scrolled" : ""}`.trim()}>
       <div className="container nav-inner">
-        <a className="brand" href="#top" aria-label="Apex Download Manager — back to top">
+        <a className="brand" href="#top" aria-label="Apex Download Manager, back to top">
           <LogoMark />
           Apex
         </a>
@@ -26,6 +26,7 @@ export default function Nav() {
           <a href="#capture">Capture</a>
           <a href="#safety">Safety</a>
           <a href="#faq">FAQ</a>
+          <a href="#support">Support</a>
           <a
             href={REPO_URL}
             target="_blank"

@@ -15,6 +15,7 @@ export default function Footer() {
           <a href="#features">Features</a>
           <a href="#safety">Safety</a>
           <a href="#faq">FAQ</a>
+          <a href="#support">Support</a>
           <a
             href={REPO_URL}
             target="_blank"
