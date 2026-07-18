@@ -34,7 +34,7 @@ Website (`website/`): `npm run dev` / `npm run build`. Deploys via the Vercel gi
 
 ### Rust backend (`desktop-ui/src-tauri/src/`)
 
-- `engine.rs` — the heart. `DownloadManager` (managed Tauri state) probes each URL with a ranged request, plans segments (up to 32), and writes all connections into one preallocated `.adm` temp file, renamed on completion. Also owns the queue/concurrency logic, speed limiting, resume validation (ETag/If-Range), pending-capture staging (dedup by URL-sans-query + filename, capped at 25), and creates the `capture` approval window dynamically.
+- `engine.rs` — the heart. `DownloadManager` (managed Tauri state) probes each URL with a ranged request, plans segments (up to 32), and writes all connections into one preallocated `.adm` temp file, renamed on completion. Segments re-split dynamically: when a connection finishes, the largest remaining range donates its second half (`SegCell.end` is atomic — workers re-read their boundary every chunk; splits stop under 2×256 KB remainders, table capped at 128). Also owns the queue/concurrency logic, speed limiting, resume validation (ETag/If-Range), pending-capture staging (dedup by URL-sans-query + filename, capped at 25), and creates the `capture` approval window dynamically.
 - `capture.rs` — hand-rolled minimal HTTP/1.1 server on `127.0.0.1:43666` for the extension. Token-gated; only `cookie`/`referer`/`user-agent` headers are forwarded to the engine.
 - `db.rs` — SQLite (WAL, bundled rusqlite) under `%APPDATA%/com.apex.download-manager/`. Per-segment progress is persisted so pause/resume survives restarts.
 - `commands.rs` — Tauri command handlers. **Every new command must also be registered in `lib.rs` `generate_handler![]` and wrapped in `src/services/backend.ts`.**

@@ -93,7 +93,7 @@ npm run tauri build    # produces MSI / NSIS installers
 - [x] Proxy support
 - [x] Firefox extension
 - [x] Auto-updates (GitHub Releases)
-- [ ] Dynamic segment re-splitting
+- [x] Dynamic segment re-splitting (finished connections take over the tail of slow ones)
 - [ ] Code signing
 - [ ] Extension store publishing (Chrome Web Store / AMO)
 - [ ] Bandwidth scheduler (off-peak speed profiles)

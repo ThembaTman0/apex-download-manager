@@ -1141,68 +1141,129 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
         }
     }
 
-    // 3. Launch one task per segment.
-    let counters: Arc<Vec<AtomicU64>> = Arc::new(
+    // 3. Build the live segment table and launch one connection per
+    //    unfinished segment. The table can grow while the download runs:
+    //    whenever a connection finishes its range, the largest remaining
+    //    range is split and the freed connection takes the second half
+    //    (dynamic re-splitting), so no connection idles through the tail.
+    let table: SegTable = Arc::new(Mutex::new(
         d.segment_states
             .iter()
-            .map(|s| AtomicU64::new(s.downloaded))
+            .map(|s| {
+                Arc::new(SegCell {
+                    start: s.start,
+                    end: AtomicU64::new(s.end),
+                    downloaded: AtomicU64::new(s.downloaded),
+                })
+            })
             .collect(),
-    );
+    ));
+    let splittable = d.supports_ranges && d.size_bytes > 0;
+    let wanted = ctx.settings.lock().unwrap().segments_per_download.clamp(1, 32) as usize;
+
+    // A resumed download may have only a couple of unfinished segments left;
+    // split until every allowed connection has work, so the tail gets the
+    // same parallelism as a fresh start.
+    if splittable {
+        while unfinished_count(&table) < wanted {
+            if try_split(&table).is_none() {
+                break;
+            }
+        }
+    }
+
     let fail_cancel = ctx.cancel.child_token();
-    let mut handles = Vec::new();
-    for (i, seg) in d.segment_states.iter().enumerate() {
-        let seg = seg.clone();
+    let supports_ranges = d.supports_ranges;
+    let request_headers = Arc::new(d.request_headers.clone());
+    let mut next_index: usize = 0;
+    let mut set: tokio::task::JoinSet<Result<(), String>> = tokio::task::JoinSet::new();
+    let spawn_worker = {
         let client = ctx.client.clone();
         let url = d.url.clone();
         let tmp = tmp.clone();
-        let counters = counters.clone();
         let limiter = ctx.limiter.clone();
         let task_limiter = ctx.task_limiter.clone();
         let token = fail_cancel.clone();
-        let supports_ranges = d.supports_ranges;
-        let known_size = d.size_bytes > 0;
         let if_range = d.etag.clone().or_else(|| d.last_modified.clone());
-        let request_headers = d.request_headers.clone();
-        handles.push(tokio::spawn(async move {
-            let res = download_segment(
-                &client,
-                &url,
-                &tmp,
-                seg,
-                i,
-                &counters,
-                &limiter,
-                &task_limiter,
-                &token,
+        move |set: &mut tokio::task::JoinSet<Result<(), String>>,
+              cell: Arc<SegCell>,
+              index: usize| {
+            let token = token.clone();
+            let fut = download_segment(
+                client.clone(),
+                url.clone(),
+                tmp.clone(),
+                cell,
+                index,
+                limiter.clone(),
+                task_limiter.clone(),
+                token.clone(),
                 supports_ranges,
-                known_size,
-                if_range,
-                &request_headers,
-            )
-            .await;
-            if res.is_err() {
-                // Abort siblings; user-cancel is distinguished later.
-                token.cancel();
+                if_range.clone(),
+                request_headers.clone(),
+            );
+            set.spawn(async move {
+                let res = fut.await;
+                if res.is_err() {
+                    // Abort siblings; user-cancel is distinguished later.
+                    token.cancel();
+                }
+                res
+            });
+        }
+    };
+    {
+        let cells: Vec<Arc<SegCell>> = table.lock().unwrap().iter().cloned().collect();
+        for cell in cells {
+            let finished = supports_ranges
+                && cell.start + cell.downloaded.load(Ordering::Relaxed)
+                    > cell.end.load(Ordering::Relaxed);
+            if finished {
+                continue; // resumed segment already complete
             }
-            res
-        }));
+            spawn_worker(&mut set, cell, next_index);
+            next_index += 1;
+        }
     }
 
-    // 4. Monitor progress until all segments settle.
-    let mut join_all = futures_util::future::join_all(handles);
+    // 4. Monitor progress until every connection settles. Each finished
+    //    connection triggers a split of the largest remaining range, keeping
+    //    all allowed connections busy until nothing is worth splitting.
     let mut ticker = tokio::time::interval(Duration::from_millis(500));
     ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
     let mut last_bytes: u64 = d.downloaded_bytes;
     let mut last_time = Instant::now();
     let mut speed_ema: f64 = 0.0;
     let mut tick_n: u32 = 0;
+    let mut first_err: Option<String> = None;
 
-    let results = loop {
+    loop {
         tokio::select! {
-            results = &mut join_all => break results,
+            joined = set.join_next() => match joined {
+                None => break,
+                Some(Ok(Ok(()))) => {
+                    if splittable && first_err.is_none() && !fail_cancel.is_cancelled() {
+                        if let Some(cell) = try_split(&table) {
+                            spawn_worker(&mut set, cell, next_index);
+                            next_index += 1;
+                        }
+                    }
+                }
+                Some(Ok(Err(e))) => {
+                    if first_err.is_none() {
+                        first_err = Some(e);
+                    }
+                }
+                Some(Err(e)) => {
+                    if first_err.is_none() {
+                        first_err = Some(format!("task panicked: {e}"));
+                        fail_cancel.cancel();
+                    }
+                }
+            },
             _ = ticker.tick() => {
                 tick_n += 1;
-                let total: u64 = counters.iter().map(|c| c.load(Ordering::Relaxed)).sum();
+                let (segs, total) = snapshot_segments(&table);
                 let now = Instant::now();
                 let dt = now.duration_since(last_time).as_secs_f64();
                 if dt > 0.0 {
@@ -1211,18 +1272,18 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
                 }
                 last_bytes = total;
                 last_time = now;
-                sync_progress(d, &counters, total, speed_ema);
+                sync_progress(d, segs, total, speed_ema);
                 if tick_n % 4 == 0 {
                     let _ = ctx.db.lock().unwrap().upsert_download(d);
                 }
                 let _ = ctx.app.emit(EVENT_CHANGED, &*d);
             }
         }
-    };
+    }
 
-    // Final state sync from counters.
-    let total: u64 = counters.iter().map(|c| c.load(Ordering::Relaxed)).sum();
-    sync_progress(d, &counters, total, 0.0);
+    // Final state sync from the table.
+    let (segs, total) = snapshot_segments(&table);
+    sync_progress(d, segs, total, 0.0);
 
     if ctx.cancel.is_cancelled() {
         // If the server can't resume, partial data is useless — start over next time.
@@ -1235,12 +1296,8 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
         }
         return Ok(false);
     }
-    for r in results {
-        match r {
-            Ok(Ok(())) => {}
-            Ok(Err(e)) => return Err(e),
-            Err(e) => return Err(format!("task panicked: {e}")),
-        }
+    if let Some(e) = first_err {
+        return Err(e);
     }
 
     // A no-range server may have served a different byte count than the
@@ -1277,10 +1334,9 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
     Ok(true)
 }
 
-fn sync_progress(d: &mut Download, counters: &[AtomicU64], total: u64, speed: f64) {
-    for (s, c) in d.segment_states.iter_mut().zip(counters.iter()) {
-        s.downloaded = c.load(Ordering::Relaxed);
-    }
+fn sync_progress(d: &mut Download, segs: Vec<Segment>, total: u64, speed: f64) {
+    d.segment_states = segs;
+    d.segments = (d.segment_states.len() as u32).max(1);
     d.downloaded_bytes = total;
     d.progress = if d.size_bytes > 0 {
         (total as f64 / d.size_bytes as f64 * 100.0).min(100.0)
@@ -1454,6 +1510,94 @@ fn ext_for_content_type(ct: &str) -> Option<String> {
     }
 }
 
+/// Live byte range owned by one connection. `end` is atomic because the
+/// monitor shrinks it when donating the tail of a slow segment to a freed
+/// connection (re-splitting); the owning worker re-reads it every chunk.
+struct SegCell {
+    start: u64,
+    end: AtomicU64,
+    downloaded: AtomicU64,
+}
+
+type SegTable = Arc<Mutex<Vec<Arc<SegCell>>>>;
+
+/// Hard cap on how many segments a download may fan out to over its
+/// lifetime — bounds the persisted layout and the UI. Re-splitting stops on
+/// its own long before this (remainders drop under 2×MIN_SEGMENT_BYTES).
+const MAX_TOTAL_SEGMENTS: usize = 128;
+
+fn unfinished_count(table: &SegTable) -> usize {
+    table
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|c| c.start + c.downloaded.load(Ordering::Relaxed) <= c.end.load(Ordering::Relaxed))
+        .count()
+}
+
+/// Consistent copy of the layout (for persistence/UI) plus the byte total.
+fn snapshot_segments(table: &SegTable) -> (Vec<Segment>, u64) {
+    let mut segs: Vec<Segment> = table
+        .lock()
+        .unwrap()
+        .iter()
+        .map(|c| Segment {
+            start: c.start,
+            end: c.end.load(Ordering::Relaxed),
+            downloaded: c.downloaded.load(Ordering::Relaxed),
+        })
+        .collect();
+    segs.sort_by_key(|s| s.start);
+    let total = segs.iter().map(|s| s.downloaded).sum();
+    (segs, total)
+}
+
+/// Split the unfinished segment with the most bytes left and hand its second
+/// half to a new connection. Returns None when nothing is worth splitting:
+/// every remainder is under 2×MIN_SEGMENT_BYTES (both halves must stay
+/// useful) or the table hit its cap.
+///
+/// Only the monitor task splits, so a donor's `end` moves once at a time.
+/// The split point sits ≥ MIN_SEGMENT_BYTES ahead of the donor's position at
+/// selection time and there is no await between the load and the store, so
+/// the donor cannot cross it mid-split; even a pathological overlap would
+/// only rewrite identical bytes (both sides fetch the same validated URL).
+fn try_split(table: &SegTable) -> Option<Arc<SegCell>> {
+    let mut table = table.lock().unwrap();
+    if table.len() >= MAX_TOTAL_SEGMENTS {
+        return None;
+    }
+    let mut best: Option<(usize, u64)> = None;
+    for (i, c) in table.iter().enumerate() {
+        let end = c.end.load(Ordering::Relaxed);
+        let pos = c.start + c.downloaded.load(Ordering::Relaxed);
+        if pos > end {
+            continue; // finished
+        }
+        let remaining = end - pos + 1;
+        if remaining >= 2 * MIN_SEGMENT_BYTES && best.map_or(true, |(_, r)| remaining > r) {
+            best = Some((i, remaining));
+        }
+    }
+    let (i, _) = best?;
+    let donor = &table[i];
+    let end = donor.end.load(Ordering::Relaxed);
+    let pos = donor.start + donor.downloaded.load(Ordering::Relaxed);
+    let remaining = (end + 1).saturating_sub(pos);
+    if remaining < 2 * MIN_SEGMENT_BYTES {
+        return None;
+    }
+    let mid = pos + remaining / 2;
+    donor.end.store(mid - 1, Ordering::Relaxed);
+    let cell = Arc::new(SegCell {
+        start: mid,
+        end: AtomicU64::new(end),
+        downloaded: AtomicU64::new(0),
+    });
+    table.push(cell.clone());
+    Some(cell)
+}
+
 fn plan_segments(size: u64, supports_ranges: bool, wanted: u32) -> Vec<Segment> {
     if !supports_ranges || size == 0 {
         return vec![Segment {
@@ -1480,30 +1624,29 @@ fn plan_segments(size: u64, supports_ranges: bool, wanted: u32) -> Vec<Segment> 
 
 #[allow(clippy::too_many_arguments)]
 async fn download_segment(
-    client: &reqwest::Client,
-    url: &str,
-    tmp: &Path,
-    seg: Segment,
+    client: reqwest::Client,
+    url: String,
+    tmp: PathBuf,
+    cell: Arc<SegCell>,
     index: usize,
-    counters: &[AtomicU64],
-    limiter: &RateLimiter,
-    task_limiter: &RateLimiter,
-    token: &CancellationToken,
+    limiter: Arc<RateLimiter>,
+    task_limiter: Arc<RateLimiter>,
+    token: CancellationToken,
     supports_ranges: bool,
-    known_size: bool,
     if_range: Option<String>,
-    request_headers: &[(String, String)],
+    request_headers: Arc<Vec<(String, String)>>,
 ) -> Result<(), String> {
-    let mut expected = if known_size {
-        Some(seg.end - seg.start + 1)
-    } else {
-        None
-    };
-    let mut done = seg.downloaded;
-    if let Some(exp) = expected {
-        if done >= exp {
-            return Ok(());
-        }
+    // The owned range can shrink while this runs (re-splitting donates this
+    // segment's tail to a freed connection), so the target length is re-read
+    // from the cell every chunk rather than captured once.
+    let ranged_target = || (cell.end.load(Ordering::Relaxed) + 1).saturating_sub(cell.start);
+    // A no-range body's target comes from that response's own Content-Length
+    // instead (set after send; None = a clean EOF is the completion signal).
+    let mut body_expected: Option<u64> = None;
+
+    let mut done = cell.downloaded.load(Ordering::Relaxed);
+    if supports_ranges && done >= ranged_target() {
+        return Ok(());
     }
 
     let mut attempts: u32 = 0;
@@ -1519,11 +1662,15 @@ async fn download_segment(
         }
         attempts += 1;
 
-        let mut req = with_headers(client.get(url), request_headers);
+        let mut req = with_headers(client.get(&url), &request_headers);
         if supports_ranges {
             req = req.header(
                 header::RANGE,
-                format!("bytes={}-{}", seg.start + done, seg.end),
+                format!(
+                    "bytes={}-{}",
+                    cell.start + done,
+                    cell.end.load(Ordering::Relaxed)
+                ),
             );
             if let Some(v) = &if_range {
                 req = req.header(header::IF_RANGE, v);
@@ -1531,7 +1678,7 @@ async fn download_segment(
         } else if done > 0 {
             // Can't resume mid-stream on a no-range server: start over.
             done = 0;
-            counters[index].store(0, Ordering::Relaxed);
+            cell.downloaded.store(0, Ordering::Relaxed);
         }
 
         let resp = tokio::select! {
@@ -1556,15 +1703,15 @@ async fn download_segment(
             // response's own Content-Length is the real target; without one,
             // EOF is the completion signal — hyper errors on premature close,
             // so a clean EOF genuinely means the body is complete.
-            expected = resp.content_length().filter(|cl| *cl > 0);
+            body_expected = resp.content_length().filter(|cl| *cl > 0);
         }
 
         let mut file = tokio::fs::OpenOptions::new()
             .write(true)
-            .open(tmp)
+            .open(&tmp)
             .await
             .map_err(|e| format!("cannot open file: {e}"))?;
-        file.seek(SeekFrom::Start(seg.start + done))
+        file.seek(SeekFrom::Start(cell.start + done))
             .await
             .map_err(|e| e.to_string())?;
 
@@ -1594,10 +1741,21 @@ async fn download_segment(
             };
             match chunk {
                 Some(bytes) => {
-                    limiter.acquire(bytes.len() as u64, token).await;
-                    task_limiter.acquire(bytes.len() as u64, token).await;
-                    // Never write past our range (defensive against sloppy servers).
+                    limiter.acquire(bytes.len() as u64, &token).await;
+                    task_limiter.acquire(bytes.len() as u64, &token).await;
+                    let expected = if supports_ranges {
+                        Some(ranged_target())
+                    } else {
+                        body_expected
+                    };
+                    // Never write past our range — the boundary may have
+                    // moved closer since the request went out (re-splitting),
+                    // and sloppy servers overshoot.
                     let bytes = if let Some(exp) = expected {
+                        if done >= exp {
+                            let _ = file.flush().await;
+                            return Ok(());
+                        }
                         let remaining = exp - done;
                         if (bytes.len() as u64) > remaining {
                             bytes.slice(0..remaining as usize)
@@ -1614,11 +1772,16 @@ async fn download_segment(
                         .await
                         .map_err(|e| format!("write failed: {e}"))?;
                     done += bytes.len() as u64;
-                    counters[index].store(done, Ordering::Relaxed);
+                    cell.downloaded.store(done, Ordering::Relaxed);
                     // Data is flowing again — only consecutive dead attempts
                     // should count toward the retry limit, or multi-hour
                     // downloads die from a handful of scattered hiccups.
                     attempts = 0;
+                    let expected = if supports_ranges {
+                        Some(ranged_target())
+                    } else {
+                        body_expected
+                    };
                     if let Some(exp) = expected {
                         if done >= exp {
                             let _ = file.flush().await;
@@ -1633,6 +1796,11 @@ async fn download_segment(
                 }
                 None => {
                     let _ = file.flush().await;
+                    let expected = if supports_ranges {
+                        Some(ranged_target())
+                    } else {
+                        body_expected
+                    };
                     match expected {
                         Some(exp) if done < exp => {
                             if attempts >= 4 {
