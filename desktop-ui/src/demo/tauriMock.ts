@@ -31,6 +31,25 @@ type RawDemoDownload = {
   kind: string;
   speedLimitKbps: number;
   error?: string | null;
+  segmentStates?: DemoSegment[];
+};
+
+type DemoSegment = { start: number; end: number; downloaded: number };
+
+/** Even segment plan over sizeBytes, partially filled to match progress. */
+const planSegments = (
+  sizeBytes: number,
+  n: number,
+  progress: number,
+): DemoSegment[] => {
+  const chunk = Math.floor(sizeBytes / n);
+  return Array.from({ length: n }, (_, i) => {
+    const start = i * chunk;
+    const end = i === n - 1 ? sizeBytes - 1 : (i + 1) * chunk - 1;
+    // Stagger fills so the map looks organic rather than uniform.
+    const fill = Math.min(1, (progress / 100) * (0.55 + ((i * 7) % 10) / 10));
+    return { start, end, downloaded: Math.round((end - start + 1) * fill) };
+  });
 };
 
 const demoDownloads: RawDemoDownload[] = [
@@ -174,6 +193,13 @@ if (!("__TAURI_INTERNALS__" in window)) {
     emit("download:changed", { ...d });
   };
 
+  // Seed live-looking segment layouts for the demo rows.
+  for (const d of state.values()) {
+    if (d.supportsRanges && d.segments > 1 && d.status !== "queued") {
+      d.segmentStates = planSegments(d.sizeBytes, d.segments, d.progress);
+    }
+  }
+
   // --- transfer simulation ---------------------------------------------
   const TICK_MS = 800;
   setInterval(() => {
@@ -190,11 +216,46 @@ if (!("__TAURI_INTERNALS__" in window)) {
         0,
         Math.round((d.sizeBytes - d.downloadedBytes) / d.speedBytesPerSec),
       );
+
+      // Advance segments unevenly; when one finishes, re-split the largest
+      // remainder, mirroring the real engine's dynamic re-splitting.
+      if (d.segmentStates) {
+        const gained = d.speedBytesPerSec * (TICK_MS / 1000);
+        const unfinished = d.segmentStates.filter(
+          (s) => s.downloaded < s.end - s.start + 1,
+        );
+        for (const s of unfinished) {
+          const len = s.end - s.start + 1;
+          const share = (gained / unfinished.length) * (0.4 + Math.random() * 1.2);
+          const before = s.downloaded;
+          s.downloaded = Math.min(len, s.downloaded + share);
+          if (before < len && s.downloaded >= len && d.segmentStates.length < 24) {
+            const donor = d.segmentStates.reduce((a, b) =>
+              b.end - b.start + 1 - b.downloaded > a.end - a.start + 1 - a.downloaded
+                ? b
+                : a,
+            );
+            const remaining = donor.end - donor.start + 1 - donor.downloaded;
+            if (remaining > 4 * MB) {
+              const mid = donor.start + donor.downloaded + Math.floor(remaining / 2);
+              const newSeg = { start: mid, end: donor.end, downloaded: 0 };
+              donor.end = mid - 1;
+              d.segmentStates.push(newSeg);
+              d.segmentStates.sort((a, b) => a.start - b.start);
+            }
+          }
+        }
+        d.segments = d.segmentStates.length;
+      }
+
       if (d.downloadedBytes >= d.sizeBytes) {
         d.status = "completed";
         d.progress = 100;
         d.speedBytesPerSec = 0;
         d.etaSeconds = 0;
+        if (d.segmentStates) {
+          for (const s of d.segmentStates) s.downloaded = s.end - s.start + 1;
+        }
       }
       touch(d);
     }
@@ -248,6 +309,7 @@ if (!("__TAURI_INTERNALS__" in window)) {
         kind: "http",
         speedLimitKbps: 0,
       };
+      d.segmentStates = planSegments(d.sizeBytes, d.segments, 0);
       state.set(d.id, d);
       return { ...d };
     },
@@ -321,14 +383,9 @@ if (!("__TAURI_INTERNALS__" in window)) {
     get_download_segments: (a) => {
       const d = state.get(a?.id);
       if (!d) return [];
-      const per = d.sizeBytes / d.segments;
-      return Array.from({ length: d.segments }, (_, i) => ({
-        index: i,
-        startByte: Math.round(i * per),
-        endByte: Math.round((i + 1) * per) - 1,
-        downloadedBytes: Math.round(per * (d.progress / 100)),
-        done: d.progress >= 100,
-      }));
+      return (
+        d.segmentStates ?? planSegments(d.sizeBytes, d.segments, d.progress)
+      );
     },
     compute_checksum: () =>
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",

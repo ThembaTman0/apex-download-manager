@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Copy, FolderOpen, X } from "lucide-react";
-import { backend } from "@/services/backend";
 import { useDownloadsStore } from "@/stores/downloadsStore";
 import { formatBytes, formatETA, formatSpeed } from "@/lib/utils";
 import { StatusBadge } from "./StatusBadge";
+import { SegmentMap } from "./SegmentMap";
 import type { Segment } from "@/types";
 
 export function DetailsPanel() {
@@ -16,25 +16,8 @@ export function DetailsPanel() {
   const showInFolder = useDownloadsStore((s) => s.showInFolder);
   const copyUrls = useDownloadsStore((s) => s.copyUrls);
 
-  const [segments, setSegments] = useState<Segment[]>([]);
-
-  // Segment progress is persisted every ~2s while downloading; poll it while
-  // the panel is open so the per-connection bars move.
-  useEffect(() => {
-    if (!detailsId) return;
-    let stop = false;
-    const load = () =>
-      backend
-        .getDownloadSegments(detailsId)
-        .then((s) => !stop && setSegments(s))
-        .catch(() => {});
-    load();
-    const t = setInterval(load, 1000);
-    return () => {
-      stop = true;
-      clearInterval(t);
-    };
-  }, [detailsId, download?.status]);
+  // Live layout rides along on every download:changed event.
+  const segments: Segment[] = download?.segmentStates ?? [];
 
   // Close if the download was removed.
   useEffect(() => {
@@ -128,29 +111,15 @@ export function DetailsPanel() {
                 <span className="text-[11px] text-ink-muted block mb-2">
                   Segments
                 </span>
-                <div className="flex flex-col gap-1.5">
-                  {segments.map((s, i) => {
-                    const total = s.end - s.start + 1;
-                    const pct =
-                      total > 0 ? Math.min(100, (s.downloaded / total) * 100) : 0;
-                    return (
-                      <div key={i} className="flex items-center gap-2">
-                        <span className="w-5 text-[10px] text-ink-faint tabular-nums text-right">
-                          {i + 1}
-                        </span>
-                        <div className="flex-1 h-1 bg-white/[0.07] rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-accent rounded-full transition-[width] duration-500"
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                        <span className="w-9 text-[10px] text-ink-muted tabular-nums text-right">
-                          {Math.round(pct)}%
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
+                <SegmentMap segments={segments} className="h-2" />
+                <p className="text-[10px] text-ink-faint mt-1.5 tabular-nums">
+                  {segments.length} connections ·{" "}
+                  {
+                    segments.filter((s) => s.downloaded < s.end - s.start + 1)
+                      .length
+                  }{" "}
+                  active · each block is a byte range of the file
+                </p>
               </div>
             )}
           </div>

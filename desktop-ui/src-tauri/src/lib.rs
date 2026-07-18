@@ -152,6 +152,47 @@ pub fn run() {
                 }
             });
 
+            // --- Tray tooltip: show how many downloads are running ---
+            let handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let mut last = String::new();
+                loop {
+                    tokio::time::sleep(Duration::from_secs(2)).await;
+                    let (active, queued) = handle
+                        .state::<DownloadManager>()
+                        .list()
+                        .map(|list| {
+                            let a = list
+                                .iter()
+                                .filter(|d| {
+                                    matches!(
+                                        d.status,
+                                        models::DownloadStatus::Downloading
+                                            | models::DownloadStatus::Merging
+                                    )
+                                })
+                                .count();
+                            let q = list
+                                .iter()
+                                .filter(|d| d.status == models::DownloadStatus::Queued)
+                                .count();
+                            (a, q)
+                        })
+                        .unwrap_or((0, 0));
+                    let tip = match (active, queued) {
+                        (0, 0) => "Apex Download Manager".to_string(),
+                        (a, 0) => format!("Apex: {a} downloading"),
+                        (a, q) => format!("Apex: {a} downloading, {q} queued"),
+                    };
+                    if tip != last {
+                        if let Some(tray) = handle.tray_by_id("main-tray") {
+                            let _ = tray.set_tooltip(Some(tip.as_str()));
+                        }
+                        last = tip;
+                    }
+                }
+            });
+
             // --- Clipboard watcher: offer to grab copied download URLs ---
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {

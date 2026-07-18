@@ -133,7 +133,11 @@ export function DownloadsTable() {
         header: "Progress",
         size: 160,
         cell: ({ row }) => (
-          <ProgressCell progress={row.original.progress} status={row.original.status} />
+          <ProgressCell
+            progress={row.original.progress}
+            status={row.original.status}
+            segments={row.original.segmentStates}
+          />
         ),
       }),
       helper.accessor("speedBytesPerSec", {
@@ -398,6 +402,7 @@ function TableRow({ row, selected, measureRef, index }: RowProps) {
           onClick={() => toggleSelect(d.id)}
           onDoubleClick={() => {
             if (d.status === "completed") openFile(d.id);
+            else setDetailsId(d.id);
           }}
           className={cn(
             "border-b border-white/[0.04] cursor-pointer transition-colors group",

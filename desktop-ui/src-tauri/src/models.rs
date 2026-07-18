@@ -83,7 +83,9 @@ pub struct Download {
     pub etag: Option<String>,
     #[serde(skip)]
     pub last_modified: Option<String>,
-    #[serde(skip)]
+    /// Live per-connection layout — on the wire so the UI can draw the
+    /// proportional segment map without polling a second command.
+    #[serde(default)]
     pub segment_states: Vec<Segment>,
     /// Extra request headers captured from the browser (Cookie, Referer,
     /// User-Agent) so downloads behind logins work. Cookies are session

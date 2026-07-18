@@ -31,6 +31,8 @@ export interface Download {
   speedLimitKbps: number;
   /** yt-dlp format selector (kind === "video"). */
   videoFormat?: string;
+  /** Live per-connection layout; grows while re-splitting is active. */
+  segmentStates?: Segment[];
 }
 
 export type Category =
