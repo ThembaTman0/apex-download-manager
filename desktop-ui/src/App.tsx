@@ -34,9 +34,11 @@ export default function App() {
     init();
   }, [init]);
 
-  // Quiet update check shortly after launch (no-op in dev / when offline).
+  // Quiet update check shortly after launch, then every 6 hours — Apex is
+  // tray-resident and can run for weeks, so a launch-only check would leave
+  // long-running instances permanently behind. (No-op in dev / offline.)
   useEffect(() => {
-    const t = setTimeout(async () => {
+    const quietCheck = async () => {
       try {
         const { check } = await import("@tauri-apps/plugin-updater");
         const update = await check();
@@ -44,8 +46,13 @@ export default function App() {
       } catch {
         // unsigned dev build or no network — ignore
       }
-    }, 10_000);
-    return () => clearTimeout(t);
+    };
+    const t = setTimeout(quietCheck, 10_000);
+    const i = setInterval(quietCheck, 6 * 3_600_000);
+    return () => {
+      clearTimeout(t);
+      clearInterval(i);
+    };
   }, []);
 
   const installUpdate = async () => {

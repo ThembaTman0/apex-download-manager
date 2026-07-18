@@ -132,6 +132,15 @@ pub struct Settings {
     /// Launch Apex (hidden, in the tray) when the user signs in, so the
     /// browser extension can reach it before any download is clicked.
     pub launch_at_startup: bool,
+    /// Bandwidth scheduler: inside the off-peak window downloads run at the
+    /// normal global limit; outside it `peak_limit_kbps` caps them instead.
+    pub scheduler_enabled: bool,
+    /// Off-peak window bounds, minutes since local midnight. A start after
+    /// the end (e.g. 23:00 to 07:00) wraps across midnight.
+    pub offpeak_start_min: u32,
+    pub offpeak_end_min: u32,
+    /// Cap applied outside the off-peak window (KB/s); 0 disables the cap.
+    pub peak_limit_kbps: u64,
 }
 
 impl Default for Settings {
@@ -153,6 +162,32 @@ impl Default for Settings {
             capture_token: String::new(),
             capture_allowed_hosts: Vec::new(),
             launch_at_startup: true,
+            scheduler_enabled: false,
+            offpeak_start_min: 23 * 60,
+            offpeak_end_min: 7 * 60,
+            peak_limit_kbps: 512,
+        }
+    }
+}
+
+impl Settings {
+    /// Global speed limit that should be in force right now (KB/s, 0 =
+    /// unlimited), folding in the bandwidth scheduler.
+    pub fn effective_speed_limit_kbps(&self, now_min: u32) -> u64 {
+        if !self.scheduler_enabled || self.peak_limit_kbps == 0 {
+            return self.speed_limit_kbps;
+        }
+        let off_peak = if self.offpeak_start_min <= self.offpeak_end_min {
+            (self.offpeak_start_min..self.offpeak_end_min).contains(&now_min)
+        } else {
+            now_min >= self.offpeak_start_min || now_min < self.offpeak_end_min
+        };
+        if off_peak {
+            self.speed_limit_kbps
+        } else if self.speed_limit_kbps == 0 {
+            self.peak_limit_kbps
+        } else {
+            self.speed_limit_kbps.min(self.peak_limit_kbps)
         }
     }
 }

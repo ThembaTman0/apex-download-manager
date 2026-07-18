@@ -170,6 +170,11 @@ const demoSettings = {
   capturePort: 43666,
   captureToken: "demo",
   captureAllowedHosts: [],
+  launchAtStartup: true,
+  schedulerEnabled: false,
+  offpeakStartMin: 23 * 60,
+  offpeakEndMin: 7 * 60,
+  peakLimitKbps: 512,
 };
 
 if (!("__TAURI_INTERNALS__" in window)) {

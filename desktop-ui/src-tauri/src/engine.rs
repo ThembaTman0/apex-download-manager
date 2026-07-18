@@ -196,6 +196,8 @@ impl DownloadManager {
             max_concurrent: s.max_concurrent.clamp(1, 10),
             segments_per_download: s.segments_per_download.clamp(1, 32),
             proxy_url: s.proxy_url.trim().to_string(),
+            offpeak_start_min: s.offpeak_start_min.min(24 * 60 - 1),
+            offpeak_end_min: s.offpeak_end_min.min(24 * 60 - 1),
             ..s
         };
         // Validate + rebuild the client before persisting, so a bad proxy URL
@@ -204,11 +206,26 @@ impl DownloadManager {
             *self.client.lock().unwrap() = build_client(&s.proxy_url)?;
         }
         self.db.lock().unwrap().save_settings(&s)?;
-        self.limiter.set_limit(s.speed_limit_kbps * 1024);
         *self.settings.lock().unwrap() = s.clone();
+        self.apply_scheduler_limit();
         // A raised concurrency limit may allow queued items to start.
         self.promote_queued();
         Ok(s)
+    }
+
+    /// Point the global limiter at whatever cap should be in force right now
+    /// (scheduler-aware). Called on settings changes and by the periodic tick
+    /// so window boundaries take effect without any user action.
+    pub fn apply_scheduler_limit(&self) {
+        use chrono::Timelike;
+        let now = chrono::Local::now();
+        let now_min = now.hour() * 60 + now.minute();
+        let kbps = self
+            .settings
+            .lock()
+            .unwrap()
+            .effective_speed_limit_kbps(now_min);
+        self.limiter.set_limit(kbps * 1024);
     }
 
     pub fn add(

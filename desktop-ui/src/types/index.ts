@@ -66,6 +66,13 @@ export interface Settings {
   captureAllowedHosts: string[];
   /** Launch Apex hidden in the tray when the user signs in. */
   launchAtStartup: boolean;
+  /** Bandwidth scheduler: full speed in the off-peak window, capped outside. */
+  schedulerEnabled: boolean;
+  /** Off-peak window bounds, minutes since local midnight (wraps midnight). */
+  offpeakStartMin: number;
+  offpeakEndMin: number;
+  /** Cap outside the off-peak window (KB/s); 0 disables the cap. */
+  peakLimitKbps: number;
 }
 
 /** A browser capture awaiting the user's approval before it downloads. */

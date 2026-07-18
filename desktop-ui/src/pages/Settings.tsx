@@ -14,6 +14,7 @@ import {
   Layers,
   ListOrdered,
   Loader2,
+  Moon,
   Network,
   Power,
   RefreshCw,
@@ -141,6 +142,65 @@ export function SettingsPage() {
             max={10_000_000}
             onChange={(v) => update({ speedLimitKbps: v })}
           />
+        </Field>
+
+        <Field
+          icon={Moon}
+          label="Bandwidth scheduler"
+          hint="Full speed inside the off-peak window; outside it a lower cap applies automatically"
+        >
+          <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
+            <input
+              type="checkbox"
+              checked={form.schedulerEnabled}
+              onChange={(e) => update({ schedulerEnabled: e.target.checked })}
+              className="accent-accent w-4 h-4"
+            />
+            <span className="text-sm text-ink-mid">
+              Limit speed outside off-peak hours
+            </span>
+          </label>
+          {form.schedulerEnabled && (
+            <div className="grid grid-cols-3 gap-4 mt-3">
+              <div>
+                <span className="text-[11px] text-ink-muted block mb-1.5">
+                  Off-peak from
+                </span>
+                <input
+                  type="time"
+                  value={toHHMM(form.offpeakStartMin)}
+                  onChange={(e) =>
+                    update({ offpeakStartMin: fromHHMM(e.target.value) })
+                  }
+                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-ink px-3 py-2.5 outline-none focus:border-accent/50 transition-colors [color-scheme:dark]"
+                />
+              </div>
+              <div>
+                <span className="text-[11px] text-ink-muted block mb-1.5">
+                  Until
+                </span>
+                <input
+                  type="time"
+                  value={toHHMM(form.offpeakEndMin)}
+                  onChange={(e) =>
+                    update({ offpeakEndMin: fromHHMM(e.target.value) })
+                  }
+                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-ink px-3 py-2.5 outline-none focus:border-accent/50 transition-colors [color-scheme:dark]"
+                />
+              </div>
+              <div>
+                <span className="text-[11px] text-ink-muted block mb-1.5">
+                  Peak cap (KB/s)
+                </span>
+                <NumberInput
+                  value={form.peakLimitKbps}
+                  min={0}
+                  max={10_000_000}
+                  onChange={(v) => update({ peakLimitKbps: v })}
+                />
+              </div>
+            </div>
+          )}
         </Field>
 
         <Field
@@ -639,6 +699,18 @@ function ToolRow({
       </button>
     </div>
   );
+}
+
+/** Minutes-since-midnight ↔ the "HH:MM" value of an <input type="time">. */
+function toHHMM(min: number): string {
+  const h = String(Math.floor(min / 60)).padStart(2, "0");
+  const m = String(min % 60).padStart(2, "0");
+  return `${h}:${m}`;
+}
+
+function fromHHMM(v: string): number {
+  const [h, m] = v.split(":").map(Number);
+  return ((h || 0) * 60 + (m || 0)) % (24 * 60);
 }
 
 function Field({

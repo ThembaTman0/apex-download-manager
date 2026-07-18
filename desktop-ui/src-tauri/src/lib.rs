@@ -68,6 +68,10 @@ pub fn run() {
             // Browser-extension capture endpoint (127.0.0.1 only).
             capture::start(app.handle().clone());
 
+            // The limiter was built from the plain global limit; fold in the
+            // bandwidth-scheduler window before anything downloads.
+            app.state::<DownloadManager>().apply_scheduler_limit();
+
             // Keep the OS launch-at-sign-in entry in sync with the setting —
             // also repairs the registry path after the app moves or updates.
             apply_autostart(
@@ -143,12 +147,14 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            // --- Scheduler tick: start downloads whose start time arrived ---
+            // --- Scheduler tick: start due downloads, apply bandwidth window ---
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 loop {
                     tokio::time::sleep(Duration::from_secs(15)).await;
-                    handle.state::<DownloadManager>().promote_queued();
+                    let mgr = handle.state::<DownloadManager>();
+                    mgr.promote_queued();
+                    mgr.apply_scheduler_limit();
                 }
             });
 

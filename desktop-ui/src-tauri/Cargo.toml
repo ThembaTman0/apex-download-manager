@@ -1,6 +1,6 @@
 [package]
 name = "apex-download-manager"
-version = "1.0.3"
+version = "1.0.4"
 description = "Apex Download Manager - Download Faster. Smarter. Better."
 authors = ["Apex"]
 edition = "2021"
@@ -33,6 +33,7 @@ reqwest = { version = "0.12", features = ["stream", "rustls-tls-native-roots"] }
 futures-util = "0.3"
 rusqlite = { version = "0.32", features = ["bundled"] }
 uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
 fs2 = "0.4"
 sha2 = "0.10"
 zip = { version = "2", default-features = false, features = ["deflate"] }
