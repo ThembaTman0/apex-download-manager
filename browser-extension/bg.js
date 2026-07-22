@@ -186,6 +186,39 @@ function isDuplicateSend(url, fileName) {
 // session (shutdown-interrupted downloads auto-resume at launch).
 const RESTORED_AGE_MS = 60_000;
 
+// Chromium can restore several shutdown-interrupted downloads at once during
+// the brief window before Apex's capture server has bound to its port. A
+// notification per item stacks a wall of toasts at every boot; batch them
+// into a single summary instead.
+const RESTORED_DROP_BATCH_MS = 2_000;
+let restoredDropNames = [];
+let restoredDropTimer = null;
+
+function queueRestoredDropNotice(name) {
+  restoredDropNames.push(name);
+  if (restoredDropTimer) clearTimeout(restoredDropTimer);
+  restoredDropTimer = setTimeout(flushRestoredDropNotice, RESTORED_DROP_BATCH_MS);
+}
+
+function flushRestoredDropNotice() {
+  const names = restoredDropNames;
+  restoredDropNames = [];
+  restoredDropTimer = null;
+  if (!names.length) return;
+  const message =
+    names.length === 1
+      ? `Apex isn't running — dismissed an unfinished download from a previous session: ${names[0]}. Start it again once Apex is open.`
+      : `Apex isn't running — dismissed ${names.length} unfinished downloads from previous sessions: ${names
+          .slice(0, 3)
+          .join(", ")}${names.length > 3 ? ", …" : ""}. Start them again once Apex is open.`;
+  chrome.notifications.create({
+    type: "basic",
+    iconUrl: "icons/128.png",
+    title: "Apex Download Manager",
+    message,
+  });
+}
+
 async function captureDownload(item) {
   await configReady;
   if (!config.enabled || !config.token) return;
@@ -212,15 +245,9 @@ async function captureDownload(item) {
     if (isRestored) {
       // A restored leftover and Apex is down (typical right after boot):
       // handing it back would pop a Save As dialog with no user action at
-      // every browser launch. Drop it and say so instead.
-      chrome.notifications.create({
-        type: "basic",
-        iconUrl: "icons/128.png",
-        title: "Apex Download Manager",
-        message: `Apex isn't running — dismissed an unfinished download from a previous session: ${
-          basename(item.filename) || url
-        }. Start it again once Apex is open.`,
-      });
+      // every browser launch. Drop it and say so instead — batched, so a
+      // boot with many leftovers surfaces one toast, not a stack of them.
+      queueRestoredDropNotice(basename(item.filename) || url);
       return;
     }
     // Apex unavailable — give the download back to the browser, with its UI
