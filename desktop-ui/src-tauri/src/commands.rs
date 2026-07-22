@@ -129,6 +129,19 @@ pub async fn resolve_capture(
     mgr.resolve_capture(&id, approved, save_dir, file_name)
 }
 
+/// The main window is created hidden (`visible: false` in tauri.conf.json)
+/// to avoid WebView2's opaque-white first paint flashing through the
+/// transparent, rounded-corner window before the app's dark theme has
+/// rendered. The frontend calls this once its first paint is done; a
+/// `--autostart` launch stays hidden in the tray instead.
+#[tauri::command]
+pub async fn signal_frontend_ready(app: tauri::AppHandle) -> Result<(), String> {
+    if !std::env::args().any(|a| a == "--autostart") {
+        crate::show_main_window(&app);
+    }
+    Ok(())
+}
+
 // --- Video grabber (yt-dlp) ---
 
 #[tauri::command]

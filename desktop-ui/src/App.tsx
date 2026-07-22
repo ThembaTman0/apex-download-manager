@@ -14,6 +14,7 @@ import { ClipboardToast, QueueActionToast } from "@/components/ui/Toasts";
 import { DashboardPage } from "@/pages/Dashboard";
 import { DownloadsPage } from "@/pages/Downloads";
 import { SettingsPage } from "@/pages/Settings";
+import { backend } from "@/services/backend";
 import { useDownloadsStore } from "@/stores/downloadsStore";
 
 const pageMap: Record<string, React.ReactNode> = {
@@ -33,6 +34,19 @@ export default function App() {
   useEffect(() => {
     init();
   }, [init]);
+
+  // The window is created hidden (tauri.conf.json visible:false) so
+  // WebView2's opaque-white first paint never flashes through the
+  // transparent, rounded-corner window before this dark theme is up.
+  // Two rAFs guarantee the browser has actually painted this frame
+  // before we tell Rust to reveal it.
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        backend.signalFrontendReady();
+      });
+    });
+  }, []);
 
   // Quiet update check shortly after launch, then every 6 hours — Apex is
   // tray-resident and can run for weeks, so a launch-only check would leave

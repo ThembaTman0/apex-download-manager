@@ -137,4 +137,7 @@ export const backend = {
   onCaptureUpdated(cb: (c: PendingCapture) => void): Promise<UnlistenFn> {
     return listen<PendingCapture>("capture:updated", (e) => cb(e.payload));
   },
+
+  /** Tell Rust the main window has painted, so it can un-hide it. */
+  signalFrontendReady: () => invoke<void>("signal_frontend_ready"),
 };

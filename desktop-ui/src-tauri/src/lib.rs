@@ -13,7 +13,7 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 
 use engine::DownloadManager;
 
-fn show_main_window(app: &tauri::AppHandle) {
+pub(crate) fn show_main_window(app: &tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.show();
         let _ = w.unminimize();
@@ -78,15 +78,6 @@ pub fn run() {
                 app.handle(),
                 app.state::<DownloadManager>().get_settings().launch_at_startup,
             );
-
-            // Launched by the OS at sign-in: stay hidden in the tray. The
-            // single-instance plugin surfaces this window when the user
-            // starts Apex themselves.
-            if std::env::args().any(|a| a == "--autostart") {
-                if let Some(w) = app.get_webview_window("main") {
-                    let _ = w.hide();
-                }
-            }
 
             // --- System tray: keep downloads alive with the window closed ---
             let show = MenuItem::with_id(app, "show", "Open Apex", true, None::<&str>)?;
@@ -262,6 +253,7 @@ pub fn run() {
             commands::install_ffmpeg,
             commands::probe_video,
             commands::add_video,
+            commands::signal_frontend_ready,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
