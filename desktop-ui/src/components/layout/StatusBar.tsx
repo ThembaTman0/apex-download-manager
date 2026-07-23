@@ -56,7 +56,7 @@ export function StatusBar() {
           </span>
           <button
             onClick={() => failed.forEach((d) => resumeDownload(d.id))}
-            className="flex items-center gap-1 hover:text-red-300 underline underline-offset-2 transition-colors"
+            className="flex items-center gap-1 hover:text-error-soft underline underline-offset-2 transition-colors"
             title="Retry all failed downloads"
           >
             <RotateCcw className="w-3 h-3" />

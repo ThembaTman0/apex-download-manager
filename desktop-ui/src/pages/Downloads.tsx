@@ -70,11 +70,12 @@ function Chip({
   return (
     <button
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
-        "px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors border",
+        "px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors",
         active
-          ? "bg-white/[0.08] border-accent/50 text-ink"
-          : "bg-white/[0.03] border-white/[0.07] text-ink-muted hover:text-ink hover:bg-white/[0.06]"
+          ? "bg-accent/[0.12] text-accent"
+          : "text-ink-muted hover:text-ink hover:bg-white/[0.05]"
       )}
     >
       {label}
