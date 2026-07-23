@@ -11,6 +11,16 @@ import "./index.css";
 // always-on-top browser-capture approval prompt ("capture").
 const isCaptureWindow = getCurrentWindow().label === "capture";
 
+// Suppress the WebView2 context menu (Back / Refresh / Print…) inside the real
+// app; editable fields keep theirs for copy/paste. The browser demo is exempt.
+if ("__TAURI_INTERNALS__" in window) {
+  document.addEventListener("contextmenu", (e) => {
+    const el = e.target as Element | null;
+    if (el?.closest("input, textarea, [contenteditable]")) return;
+    e.preventDefault();
+  });
+}
+
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     {/* reducedMotion="user" disables framer animations when the OS asks;

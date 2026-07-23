@@ -118,7 +118,7 @@ export function DetailsPanel() {
                     segments.filter((s) => s.downloaded < s.end - s.start + 1)
                       .length
                   }{" "}
-                  active · each block is a byte range of the file
+                  active · colored spans are downloaded byte ranges
                 </p>
               </div>
             )}
