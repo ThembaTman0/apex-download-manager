@@ -29,6 +29,7 @@ export default function App() {
   const lastError = useDownloadsStore((s) => s.lastError);
   const setLastError = useDownloadsStore((s) => s.setLastError);
   const [updateVersion, setUpdateVersion] = useState<string | null>(null);
+  const [updateNote, setUpdateNote] = useState<string | null>(null);
   const [updateBusy, setUpdateBusy] = useState(false);
 
   useEffect(() => {
@@ -56,7 +57,16 @@ export default function App() {
       try {
         const { check } = await import("@tauri-apps/plugin-updater");
         const update = await check();
-        if (update) setUpdateVersion(update.version);
+        if (update) {
+          setUpdateVersion(update.version);
+          // latest.json `notes` = full release notes; the first content
+          // line is the one-line teaser shown in the toast.
+          const teaser = (update.body ?? "")
+            .split("\n")
+            .map((l) => l.replace(/^[#>\s*-]+/, "").trim())
+            .find((l) => l.length > 0);
+          setUpdateNote(teaser ?? null);
+        }
       } catch {
         // unsigned dev build or no network — ignore
       }
@@ -219,9 +229,28 @@ export default function App() {
             exit={{ opacity: 0, y: 20 }}
             className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 rounded-xl bg-raised border border-accent/30 shadow-2xl shadow-black/50 px-4 py-3 flex items-center gap-3"
           >
-            <p className="text-xs text-ink-mid">
-              Apex v{updateVersion} is available.
-            </p>
+            <div className="flex flex-col gap-0.5 min-w-0 max-w-72">
+              <p className="text-xs text-ink-mid">
+                Apex v{updateVersion} is available.
+                <button
+                  onClick={() =>
+                    import("@tauri-apps/plugin-opener").then(({ openUrl }) =>
+                      openUrl(
+                        `https://github.com/ThembaTman0/apex-download-manager-releases/releases/tag/v${updateVersion}`,
+                      ),
+                    )
+                  }
+                  className="ml-1.5 text-accent hover:underline"
+                >
+                  What's new →
+                </button>
+              </p>
+              {updateNote && (
+                <p className="text-[11px] text-ink-muted truncate" title={updateNote}>
+                  {updateNote}
+                </p>
+              )}
+            </div>
             <button
               onClick={installUpdate}
               disabled={updateBusy}

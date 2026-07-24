@@ -42,6 +42,18 @@ jobs:
         working-directory: desktop-ui
         run: npm ci
 
+      # RELEASE_NOTES.md becomes the release body AND latest.json `notes`
+      # (tauri-action copies its releaseBody input into the updater JSON —
+      # the pre-created release's body is NOT used for that). The app shows
+      # the first content line of `notes` as a teaser in the update toast.
+      - name: Read release notes
+        id: notes
+        shell: pwsh
+        run: |
+          "body<<NOTES_EOF" >> $env:GITHUB_OUTPUT
+          Get-Content RELEASE_NOTES.md -Raw >> $env:GITHUB_OUTPUT
+          "NOTES_EOF" >> $env:GITHUB_OUTPUT
+
       - name: Build and publish release
         uses: tauri-apps/tauri-action@v0
         env:
@@ -54,5 +66,6 @@ jobs:
           repo: apex-download-manager-releases
           tagName: ${{ github.ref_name }}
           releaseName: "Apex Download Manager ${{ github.ref_name }}"
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           prerelease: false
