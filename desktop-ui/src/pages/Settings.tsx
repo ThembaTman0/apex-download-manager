@@ -297,10 +297,10 @@ export function SettingsPage() {
             }
             className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-ink px-3 py-2.5 outline-none focus:border-accent/50 transition-colors [color-scheme:dark]"
           >
-            <option value="none">Do nothing</option>
-            <option value="sleep">Sleep</option>
-            <option value="hibernate">Hibernate</option>
-            <option value="shutdown">Shut down</option>
+            <option value="none" className="bg-raised text-ink">Do nothing</option>
+            <option value="sleep" className="bg-raised text-ink">Sleep</option>
+            <option value="hibernate" className="bg-raised text-ink">Hibernate</option>
+            <option value="shutdown" className="bg-raised text-ink">Shut down</option>
           </select>
         </Field>
 

@@ -79,7 +79,7 @@ export function StatusBar() {
             className="bg-transparent text-[11px] text-ink-muted outline-none cursor-pointer hover:text-ink transition-colors [color-scheme:dark]"
           >
             {limitOptions.map((v) => (
-              <option key={v} value={v}>
+              <option key={v} value={v} className="bg-raised text-ink">
                 {v === 0
                   ? "No limit"
                   : v >= 1024
