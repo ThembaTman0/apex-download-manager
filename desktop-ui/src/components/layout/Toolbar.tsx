@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  ChevronDown,
   Clapperboard,
   ListOrdered,
   Pause,
@@ -69,19 +70,22 @@ export function Toolbar() {
     <div className="flex items-center gap-1 px-3 py-1.5 bg-surface border-b border-white/[0.06] shrink-0">
       <button
         onClick={() => setAddDialogOpen(true)}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-accent hover:bg-accent-hover text-on-accent transition-colors"
+        title="Add URL"
+        aria-label="Add URL"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-accent hover:bg-accent-hover text-on-accent transition-colors whitespace-nowrap"
       >
         <Plus className="w-3.5 h-3.5" />
-        Add URL
+        <span className="hidden xl:inline">Add URL</span>
       </button>
 
       <button
         onClick={() => setVideoDialogOpen(true)}
         title="Download video/audio from YouTube and other sites"
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.1] text-ink transition-colors ml-1"
+        aria-label="Grab Video"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.1] text-ink transition-colors ml-1 whitespace-nowrap"
       >
         <Clapperboard className="w-3.5 h-3.5" />
-        Grab Video
+        <span className="hidden xl:inline">Grab Video</span>
       </button>
 
       <div className="w-px h-4 bg-white/[0.08] mx-1.5" />
@@ -224,19 +228,22 @@ function QueueSelect({
     <label
       title={title}
       className={cn(
-        "flex items-center gap-1.5 pl-2 rounded-md border bg-white/[0.04] cursor-pointer transition-colors",
+        "relative flex items-center gap-1.5 pl-2 max-xl:pr-2 max-xl:py-1.5 rounded-md border bg-white/[0.04] cursor-pointer transition-colors",
         active
           ? "border-warning/40 text-warning"
           : "border-white/[0.08] text-ink-muted hover:text-ink"
       )}
     >
       <Icon className="w-3.5 h-3.5 shrink-0" />
+      <ChevronDown className="w-3 h-3 shrink-0 xl:hidden" />
+      {/* Below xl the select overlays the whole control invisibly so the
+          native dropdown still opens from the icon-only trigger. */}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
         aria-label={title}
         className={cn(
-          "bg-transparent text-xs font-medium py-1.5 pr-1.5 outline-none cursor-pointer [color-scheme:dark]",
+          "bg-transparent text-xs font-medium outline-none cursor-pointer [color-scheme:dark] xl:py-1.5 xl:pr-1.5 max-xl:absolute max-xl:inset-0 max-xl:w-full max-xl:opacity-0",
           active ? "text-warning" : "text-inherit"
         )}
       >
@@ -267,8 +274,10 @@ function GhostButton({
     <button
       onClick={onClick}
       disabled={disabled}
+      title={label}
+      aria-label={label}
       className={cn(
-        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
+        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap",
         disabled
           ? "opacity-30 cursor-not-allowed text-ink-muted"
           : danger
@@ -277,7 +286,7 @@ function GhostButton({
       )}
     >
       <Icon className="w-3.5 h-3.5" />
-      {label}
+      <span className="hidden xl:inline">{label}</span>
     </button>
   );
 }

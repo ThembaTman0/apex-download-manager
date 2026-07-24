@@ -24,7 +24,13 @@ pub(crate) fn show_main_window(app: &tauri::AppHandle) {
 /// Register or remove the OS launch-at-sign-in entry to match the setting.
 /// Errors are ignored: disabling an entry that was never registered fails
 /// harmlessly, and a failed enable will be retried on the next app start.
+/// Dev builds must never touch the OS entry: enable() rewrites the registered
+/// path to the current exe, so a `tauri dev` run would hijack the installed
+/// app's entry and boot the debug build from the repo instead.
 pub(crate) fn apply_autostart(app: &tauri::AppHandle, enabled: bool) {
+    if cfg!(debug_assertions) {
+        return;
+    }
     use tauri_plugin_autostart::ManagerExt;
     let autolaunch = app.autolaunch();
     let _ = if enabled {

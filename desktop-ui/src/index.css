@@ -47,6 +47,8 @@
     height: 100%;
     overflow: hidden;
     font-family: "Inter", system-ui, sans-serif;
+    /* Inter legibility alternates: cv05 = disambiguated l, ss01 = open digits */
+    font-feature-settings: "cv05", "ss01";
     background: var(--color-bg);
     color: var(--color-ink);
     -webkit-font-smoothing: antialiased;
