@@ -2045,3 +2045,53 @@ fn percent_decode(s: &str) -> String {
     }
     String::from_utf8_lossy(&out).to_string()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sanitize_strips_path_traversal() {
+        assert_eq!(sanitize_filename("../../evil.exe"), "_.._evil.exe");
+        assert_eq!(sanitize_filename("..\\..\\evil.exe"), "_.._evil.exe");
+        assert_eq!(
+            sanitize_filename("/Windows/System32/cmd.exe"),
+            "_Windows_System32_cmd.exe"
+        );
+        assert!(!sanitize_filename("a/../b").contains('/'));
+    }
+
+    #[test]
+    fn sanitize_neutralizes_reserved_device_names() {
+        assert_eq!(sanitize_filename("CON"), "_CON");
+        assert_eq!(sanitize_filename("con.txt"), "_con.txt");
+        assert_eq!(sanitize_filename("NUL.tar.gz"), "_NUL.tar.gz");
+        assert_eq!(sanitize_filename("COM1.log"), "_COM1.log");
+        assert_eq!(sanitize_filename("LpT9"), "_LpT9");
+        // Similar-but-legal names pass through untouched.
+        assert_eq!(sanitize_filename("CONFIG.txt"), "CONFIG.txt");
+        assert_eq!(sanitize_filename("COM10.txt"), "COM10.txt");
+        assert_eq!(sanitize_filename("console.log"), "console.log");
+    }
+
+    #[test]
+    fn sanitize_handles_control_chars_and_empties() {
+        assert_eq!(sanitize_filename("a\r\nb\x00c"), "a__b_c");
+        assert_eq!(sanitize_filename(""), "download");
+        assert_eq!(sanitize_filename("..."), "download");
+        assert_eq!(sanitize_filename("   "), "download");
+    }
+
+    #[test]
+    fn filename_from_url_ignores_query_and_decodes() {
+        assert_eq!(
+            filename_from_url("https://x.com/dl/setup.exe?token=secret#frag"),
+            "setup.exe"
+        );
+        assert_eq!(
+            filename_from_url("https://x.com/f/My%20File.zip"),
+            "My File.zip"
+        );
+        assert_eq!(filename_from_url("https://x.com/"), "download");
+    }
+}

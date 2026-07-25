@@ -414,3 +414,23 @@ async fn respond(
 fn find(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     haystack.windows(needle.len()).position(|w| w == needle)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ct_eq_matches_equal_strings_only() {
+        assert!(ct_eq("abc123", "abc123"));
+        assert!(!ct_eq("abc123", "abc124"));
+        assert!(!ct_eq("abc123", "abc12"));
+        assert!(!ct_eq("", "x"));
+        assert!(ct_eq("", ""));
+    }
+
+    #[test]
+    fn find_locates_header_terminator() {
+        assert_eq!(find(b"GET / HTTP/1.1\r\n\r\nbody", b"\r\n\r\n"), Some(14));
+        assert_eq!(find(b"no terminator", b"\r\n\r\n"), None);
+    }
+}
