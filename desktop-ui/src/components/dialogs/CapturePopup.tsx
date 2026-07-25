@@ -248,6 +248,11 @@ export function CapturePopup() {
                 >
                   {current.url}
                 </span>
+                {current.url.startsWith("http://") && (
+                  <span className="text-[10px] text-warning block mt-0.5">
+                    Not encrypted — plain HTTP
+                  </span>
+                )}
                 {current.referrer && hostOf(current.referrer) !== host && (
                   <span
                     className="text-[10px] text-ink-muted block mt-1 truncate"

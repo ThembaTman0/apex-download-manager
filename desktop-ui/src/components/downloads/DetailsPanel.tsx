@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Copy, FolderOpen, X } from "lucide-react";
+import { Copy, FolderOpen, ShieldAlert, X } from "lucide-react";
 import { useDownloadsStore } from "@/stores/downloadsStore";
 import { formatBytes, formatETA, formatSpeed } from "@/lib/utils";
 import { StatusBadge } from "./StatusBadge";
@@ -88,6 +88,12 @@ export function DetailsPanel() {
               <p className="text-[11px] text-ink-mid break-all font-mono leading-relaxed select-text">
                 {download.url}
               </p>
+              {download.url.startsWith("http://") && (
+                <p className="flex items-center gap-1 mt-1 text-[11px] text-warning">
+                  <ShieldAlert className="w-3 h-3 shrink-0" />
+                  Not encrypted — this download uses plain HTTP
+                </p>
+              )}
             </div>
 
             <div>

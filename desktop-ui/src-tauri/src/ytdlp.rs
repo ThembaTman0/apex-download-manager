@@ -729,11 +729,7 @@ pub(crate) async fn drive_video(ctx: &TaskCtx, d: &mut Download) -> Result<bool,
 
     // Mark-of-the-Web, same as engine downloads.
     #[cfg(windows)]
-    {
-        let ads = format!("{}:Zone.Identifier", target.display());
-        let content = format!("[ZoneTransfer]\r\nZoneId=3\r\nHostUrl={}\r\n", d.url);
-        let _ = std::fs::write(ads, content);
-    }
+    crate::engine::write_motw(&target, &d.url);
 
     Ok(true)
 }

@@ -50,21 +50,49 @@ pub fn start(app: AppHandle) {
     });
 }
 
-async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<()> {
-    let mut buf: Vec<u8> = Vec::with_capacity(2048);
+enum HeadRead {
+    Complete(usize),
+    Closed,
+    TooLarge,
+}
+
+async fn read_head(stream: &mut TcpStream, buf: &mut Vec<u8>) -> std::io::Result<HeadRead> {
     let mut tmp = [0u8; 2048];
-    let header_end = loop {
+    loop {
         let n = stream.read(&mut tmp).await?;
         if n == 0 {
-            return Ok(());
+            return Ok(HeadRead::Closed);
         }
         buf.extend_from_slice(&tmp[..n]);
-        if let Some(pos) = find(&buf, b"\r\n\r\n") {
-            break pos + 4;
+        if let Some(pos) = find(buf, b"\r\n\r\n") {
+            return Ok(HeadRead::Complete(pos + 4));
         }
         if buf.len() > MAX_HEADER_BYTES {
-            return respond(&mut stream, 431, r#"{"ok":false}"#).await;
+            return Ok(HeadRead::TooLarge);
         }
+    }
+}
+
+/// Constant-time string equality so the token can't be guessed byte-by-byte
+/// through response timing.
+fn ct_eq(a: &str, b: &str) -> bool {
+    let (a, b) = (a.as_bytes(), b.as_bytes());
+    a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+}
+
+const READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+
+async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<()> {
+    let mut buf: Vec<u8> = Vec::with_capacity(2048);
+    // Bounded header read: a stalled or drip-feeding client gets dropped
+    // instead of holding a socket open indefinitely.
+    let header_end = match tokio::time::timeout(READ_TIMEOUT, read_head(&mut stream, &mut buf)).await
+    {
+        Err(_) | Ok(Err(_)) | Ok(Ok(HeadRead::Closed)) => return Ok(()),
+        Ok(Ok(HeadRead::TooLarge)) => {
+            return respond(&mut stream, 431, r#"{"ok":false}"#, None).await
+        }
+        Ok(Ok(HeadRead::Complete(pos))) => pos,
     };
 
     let head = String::from_utf8_lossy(&buf[..header_end]).to_string();
@@ -94,14 +122,24 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
         }
     }
 
+    // CORS is granted to browser-extension origins only. Ordinary web pages
+    // can still open the socket (they're same-machine), but without an
+    // Access-Control-Allow-Origin echo the browser withholds the response —
+    // so a page can't even probe /ping to learn Apex is installed.
+    let is_extension = origin.starts_with("chrome-extension://")
+        || origin.starts_with("moz-extension://")
+        || origin.starts_with("safari-web-extension://");
+    let cors: Option<&str> = is_extension.then_some(origin.as_str());
+
     match (method.as_str(), path.as_str()) {
         // CORS preflight for the extension's fetch()
-        ("OPTIONS", _) => respond(&mut stream, 204, "").await,
+        ("OPTIONS", _) => respond(&mut stream, 204, "", cors).await,
         ("GET", "/ping") => {
             respond(
                 &mut stream,
                 200,
                 r#"{"ok":true,"app":"apex-download-manager"}"#,
+                cors,
             )
             .await
         }
@@ -114,17 +152,20 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
         ("POST", "/pair") => {
             let mgr = app.state::<DownloadManager>();
             if !mgr.get_settings().capture_enabled {
-                return respond(&mut stream, 503, r#"{"ok":false,"error":"capture disabled"}"#)
-                    .await;
+                return respond(
+                    &mut stream,
+                    503,
+                    r#"{"ok":false,"error":"capture disabled"}"#,
+                    cors,
+                )
+                .await;
             }
-            let is_extension = origin.starts_with("chrome-extension://")
-                || origin.starts_with("moz-extension://")
-                || origin.starts_with("safari-web-extension://");
             if !is_extension {
                 return respond(
                     &mut stream,
                     403,
                     r#"{"ok":false,"error":"pairing is only available to browser extensions"}"#,
+                    cors,
                 )
                 .await;
             }
@@ -136,6 +177,7 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
                     &mut stream,
                     429,
                     r#"{"ok":false,"error":"pairing already in progress"}"#,
+                    cors,
                 )
                 .await;
             }
@@ -159,40 +201,57 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
             .unwrap_or(false);
             PAIRING.store(false, Ordering::SeqCst);
             if !allowed {
-                return respond(&mut stream, 403, r#"{"ok":false,"error":"denied"}"#).await;
+                return respond(&mut stream, 403, r#"{"ok":false,"error":"denied"}"#, cors).await;
             }
             let token = app.state::<DownloadManager>().get_settings().capture_token;
             let reply = format!(
                 r#"{{"ok":true,"token":{}}}"#,
                 serde_json::to_string(&token).unwrap_or_default()
             );
-            respond(&mut stream, 200, &reply).await
+            respond(&mut stream, 200, &reply, cors).await
         }
         ("POST", "/add") => {
             if content_length > MAX_BODY_BYTES {
-                return respond(&mut stream, 413, r#"{"ok":false}"#).await;
+                return respond(&mut stream, 413, r#"{"ok":false}"#, cors).await;
             }
             let mut body = buf[header_end..].to_vec();
-            while body.len() < content_length {
-                let n = stream.read(&mut tmp).await?;
-                if n == 0 {
-                    break;
+            let body_read = tokio::time::timeout(READ_TIMEOUT, async {
+                let mut tmp = [0u8; 2048];
+                while body.len() < content_length {
+                    let n = stream.read(&mut tmp).await?;
+                    if n == 0 {
+                        break;
+                    }
+                    body.extend_from_slice(&tmp[..n]);
                 }
-                body.extend_from_slice(&tmp[..n]);
+                std::io::Result::Ok(())
+            })
+            .await;
+            if !matches!(body_read, Ok(Ok(()))) {
+                return Ok(());
             }
 
             let mgr = app.state::<DownloadManager>();
             let settings = mgr.get_settings();
             if !settings.capture_enabled {
-                return respond(&mut stream, 503, r#"{"ok":false,"error":"capture disabled"}"#)
-                    .await;
+                return respond(
+                    &mut stream,
+                    503,
+                    r#"{"ok":false,"error":"capture disabled"}"#,
+                    cors,
+                )
+                .await;
             }
-            if settings.capture_token.is_empty() || token != settings.capture_token {
-                return respond(&mut stream, 401, r#"{"ok":false,"error":"bad token"}"#).await;
+            if settings.capture_token.is_empty() || !ct_eq(&token, &settings.capture_token) {
+                return respond(&mut stream, 401, r#"{"ok":false,"error":"bad token"}"#, cors)
+                    .await;
             }
             let req: AddRequest = match serde_json::from_slice(&body) {
                 Ok(r) => r,
-                Err(_) => return respond(&mut stream, 400, r#"{"ok":false,"error":"bad json"}"#).await,
+                Err(_) => {
+                    return respond(&mut stream, 400, r#"{"ok":false,"error":"bad json"}"#, cors)
+                        .await
+                }
             };
             let request_headers: Vec<(String, String)> = req
                 .headers
@@ -221,8 +280,13 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
                             .body(&name)
                             .show();
                     }
-                    return respond(&mut stream, 200, r#"{"ok":true,"duplicate":"active"}"#)
-                        .await;
+                    return respond(
+                        &mut stream,
+                        200,
+                        r#"{"ok":true,"duplicate":"active"}"#,
+                        cors,
+                    )
+                    .await;
                 }
                 crate::engine::DupStatus::Done => true,
                 crate::engine::DupStatus::New => false,
@@ -245,14 +309,14 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
                             r#"{{"ok":true,"pending":true,"id":{}}}"#,
                             serde_json::to_string(&id).unwrap_or_default()
                         );
-                        respond(&mut stream, 200, &reply).await
+                        respond(&mut stream, 200, &reply, cors).await
                     }
                     Err(e) => {
                         let reply = format!(
                             r#"{{"ok":false,"error":{}}}"#,
                             serde_json::to_string(&e).unwrap_or_default()
                         );
-                        respond(&mut stream, 400, &reply).await
+                        respond(&mut stream, 400, &reply, cors).await
                     }
                 };
             }
@@ -270,18 +334,18 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
                         serde_json::to_string(&d.id).unwrap_or_default(),
                         serde_json::to_string(&d.name).unwrap_or_default()
                     );
-                    respond(&mut stream, 200, &reply).await
+                    respond(&mut stream, 200, &reply, cors).await
                 }
                 Err(e) => {
                     let reply = format!(
                         r#"{{"ok":false,"error":{}}}"#,
                         serde_json::to_string(&e).unwrap_or_default()
                     );
-                    respond(&mut stream, 400, &reply).await
+                    respond(&mut stream, 400, &reply, cors).await
                 }
             }
         }
-        _ => respond(&mut stream, 404, r#"{"ok":false}"#).await,
+        _ => respond(&mut stream, 404, r#"{"ok":false}"#, cors).await,
     }
 }
 
@@ -308,7 +372,12 @@ fn dup_notice_due(url: &str) -> bool {
     }
 }
 
-async fn respond(stream: &mut TcpStream, status: u16, body: &str) -> std::io::Result<()> {
+async fn respond(
+    stream: &mut TcpStream,
+    status: u16,
+    body: &str,
+    cors_origin: Option<&str>,
+) -> std::io::Result<()> {
     let reason = match status {
         200 => "OK",
         204 => "No Content",
@@ -322,14 +391,20 @@ async fn respond(stream: &mut TcpStream, status: u16, body: &str) -> std::io::Re
         503 => "Service Unavailable",
         _ => "",
     };
+    let cors = match cors_origin {
+        Some(o) => format!(
+            "Access-Control-Allow-Origin: {o}\r\n\
+             Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n\
+             Access-Control-Allow-Headers: content-type, x-apex-token\r\n\
+             Vary: Origin\r\n"
+        ),
+        None => String::new(),
+    };
     let response = format!(
         "HTTP/1.1 {status} {reason}\r\n\
          Content-Type: application/json\r\n\
          Content-Length: {}\r\n\
-         Access-Control-Allow-Origin: *\r\n\
-         Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n\
-         Access-Control-Allow-Headers: content-type, x-apex-token\r\n\
-         Connection: close\r\n\r\n{body}",
+         {cors}Connection: close\r\n\r\n{body}",
         body.len()
     );
     stream.write_all(response.as_bytes()).await?;

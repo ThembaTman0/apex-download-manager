@@ -1000,6 +1000,10 @@ async fn run_download(ctx: TaskCtx, mgr: DownloadManager, mut d: Download) {
                 d.progress = 100.0;
                 d.speed_bytes_per_sec = 0;
                 d.eta_seconds = 0;
+                // Session cookies were only needed for the transfer; don't let
+                // them outlive the download in the on-disk database.
+                d.request_headers
+                    .retain(|(k, _)| !k.eq_ignore_ascii_case("cookie"));
                 if ctx.settings.lock().unwrap().notify_on_complete {
                     let _ = ctx
                         .app
@@ -1153,6 +1157,17 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
             .open(&tmp)
             .map_err(|e| format!("cannot create file: {e}"))?;
         if d.size_bytes > 0 {
+            // Fail fast on a file that can't fit instead of dying mid-transfer
+            // (or letting a bogus multi-terabyte Content-Length fill the disk).
+            if let Ok(free) = fs2::free_space(&d.save_path) {
+                if d.size_bytes > free {
+                    return Err(format!(
+                        "cannot allocate file: needs {:.1} GB but only {:.1} GB free",
+                        d.size_bytes as f64 / 1e9,
+                        free as f64 / 1e9
+                    ));
+                }
+            }
             file.set_len(d.size_bytes)
                 .map_err(|e| format!("cannot allocate file: {e}"))?;
         }
@@ -1342,13 +1357,26 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
     // Mark-of-the-Web: tag the file as internet-sourced so SmartScreen and
     // Defender apply the same scrutiny they would to a browser download.
     #[cfg(windows)]
-    {
-        let ads = format!("{}:Zone.Identifier", target.display());
-        let content = format!("[ZoneTransfer]\r\nZoneId=3\r\nHostUrl={}\r\n", d.url);
-        let _ = std::fs::write(ads, content);
-    }
+    write_motw(&target, &d.url);
 
     Ok(true)
+}
+
+/// Mark-of-the-Web: tag a completed file as internet-sourced so SmartScreen
+/// and Defender apply the same scrutiny they would to a browser download.
+/// Only the origin goes into HostUrl — full URLs often carry signed auth
+/// tokens in their query string, which shouldn't sit in an ADS next to the
+/// file forever (browsers redact the same way).
+#[cfg(windows)]
+pub fn write_motw(target: &Path, url: &str) {
+    let origin = reqwest::Url::parse(url)
+        .ok()
+        .map(|u| u.origin().ascii_serialization())
+        .filter(|o| o != "null")
+        .unwrap_or_else(|| "about:internet".into());
+    let ads = format!("{}:Zone.Identifier", target.display());
+    let content = format!("[ZoneTransfer]\r\nZoneId=3\r\nHostUrl={origin}/\r\n");
+    let _ = std::fs::write(ads, content);
 }
 
 fn sync_progress(d: &mut Download, segs: Vec<Segment>, total: u64, speed: f64) {
@@ -1930,6 +1958,16 @@ pub fn sanitize_filename(name: &str) -> String {
         })
         .collect();
     let mut cleaned = cleaned.trim().trim_matches('.').to_string();
+    // Windows reserved device names (CON, NUL, COM1…) are special even with
+    // an extension ("CON.txt"); prefix rather than fight the Win32 namespace.
+    const RESERVED: [&str; 22] = [
+        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7",
+        "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+    ];
+    let stem = cleaned.split('.').next().unwrap_or("").trim();
+    if RESERVED.iter().any(|r| stem.eq_ignore_ascii_case(r)) {
+        cleaned = format!("_{cleaned}");
+    }
     if cleaned.chars().count() > MAX_NAME_CHARS {
         let ext = Path::new(&cleaned)
             .extension()
