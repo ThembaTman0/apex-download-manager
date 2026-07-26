@@ -1,11 +1,12 @@
 //! Localhost capture endpoint for the browser extension.
 //!
-//! Deliberately minimal HTTP/1.1: two routes, bound to 127.0.0.1 only, and
-//! every state-changing request must carry the shared token from Settings.
+//! Deliberately minimal HTTP/1.1: a handful of routes, bound to 127.0.0.1
+//! only, and every state-changing request must carry the shared token from
+//! Settings.
 
 use crate::engine::DownloadManager;
 use serde::Deserialize;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
@@ -351,6 +352,72 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
                     respond(&mut stream, 400, &reply, cors).await
                 }
             }
+        }
+        // Video-grab hand-off: the extension sends a page URL and Apex opens
+        // its Grab Video dialog pre-filled with it. Nothing downloads until
+        // the user picks a quality in the app, so the only side effect here
+        // is showing/focusing the main window.
+        ("POST", "/grab") => {
+            if content_length > MAX_BODY_BYTES {
+                return respond(&mut stream, 413, r#"{"ok":false}"#, cors).await;
+            }
+            let mut body = buf[header_end..].to_vec();
+            let body_read = tokio::time::timeout(READ_TIMEOUT, async {
+                let mut tmp = [0u8; 2048];
+                while body.len() < content_length {
+                    let n = stream.read(&mut tmp).await?;
+                    if n == 0 {
+                        break;
+                    }
+                    body.extend_from_slice(&tmp[..n]);
+                }
+                std::io::Result::Ok(())
+            })
+            .await;
+            if !matches!(body_read, Ok(Ok(()))) {
+                return Ok(());
+            }
+
+            let mgr = app.state::<DownloadManager>();
+            let settings = mgr.get_settings();
+            if !settings.capture_enabled {
+                return respond(
+                    &mut stream,
+                    503,
+                    r#"{"ok":false,"error":"capture disabled"}"#,
+                    cors,
+                )
+                .await;
+            }
+            if settings.capture_token.is_empty() || !ct_eq(&token, &settings.capture_token) {
+                return respond(&mut stream, 401, r#"{"ok":false,"error":"bad token"}"#, cors)
+                    .await;
+            }
+
+            #[derive(Deserialize)]
+            struct GrabRequest {
+                url: String,
+            }
+            let req: GrabRequest = match serde_json::from_slice(&body) {
+                Ok(r) => r,
+                Err(_) => {
+                    return respond(&mut stream, 400, r#"{"ok":false,"error":"bad json"}"#, cors)
+                        .await
+                }
+            };
+            if !(req.url.starts_with("http://") || req.url.starts_with("https://")) {
+                return respond(
+                    &mut stream,
+                    400,
+                    r#"{"ok":false,"error":"not an http(s) url"}"#,
+                    cors,
+                )
+                .await;
+            }
+
+            crate::show_main_window(&app);
+            let _ = app.emit("grab:video", &req.url);
+            respond(&mut stream, 200, r#"{"ok":true}"#, cors).await
         }
         _ => respond(&mut stream, 404, r#"{"ok":false}"#, cors).await,
     }

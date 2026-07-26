@@ -43,6 +43,50 @@ async function ping(port, token) {
   }
 }
 
+// Hand the current tab's URL to Apex's video grabber (yt-dlp). The app opens
+// its Grab Video dialog pre-filled — nothing downloads until the user picks a
+// quality there, so this is just a hand-off, not a capture.
+$("grabVideo").addEventListener("click", async () => {
+  const status = $("grabStatus");
+  const cfg = await new Promise((r) => chrome.storage.sync.get(DEFAULTS, r));
+  if (!cfg.token) {
+    status.textContent = "Pair with Apex first";
+    return;
+  }
+  const [tab] = await new Promise((r) =>
+    chrome.tabs.query({ active: true, currentWindow: true }, r)
+  );
+  const url = tab && tab.url;
+  if (!url || !/^https?:\/\//i.test(url)) {
+    status.textContent = "This page can't be grabbed";
+    return;
+  }
+  status.textContent = "Sending…";
+  try {
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), 3000);
+    const res = await fetch(`http://127.0.0.1:${cfg.port}/grab`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-apex-token": cfg.token },
+      body: JSON.stringify({ url }),
+      signal: ctrl.signal,
+    });
+    if (res.status === 404) {
+      status.textContent = "Needs Apex 1.0.8 or newer — update the app";
+      return;
+    }
+    if (res.status === 401) {
+      status.textContent = "Token is stale — pair again";
+      return;
+    }
+    if (!res.ok) throw new Error();
+    status.textContent = "Opened in Apex ✓";
+    setTimeout(() => window.close(), 600);
+  } catch {
+    status.textContent = "Couldn't reach Apex — is it running?";
+  }
+});
+
 // One-click pairing: ask Apex for the token; the user approves in a native
 // Apex dialog. Long timeout — the request blocks until they click Allow.
 $("pair").addEventListener("click", async () => {

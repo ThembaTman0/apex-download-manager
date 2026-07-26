@@ -30,6 +30,7 @@ function formatDuration(s: number): string {
 export function GrabVideoDialog() {
   const open = useDownloadsStore((s) => s.videoDialogOpen);
   const setOpen = useDownloadsStore((s) => s.setVideoDialogOpen);
+  const pendingVideoUrl = useDownloadsStore((s) => s.pendingVideoUrl);
   const settings = useDownloadsStore((s) => s.settings);
   const addVideo = useDownloadsStore((s) => s.addVideo);
   const setActiveNav = useDownloadsStore((s) => s.setActiveNav);
@@ -60,6 +61,12 @@ export function GrabVideoDialog() {
     setExcluded(new Set());
     setSaveDir(settings?.downloadDir ?? "");
     backend.ytdlpStatus().then(setTools).catch(() => setTools(null));
+    if (pendingVideoUrl) {
+      // Handed off by the browser extension — skip straight to the probe.
+      setUrl(pendingVideoUrl);
+      analyze(pendingVideoUrl);
+      return;
+    }
     // Convenience: pre-fill from clipboard when it holds a URL.
     import("@tauri-apps/plugin-clipboard-manager")
       .then(({ readText }) => readText())
@@ -67,12 +74,14 @@ export function GrabVideoDialog() {
         if (text && /^https?:\/\/\S+$/i.test(text.trim())) setUrl(text.trim());
       })
       .catch(() => {});
-  }, [open, settings?.downloadDir]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, settings?.downloadDir, pendingVideoUrl]);
 
   const ytdlpMissing = tools !== null && !tools.ytdlpPath;
 
-  const analyze = async () => {
-    if (!/^https?:\/\/\S+$/i.test(url.trim())) {
+  const analyze = async (target?: string) => {
+    const u = (target ?? url).trim();
+    if (!/^https?:\/\/\S+$/i.test(u)) {
       setError("Enter a valid http(s) video page URL");
       return;
     }
@@ -82,7 +91,7 @@ export function GrabVideoDialog() {
     setProbe(null);
     setExcluded(new Set());
     try {
-      const p = await backend.probeVideo(url.trim());
+      const p = await backend.probeVideo(u);
       setProbe(p);
       setSelected(0);
     } catch (e) {
@@ -210,7 +219,7 @@ export function GrabVideoDialog() {
                           />
                         </div>
                         <button
-                          onClick={analyze}
+                          onClick={() => analyze()}
                           disabled={probing}
                           className="px-3.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-ink-muted hover:text-ink hover:bg-white/[0.1] disabled:opacity-50 text-xs font-medium flex items-center gap-1.5 transition-colors"
                         >

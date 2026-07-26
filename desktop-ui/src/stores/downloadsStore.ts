@@ -27,6 +27,8 @@ interface DownloadsState {
   lastError: string | null;
   /** URL to pre-fill the Add dialog with (from clipboard toast). */
   pendingUrl: string | null;
+  /** URL to pre-fill the Grab Video dialog with (from the extension). */
+  pendingVideoUrl: string | null;
   /** URL the clipboard watcher spotted; shown as a toast. */
   clipboardUrl: string | null;
   scheduleTarget: Download | null;
@@ -104,6 +106,7 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
   deleteDialogOpen: false,
   lastError: null,
   pendingUrl: null,
+  pendingVideoUrl: null,
   clipboardUrl: null,
   scheduleTarget: null,
   checksumTarget: null,
@@ -150,6 +153,12 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
       set({ clipboardUrl: url });
     });
 
+    await backend.onGrabVideo((url) => {
+      // Re-fire while the dialog is up just refreshes the pre-fill; the
+      // dialog effect keys on pendingVideoUrl.
+      set({ pendingVideoUrl: url, videoDialogOpen: true });
+    });
+
     await backend.onQueueEmpty((action) => {
       set({ queueEmptyAction: action });
     });
@@ -181,7 +190,11 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
       addDialogOpen: open,
       pendingUrl: open ? s.pendingUrl : null,
     })),
-  setVideoDialogOpen: (open) => set({ videoDialogOpen: open }),
+  setVideoDialogOpen: (open) =>
+    set((s) => ({
+      videoDialogOpen: open,
+      pendingVideoUrl: open ? s.pendingVideoUrl : null,
+    })),
   setDeleteDialogOpen: (open) => set({ deleteDialogOpen: open }),
   setLastError: (e) => set({ lastError: e }),
   setPendingUrl: (url) => set({ pendingUrl: url }),

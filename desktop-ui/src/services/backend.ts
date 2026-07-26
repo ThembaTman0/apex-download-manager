@@ -125,6 +125,11 @@ export const backend = {
     return listen<string>("clipboard:url", (e) => cb(e.payload));
   },
 
+  /** Extension "grab video from this page" hand-off (capture server /grab). */
+  onGrabVideo(cb: (url: string) => void): Promise<UnlistenFn> {
+    return listen<string>("grab:video", (e) => cb(e.payload));
+  },
+
   onQueueEmpty(cb: (action: string) => void): Promise<UnlistenFn> {
     return listen<string>("queue:empty", (e) => cb(e.payload));
   },

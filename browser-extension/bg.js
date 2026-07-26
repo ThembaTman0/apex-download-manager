@@ -344,9 +344,52 @@ chrome.runtime.onInstalled.addListener(() => {
     title: "Download media with Apex",
     contexts: ["image", "video", "audio"],
   });
+  chrome.contextMenus.create({
+    id: "apex-grab-page",
+    title: "Grab video on this page with Apex",
+    contexts: ["page"],
+  });
 });
 
+// Page-level grab: hand the page URL to Apex's yt-dlp grabber. The app opens
+// its Grab Video dialog pre-filled; the user picks a quality there.
+async function grabPage(url) {
+  if (!url || !/^https?:\/\//i.test(url)) return;
+  await configReady;
+  try {
+    const res = await apexFetch("/grab", {
+      method: "POST",
+      body: JSON.stringify({ url }),
+    });
+    if (res.status === 401) {
+      notifyBadToken();
+      return;
+    }
+    if (res.status === 404) {
+      chrome.notifications.create({
+        type: "basic",
+        iconUrl: "icons/128.png",
+        title: "Apex Download Manager",
+        message: "Grabbing videos from a page needs Apex 1.0.8 or newer — update the app.",
+      });
+      return;
+    }
+    if (!res.ok) throw new Error(`apex responded ${res.status}`);
+  } catch {
+    chrome.notifications.create({
+      type: "basic",
+      iconUrl: "icons/128.png",
+      title: "Apex Download Manager",
+      message: "Couldn't reach Apex. Is the app running?",
+    });
+  }
+}
+
 chrome.contextMenus.onClicked.addListener(async (info) => {
+  if (info.menuItemId === "apex-grab-page") {
+    grabPage(info.pageUrl);
+    return;
+  }
   const url = info.menuItemId === "apex-link" ? info.linkUrl : info.srcUrl;
   if (!url) return;
   await configReady;
