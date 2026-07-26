@@ -134,14 +134,21 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
     match (method.as_str(), path.as_str()) {
         // CORS preflight for the extension's fetch()
         ("OPTIONS", _) => respond(&mut stream, 204, "", cors).await,
+        // If the caller presents a token, the reply also says whether it is
+        // the current one — lets the extension popup show "token stale,
+        // re-pair" instead of a false "Connected". Absent token keeps the
+        // legacy body, so older extensions see no change.
         ("GET", "/ping") => {
-            respond(
-                &mut stream,
-                200,
-                r#"{"ok":true,"app":"apex-download-manager"}"#,
-                cors,
-            )
-            .await
+            let body = if token.is_empty() {
+                r#"{"ok":true,"app":"apex-download-manager"}"#.to_string()
+            } else {
+                let current = app.state::<DownloadManager>().get_settings().capture_token;
+                let valid = !current.is_empty() && ct_eq(&token, &current);
+                format!(
+                    r#"{{"ok":true,"app":"apex-download-manager","tokenValid":{valid}}}"#
+                )
+            };
+            respond(&mut stream, 200, &body, cors).await
         }
         // One-click pairing: the extension asks for the token, the user
         // approves in a native Apex dialog. The token never travels without

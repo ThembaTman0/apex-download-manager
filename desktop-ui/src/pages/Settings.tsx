@@ -35,6 +35,7 @@ export function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tokenCopied, setTokenCopied] = useState(false);
+  const [confirmRegen, setConfirmRegen] = useState(false);
 
   useEffect(() => {
     setForm(settings);
@@ -411,12 +412,26 @@ export function SettingsPage() {
             </button>
             <button
               onClick={async () => {
+                if (!confirmRegen) {
+                  setConfirmRegen(true);
+                  setTimeout(() => setConfirmRegen(false), 4000);
+                  return;
+                }
+                setConfirmRegen(false);
                 const s = await backend.regenerateCaptureToken();
                 setForm(s);
                 useDownloadsStore.setState({ settings: s });
               }}
-              className="px-3 rounded-lg bg-white/[0.06] border border-white/[0.08] text-ink-muted hover:text-ink hover:bg-white/[0.1] transition-colors"
-              title="Regenerate token"
+              className={
+                confirmRegen
+                  ? "px-3 rounded-lg bg-warning/15 border border-warning/40 text-warning transition-colors"
+                  : "px-3 rounded-lg bg-white/[0.06] border border-white/[0.08] text-ink-muted hover:text-ink hover:bg-white/[0.1] transition-colors"
+              }
+              title={
+                confirmRegen
+                  ? "Every paired browser stops capturing until it re-pairs — click again to regenerate"
+                  : "Regenerate token"
+              }
             >
               <RefreshCw className="w-4 h-4" />
             </button>
