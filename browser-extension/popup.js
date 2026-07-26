@@ -29,11 +29,11 @@ async function ping(port, token) {
       const data = await res.json().catch(() => ({}));
       if (data.tokenValid === false) {
         dot.className = "dot bad";
-        text.textContent = "Apex is running, but the token is stale — pair again";
+        text.textContent = "Apex is running, but the token is stale. Pair again";
         return;
       }
       dot.className = "dot ok";
-      text.textContent = token ? "Connected to Apex" : "Apex found — pair to start capturing";
+      text.textContent = token ? "Connected to Apex" : "Apex found. Pair to start capturing";
       return;
     }
     throw new Error();
@@ -72,18 +72,18 @@ $("grabVideo").addEventListener("click", async () => {
       signal: ctrl.signal,
     });
     if (res.status === 404) {
-      status.textContent = "Needs Apex 1.0.8 or newer — update the app";
+      status.textContent = "Needs Apex 1.0.8 or newer. Update the app";
       return;
     }
     if (res.status === 401) {
-      status.textContent = "Token is stale — pair again";
+      status.textContent = "Token is stale. Pair again";
       return;
     }
     if (!res.ok) throw new Error();
     status.textContent = "Opened in Apex ✓";
     setTimeout(() => window.close(), 600);
   } catch {
-    status.textContent = "Couldn't reach Apex — is it running?";
+    status.textContent = "Couldn't reach Apex. Is it running?";
   }
 });
 
@@ -113,10 +113,10 @@ $("pair").addEventListener("click", async () => {
     } else if (data.error === "denied") {
       status.textContent = "Denied in Apex";
     } else {
-      status.textContent = data.error || "Pairing failed — is Apex running?";
+      status.textContent = data.error || "Pairing failed. Is Apex running?";
     }
   } catch {
-    status.textContent = "Pairing failed — is Apex running?";
+    status.textContent = "Pairing failed. Is Apex running?";
   } finally {
     $("pair").disabled = false;
   }

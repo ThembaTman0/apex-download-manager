@@ -181,7 +181,7 @@ async fn fetch_to_file(app: &AppHandle, url: &str, dest: &Path, tool: &str) -> R
 
 pub async fn install_ytdlp(app: &AppHandle) -> Result<ToolsStatus, String> {
     #[cfg(not(windows))]
-    return Err("Automatic install is only supported on Windows — install yt-dlp from your package manager".into());
+    return Err("Automatic install is only supported on Windows; install yt-dlp from your package manager".into());
     #[cfg(windows)]
     {
         let dest = tools_dir(app).join(YTDLP_EXE);
@@ -195,7 +195,7 @@ pub async fn install_ytdlp(app: &AppHandle) -> Result<ToolsStatus, String> {
 
 pub async fn install_ffmpeg(app: &AppHandle) -> Result<ToolsStatus, String> {
     #[cfg(not(windows))]
-    return Err("Automatic install is only supported on Windows — install ffmpeg from your package manager".into());
+    return Err("Automatic install is only supported on Windows; install ffmpeg from your package manager".into());
     #[cfg(windows)]
     {
         let dir = tools_dir(app);
@@ -271,7 +271,7 @@ const MAX_PLAYLIST_ENTRIES: usize = 200;
 
 pub async fn probe(app: &AppHandle, url: &str) -> Result<VideoProbe, String> {
     let ytdlp = find_ytdlp(app)
-        .ok_or("yt-dlp is not installed — install it under Settings → Video Grabber")?;
+        .ok_or("yt-dlp is not installed; install it under Settings → Video Grabber")?;
     let proxy_url = app
         .try_state::<crate::engine::DownloadManager>()
         .map(|m| m.get_settings().proxy_url)
@@ -535,7 +535,7 @@ fn build_probe(json: &serde_json::Value, has_ffmpeg: bool) -> VideoProbe {
 /// the same contract as the HTTP engine's `drive_download`.
 pub(crate) async fn drive_video(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String> {
     let ytdlp = find_ytdlp(&ctx.app)
-        .ok_or("yt-dlp is not installed — install it under Settings → Video Grabber")?;
+        .ok_or("yt-dlp is not installed; install it under Settings → Video Grabber")?;
     let ffmpeg = find_ffmpeg(&ctx.app);
 
     std::fs::create_dir_all(&d.save_path).map_err(|e| format!("cannot create folder: {e}"))?;

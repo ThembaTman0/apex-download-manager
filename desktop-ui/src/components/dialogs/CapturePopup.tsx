@@ -250,7 +250,7 @@ export function CapturePopup() {
                 </span>
                 {current.url.startsWith("http://") && (
                   <span className="text-[10px] text-warning block mt-0.5">
-                    Not encrypted — plain HTTP
+                    Not encrypted: plain HTTP
                   </span>
                 )}
                 {current.referrer && hostOf(current.referrer) !== host && (
@@ -286,7 +286,7 @@ export function CapturePopup() {
                 <p className="flex items-start gap-1.5 text-[11px] text-error-soft mb-3">
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" />
                   <span>
-                    Not enough space — only {formatBytes(freeBytes)} free at this
+                    Not enough space: only {formatBytes(freeBytes)} free at this
                     location
                   </span>
                 </p>

@@ -130,12 +130,12 @@ export function ChecksumDialog() {
                     {match ? (
                       <>
                         <CheckCircle2 className="w-4 h-4" />
-                        Checksums match — file is authentic
+                        Checksums match: file is authentic
                       </>
                     ) : (
                       <>
                         <XCircle className="w-4 h-4" />
-                        Mismatch — the file differs from what the site published
+                        Mismatch: the file differs from what the site published
                       </>
                     )}
                   </div>

@@ -430,7 +430,7 @@ impl DownloadManager {
         // alongside the old one, never overwriting it).
         let warning = match self.duplicate_status(&url, Some(&preview_name)) {
             DupStatus::Done => {
-                "you've already downloaded this file — Download saves a new copy".to_string()
+                "you've already downloaded this file; Download saves a new copy".to_string()
             }
             _ => String::new(),
         };
@@ -462,7 +462,7 @@ impl DownloadManager {
 
             if list.len() >= MAX_PENDING_CAPTURES {
                 return Err(
-                    "too many downloads awaiting approval — approve or block them in Apex first"
+                    "too many downloads awaiting approval; approve or block them in Apex first"
                         .into(),
                 );
             }
@@ -536,7 +536,7 @@ impl DownloadManager {
                         return;
                     };
                     p.warning = format!(
-                        "{e} — the link may have expired; try downloading again from the page"
+                        "{e} (the link may have expired; try downloading again from the page)"
                     );
                     CaptureView {
                         id: p.id.clone(),
@@ -608,7 +608,7 @@ impl DownloadManager {
                 "capture",
                 tauri::WebviewUrl::App("index.html".into()),
             )
-            .title("Apex — Approve download")
+            .title("Apex: Approve download")
             .inner_size(440.0, 516.0)
             .resizable(false)
             .decorations(false)
@@ -973,7 +973,7 @@ async fn run_download(ctx: TaskCtx, mgr: DownloadManager, mut d: Download) {
                 attempt += 1;
                 let delay = Duration::from_secs(5 * 3u64.pow(attempt - 1));
                 d.error = Some(format!(
-                    "{e} — retrying in {}s ({attempt}/{MAX_RETRIES})",
+                    "{e}; retrying in {}s ({attempt}/{MAX_RETRIES})",
                     delay.as_secs()
                 ));
                 d.speed_bytes_per_sec = 0;

@@ -97,7 +97,7 @@ function notifyBadToken() {
     iconUrl: "icons/128.png",
     title: "Apex Download Manager",
     message:
-      "Apex rejected the pairing token — it was probably regenerated. Open the extension popup and pair again.",
+      "Apex rejected the pairing token. It was probably regenerated; open the extension popup and pair again.",
   });
 }
 
@@ -232,8 +232,8 @@ function flushRestoredDropNotice() {
   if (!names.length) return;
   const message =
     names.length === 1
-      ? `Apex isn't running — dismissed an unfinished download from a previous session: ${names[0]}. Start it again once Apex is open.`
-      : `Apex isn't running — dismissed ${names.length} unfinished downloads from previous sessions: ${names
+      ? `Apex isn't running, so an unfinished download from a previous session was dismissed: ${names[0]}. Start it again once Apex is open.`
+      : `Apex isn't running, so ${names.length} unfinished downloads from previous sessions were dismissed: ${names
           .slice(0, 3)
           .join(", ")}${names.length > 3 ? ", …" : ""}. Start them again once Apex is open.`;
   chrome.notifications.create({
@@ -370,7 +370,7 @@ async function grabPage(url) {
         type: "basic",
         iconUrl: "icons/128.png",
         title: "Apex Download Manager",
-        message: "Grabbing videos from a page needs Apex 1.0.8 or newer — update the app.",
+        message: "Grabbing videos from a page needs Apex 1.0.8 or newer. Update the app.",
       });
       return;
     }

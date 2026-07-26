@@ -108,7 +108,7 @@ export function QueueActionToast() {
       <Icon className="w-5 h-5 text-warning" />
       <div>
         <p className="text-sm font-semibold text-ink">
-          All downloads finished — {label.toLowerCase()} in {Math.max(0, secondsLeft)}s
+          All downloads finished. {label} in {Math.max(0, secondsLeft)}s
         </p>
         <p className="text-xs text-ink-muted">
           Change it in the toolbar or Settings → When queue finishes

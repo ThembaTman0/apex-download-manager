@@ -404,7 +404,7 @@ export function GrabVideoDialog() {
                 )}
                 {updateHint && (
                   <p className="text-[11px] text-warning mb-4">
-                    A yt-dlp update is available — sites change often, and updating
+                    A yt-dlp update is available. Sites change often, and updating
                     usually fixes this. Settings → Video Grabber → Update.
                   </p>
                 )}

@@ -175,7 +175,7 @@ export function AddUrlDialog() {
                     <span>
                       URL{urls.length > 1 ? `s (${urls.length})` : ""}{" "}
                       <span className="opacity-50">
-                        — paste several, or use file[1-20].zip patterns
+                        (paste several, or use file[1-20].zip patterns)
                       </span>
                     </span>
                     <button
@@ -258,7 +258,7 @@ export function AddUrlDialog() {
                 <label className="block mb-5">
                   <span className="text-xs font-medium text-ink-muted mb-1.5 block">
                     File name{" "}
-                    <span className="opacity-50">(optional — auto-detected)</span>
+                    <span className="opacity-50">(optional, auto-detected)</span>
                   </span>
                   <input
                     value={fileName}

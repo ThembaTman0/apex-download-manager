@@ -318,9 +318,9 @@ export function SettingsPage() {
         </h2>
         <p className="text-[11px] text-ink-muted mb-4 leading-relaxed">
           Install the extension from the{" "}
-          <code className="text-ink-mid">browser-extension</code> folder —
-          Chrome/Edge: chrome://extensions → Load unpacked · Firefox:
-          about:debugging → Load Temporary Add-on — then paste this token into
+          <code className="text-ink-mid">browser-extension</code> folder
+          (Chrome/Edge: chrome://extensions → Load unpacked · Firefox:
+          about:debugging → Load Temporary Add-on), then paste this token into
           its popup. Downloads you start in the browser are then captured by
           Apex.
         </p>
@@ -429,7 +429,7 @@ export function SettingsPage() {
               }
               title={
                 confirmRegen
-                  ? "Every paired browser stops capturing until it re-pairs — click again to regenerate"
+                  ? "Every paired browser stops capturing until it re-pairs. Click again to regenerate"
                   : "Regenerate token"
               }
             >
@@ -547,7 +547,7 @@ function AppUpdatesSection() {
         Updates
       </h2>
       <p className="text-[11px] text-ink-muted mb-4 leading-relaxed">
-        Apex {version ? `v${version}` : ""} — updates are downloaded from GitHub
+        Apex {version ? `v${version}` : ""}. Updates are downloaded from GitHub
         Releases and verified before installing.
       </p>
       <div className="flex items-center gap-3 mb-5">
@@ -626,8 +626,8 @@ function VideoGrabberSection() {
       </h2>
       <p className="text-[11px] text-ink-muted mb-4 leading-relaxed">
         “Grab Video” downloads video/audio from YouTube and 1000+ other sites
-        using <code className="text-ink-mid">yt-dlp</code>. FFmpeg is optional
-        — it unlocks the highest resolutions by merging separate video and audio
+        using <code className="text-ink-mid">yt-dlp</code>. FFmpeg is optional;
+        it unlocks the highest resolutions by merging separate video and audio
         streams.
       </p>
 
@@ -637,7 +637,7 @@ function VideoGrabberSection() {
         status={
           tools?.ytdlpPath
             ? `Installed${tools.ytdlpVersion ? ` · v${tools.ytdlpVersion}` : ""}${
-                updateAvailable ? ` — update available (v${updateAvailable})` : ""
+                updateAvailable ? ` · update available (v${updateAvailable})` : ""
               }`
             : "Not installed"
         }
@@ -650,7 +650,7 @@ function VideoGrabberSection() {
       />
       <ToolRow
         name="FFmpeg"
-        status={tools?.ffmpegPath ? "Installed" : "Not installed — best quality limited"}
+        status={tools?.ffmpegPath ? "Installed" : "Not installed · best quality limited"}
         ok={!!tools?.ffmpegPath}
         installing={installing === "ffmpeg"}
         progress={installing === "ffmpeg" ? progress : null}

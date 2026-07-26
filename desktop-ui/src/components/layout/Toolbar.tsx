@@ -130,7 +130,7 @@ export function Toolbar() {
           {/* Queue: how many run at once; the rest wait their turn */}
           <QueueSelect
             icon={ListOrdered}
-            title="How many downloads run at once — the rest wait in the queue"
+            title="How many downloads run at once; the rest wait in the queue"
             value={String(settings.maxConcurrent)}
             onChange={(v) =>
               saveSettings({ ...settings, maxConcurrent: Number(v) }).catch((e) =>

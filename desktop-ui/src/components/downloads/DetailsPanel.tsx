@@ -91,7 +91,7 @@ export function DetailsPanel() {
               {download.url.startsWith("http://") && (
                 <p className="flex items-center gap-1 mt-1 text-[11px] text-warning">
                   <ShieldAlert className="w-3 h-3 shrink-0" />
-                  Not encrypted — this download uses plain HTTP
+                  Not encrypted: this download uses plain HTTP
                 </p>
               )}
             </div>
