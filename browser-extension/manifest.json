@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Apex Download Manager",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "description": "Send downloads to Apex Download Manager — multi-connection speed, pause/resume, scheduling.",
   "permissions": ["downloads", "downloads.ui", "cookies", "contextMenus", "storage", "notifications"],
   "host_permissions": ["<all_urls>"],

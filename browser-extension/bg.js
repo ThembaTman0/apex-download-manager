@@ -72,8 +72,33 @@ async function sendToApex(url, fileName, referrer) {
       headers: await collectHeaders(url, referrer),
     }),
   });
-  if (!res.ok) throw new Error(`apex responded ${res.status}`);
+  if (!res.ok) {
+    const err = new Error(`apex responded ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
   return res.json();
+}
+
+// A 401 means Apex is running but our token is stale (e.g. the user clicked
+// Regenerate in Apex Settings after pairing). Unlike "unreachable", retrying
+// won't help — tell the user to re-pair, at most once per throttle window so
+// a burst of captures doesn't stack toasts. In-memory is fine: a service-
+// worker restart re-arming the notice just means one extra toast.
+const BAD_TOKEN_NOTICE_MS = 5 * 60 * 1000;
+let lastBadTokenNotice = 0;
+
+function notifyBadToken() {
+  const now = Date.now();
+  if (now - lastBadTokenNotice < BAD_TOKEN_NOTICE_MS) return;
+  lastBadTokenNotice = now;
+  chrome.notifications.create({
+    type: "basic",
+    iconUrl: "icons/128.png",
+    title: "Apex Download Manager",
+    message:
+      "Apex rejected the pairing token — it was probably regenerated. Open the extension popup and pair again.",
+  });
 }
 
 // Browser context Apex needs to fetch URLs behind a login: the site's
@@ -241,8 +266,14 @@ async function captureDownload(item) {
   try {
     await sendToApex(url, basename(item.filename), item.referrer);
     rememberCaptured(url);
-  } catch {
+  } catch (e) {
+    if (e && e.status === 401) notifyBadToken();
     if (isRestored) {
+      if (e && e.status === 401) {
+        // Apex IS running — the drop notice's "Apex isn't running" wording
+        // would mislead; the bad-token toast above already says what to do.
+        return;
+      }
       // A restored leftover and Apex is down (typical right after boot):
       // handing it back would pop a Save As dialog with no user action at
       // every browser launch. Drop it and say so instead — batched, so a
@@ -321,7 +352,11 @@ chrome.contextMenus.onClicked.addListener(async (info) => {
   await configReady;
   try {
     await sendToApex(url, null, info.frameUrl || info.pageUrl);
-  } catch {
+  } catch (e) {
+    if (e && e.status === 401) {
+      notifyBadToken();
+      return;
+    }
     chrome.notifications.create({
       type: "basic",
       iconUrl: "icons/128.png",

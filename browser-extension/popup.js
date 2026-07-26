@@ -8,20 +8,32 @@ function load() {
     $("hideShelf").checked = cfg.hideShelf;
     $("token").value = cfg.token;
     $("port").value = cfg.port;
-    ping(cfg.port);
+    ping(cfg.port, cfg.token);
   });
 }
 
-async function ping(port) {
+// The token rides along so Apex can vouch for it (apps ≥ 1.0.8 answer with
+// tokenValid). "Connected" alone used to lie when the token was stale —
+// captures were silently rejected while the dot stayed green.
+async function ping(port, token) {
   const dot = $("dot");
   const text = $("statusText");
   try {
     const ctrl = new AbortController();
     setTimeout(() => ctrl.abort(), 1500);
-    const res = await fetch(`http://127.0.0.1:${port}/ping`, { signal: ctrl.signal });
+    const res = await fetch(`http://127.0.0.1:${port}/ping`, {
+      signal: ctrl.signal,
+      headers: token ? { "x-apex-token": token } : {},
+    });
     if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (data.tokenValid === false) {
+        dot.className = "dot bad";
+        text.textContent = "Apex is running, but the token is stale — pair again";
+        return;
+      }
       dot.className = "dot ok";
-      text.textContent = "Connected to Apex";
+      text.textContent = token ? "Connected to Apex" : "Apex found — pair to start capturing";
       return;
     }
     throw new Error();
@@ -52,7 +64,7 @@ $("pair").addEventListener("click", async () => {
       chrome.storage.sync.set({ token: data.token, port }, () => {
         status.textContent = "Paired ✓";
         setTimeout(() => (status.textContent = ""), 2500);
-        ping(port);
+        ping(port, data.token);
       });
     } else if (data.error === "denied") {
       status.textContent = "Denied in Apex";
@@ -76,7 +88,7 @@ $("save").addEventListener("click", () => {
   chrome.storage.sync.set(cfg, () => {
     $("saved").textContent = "Saved ✓";
     setTimeout(() => ($("saved").textContent = ""), 1500);
-    ping(cfg.port);
+    ping(cfg.port, cfg.token);
   });
 });
 
