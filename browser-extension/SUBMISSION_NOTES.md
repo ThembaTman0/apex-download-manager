@@ -300,6 +300,30 @@ Registration fee paid 2026-07-27. Upload **`browser-extension-chrome.zip`**,
 which is the Edge package with the video-grab feature and the `activeTab`
 permission removed. Do not upload the Edge zip; see the policy risk below.
 
+### Account prerequisites (one-time, but they block publishing)
+
+Chrome gates the publish button on account state, and the errors surface
+late, only when you try to publish. Clear these first:
+
+- **2-Step Verification** must be on for the Google account that owns the
+  developer registration. Without it, uploading fails with a generic
+  "There was a problem uploading your file", which points at the package
+  and is misleading. Enable it at myaccount.google.com/security, then sign
+  out of the dashboard and back in, because the pre-2SV session stays
+  stale. Generate backup codes while there: this account can push an
+  update to every user, and losing it is worse than losing most passwords.
+- **Publisher contact email** must be set on the account-level **Settings**
+  page (left sidebar of the dashboard, not the item edit page), and then
+  **verified** by clicking the link Google emails. Both are separate
+  blockers and both are reported only at publish time. Google uses this
+  address for policy notices and takedown warnings, so it should be an
+  inbox that is actually read.
+- **Data usage certification**: on the item's Privacy practices tab, below
+  the nine data-type checkboxes, three "I certify that the following
+  disclosures are true" boxes must all be ticked. Leaving the nine
+  unticked is correct; these three are mandatory regardless. Save Draft
+  afterwards or the change does not stick.
+
 ### Policy risk: the video-grab feature
 
 **Read this before submitting a build that contains the grab feature.**
