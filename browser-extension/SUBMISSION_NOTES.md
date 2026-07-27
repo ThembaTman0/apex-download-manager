@@ -129,14 +129,28 @@ https://apex-download-manager.vercel.app/privacy.html.
 Edge asks a similar but differently worded set. Upload
 `browser-extension-chromium.zip`, not the Firefox zip.
 
-| Field | Answer |
-| --- | --- |
-| "What's new in this version" | Reuse the AMO Release Notes text from Q1. |
-| "Notes for certification" | Reuse the AMO Notes to Reviewer text from Q2. Add the tester walkthrough, which Edge cares about more than AMO does. |
-| "Does this extension use single sign-on?" | No. |
-| "Is any data collected?" | Nothing is collected. Leave every data-usage checkbox unticked. |
-| "Privacy policy URL" | https://apex-download-manager.vercel.app/privacy.html |
-| "Test account" | Not needed. State that explicitly. |
+**Edge has no public release-notes field.** Verified against Microsoft's
+publishing docs 2026-07-27: the "Details for &lt;language&gt;" page carries
+only Extension name, Description, logo, promotional tiles, screenshots,
+YouTube URL, short description, and search terms. There is no per-version
+"What's new" anywhere in the flow, and listings show users no version
+history. The public release notes written for AMO therefore have nowhere
+to go on Edge; per-version changes belong in **Notes for certification**,
+which is what Microsoft's docs ask for.
+
+| Page | Field | Answer |
+| --- | --- | --- |
+| Submit | "Notes for certification" | Per-version changes plus the standing notes. 2,000 char limit, see below. |
+| Privacy | "Single Purpose Description" | See the single-purpose text below. |
+| Privacy | "Permission justification" (one box per manifest permission) | See the per-permission answers below. |
+| Privacy | "Are you using remote code?" | No. MV3 forbids it and the extension loads none. |
+| Privacy | "Data usage" | Nothing is collected. Leave every checkbox unticked, then tick the certification disclosures. |
+| Privacy | "Privacy Policy URL" | https://apex-download-manager.vercel.app/privacy.html |
+| Properties | Category / Website / Support | Keep whatever the listing already has. |
+
+Certification takes up to seven business days. Only one submission may be
+in the pipeline at a time: if an earlier version is still in review, a new
+one cannot be published until that clears or is cancelled.
 
 ### "Notes for certification" (2,000 character limit)
 
