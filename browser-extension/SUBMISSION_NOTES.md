@@ -478,6 +478,29 @@ The answer, if asked, is that nothing leaves the user's machine.
 **Privacy policy URL:** https://apex-download-manager.vercel.app/privacy.html
 (verified live 2026-07-27, and its text matches these declarations).
 
+### Test instructions (500 char limit, Username and Password left empty)
+
+There is no account, so both credential boxes stay blank. The instruction
+box is only 500 characters, far tighter than the equivalent AMO and Edge
+fields, so it drops the standing notes and keeps only what a tester needs
+to exercise the extension. Current text is 498 characters; re-count if
+edited.
+
+```
+No account or credentials needed.
+
+Windows only. Install the free app: https://apex-download-manager.vercel.app
+
+Click the extension icon, choose "Pair with Apex app", and approve the prompt that opens in the app. Then download any file: Apex takes over and the browser's own download is cancelled. Right-click a link for "Download with Apex".
+
+Without the app the extension is still testable: downloads proceed normally in the browser and the popup reads "Apex app not reachable". Nothing is lost.
+```
+
+The last paragraph is the important one. A Chrome reviewer may well be on
+macOS or Linux and unable to install a Windows application at all, so the
+text has to make clear the extension can be evaluated without it and
+degrades safely rather than appearing broken.
+
 Note the Chrome Web Store policy update taking effect **2026-08-01**:
 data collection must be strictly necessary to the disclosed single
 purpose, and any post-install change in data handling must be disclosed
