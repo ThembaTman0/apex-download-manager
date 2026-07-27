@@ -354,6 +354,27 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 // #grab-begin
+// The page site's cookies, structured (domain/path/expiry) so Apex can hand
+// them to yt-dlp if the user opts in for a sign-in-gated video. They go to
+// 127.0.0.1 only and Apex keeps them in memory, never on disk.
+async function collectGrabCookies(url) {
+  try {
+    const cookies = await chrome.cookies.getAll({ url });
+    return cookies.map((c) => ({
+      name: c.name,
+      value: c.value,
+      domain: c.domain || "",
+      path: c.path || "/",
+      secure: !!c.secure,
+      expires: c.expirationDate ? Math.floor(c.expirationDate) : 0,
+    }));
+  } catch {
+    // cookies permission unavailable: the grab still works, minus the
+    // sign-in retry option in the app
+    return [];
+  }
+}
+
 // Page-level grab: hand the page URL to Apex's yt-dlp grabber. The app opens
 // its Grab Video dialog pre-filled; the user picks a quality there.
 async function grabPage(url) {
@@ -362,7 +383,7 @@ async function grabPage(url) {
   try {
     const res = await apexFetch("/grab", {
       method: "POST",
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({ url, cookies: await collectGrabCookies(url) }),
     });
     if (res.status === 401) {
       notifyBadToken();

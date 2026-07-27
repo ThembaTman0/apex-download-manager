@@ -397,6 +397,11 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
             #[derive(Deserialize)]
             struct GrabRequest {
                 url: String,
+                /// The page site's browser cookies, so yt-dlp can fetch
+                /// sign-in-gated videos if the user opts in. Held in the
+                /// memory-only jar; never persisted.
+                #[serde(default)]
+                cookies: Vec<crate::ytdlp::GrabCookie>,
             }
             let req: GrabRequest = match serde_json::from_slice(&body) {
                 Ok(r) => r,
@@ -415,8 +420,19 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
                 .await;
             }
 
+            let has_cookies = !req.cookies.is_empty();
+            let host = reqwest::Url::parse(&req.url)
+                .ok()
+                .and_then(|u| u.host_str().map(|h| h.to_ascii_lowercase()))
+                .unwrap_or_default();
+            app.state::<crate::ytdlp::GrabCookieJar>()
+                .store(host, req.cookies);
+
             crate::show_main_window(&app);
-            let _ = app.emit("grab:video", &req.url);
+            let _ = app.emit(
+                "grab:video",
+                serde_json::json!({ "url": req.url, "hasCookies": has_cookies }),
+            );
             respond(&mut stream, 200, r#"{"ok":true}"#, cors).await
         }
         _ => respond(&mut stream, 404, r#"{"ok":false}"#, cors).await,

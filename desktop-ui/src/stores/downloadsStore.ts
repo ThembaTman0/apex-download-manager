@@ -29,6 +29,9 @@ interface DownloadsState {
   pendingUrl: string | null;
   /** URL to pre-fill the Grab Video dialog with (from the extension). */
   pendingVideoUrl: string | null;
+  /** Whether the extension sent site cookies with the grab (enables the
+   *  "retry using your browser sign-in" fallback for gated videos). */
+  pendingVideoHasCookies: boolean;
   /** URL the clipboard watcher spotted; shown as a toast. */
   clipboardUrl: string | null;
   scheduleTarget: Download | null;
@@ -107,6 +110,7 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
   lastError: null,
   pendingUrl: null,
   pendingVideoUrl: null,
+  pendingVideoHasCookies: false,
   clipboardUrl: null,
   scheduleTarget: null,
   checksumTarget: null,
@@ -153,10 +157,14 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
       set({ clipboardUrl: url });
     });
 
-    await backend.onGrabVideo((url) => {
+    await backend.onGrabVideo(({ url, hasCookies }) => {
       // Re-fire while the dialog is up just refreshes the pre-fill; the
       // dialog effect keys on pendingVideoUrl.
-      set({ pendingVideoUrl: url, videoDialogOpen: true });
+      set({
+        pendingVideoUrl: url,
+        pendingVideoHasCookies: hasCookies,
+        videoDialogOpen: true,
+      });
     });
 
     await backend.onQueueEmpty((action) => {
@@ -194,6 +202,7 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
     set((s) => ({
       videoDialogOpen: open,
       pendingVideoUrl: open ? s.pendingVideoUrl : null,
+      pendingVideoHasCookies: open ? s.pendingVideoHasCookies : false,
     })),
   setDeleteDialogOpen: (open) => set({ deleteDialogOpen: open }),
   setLastError: (e) => set({ lastError: e }),

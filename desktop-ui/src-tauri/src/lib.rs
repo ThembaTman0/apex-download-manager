@@ -70,6 +70,8 @@ pub fn run() {
             let manager = DownloadManager::new(app.handle().clone())
                 .map_err(|e| format!("failed to init download engine: {e}"))?;
             app.manage(manager);
+            // Memory-only jar for browser cookies handed over with /grab.
+            app.manage(ytdlp::GrabCookieJar::default());
 
             // Browser-extension capture endpoint (127.0.0.1 only).
             capture::start(app.handle().clone());

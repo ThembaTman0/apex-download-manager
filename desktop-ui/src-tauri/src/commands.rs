@@ -170,8 +170,9 @@ pub async fn install_ffmpeg(app: tauri::AppHandle) -> Result<crate::ytdlp::Tools
 pub async fn probe_video(
     app: tauri::AppHandle,
     url: String,
+    use_browser_cookies: Option<bool>,
 ) -> Result<crate::ytdlp::VideoProbe, String> {
-    crate::ytdlp::probe(&app, &url).await
+    crate::ytdlp::probe(&app, &url, use_browser_cookies.unwrap_or(false)).await
 }
 
 #[tauri::command]

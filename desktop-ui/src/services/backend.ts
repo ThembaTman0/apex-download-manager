@@ -83,7 +83,8 @@ export const backend = {
   ytdlpCheckUpdate: () => invoke<YtdlpUpdateCheck>("ytdlp_check_update"),
   installYtdlp: () => invoke<ToolsStatus>("install_ytdlp"),
   installFfmpeg: () => invoke<ToolsStatus>("install_ffmpeg"),
-  probeVideo: (url: string) => invoke<VideoProbe>("probe_video", { url }),
+  probeVideo: (url: string, useBrowserCookies = false) =>
+    invoke<VideoProbe>("probe_video", { url, useBrowserCookies }),
   async addVideo(
     url: string,
     title: string,
@@ -126,8 +127,12 @@ export const backend = {
   },
 
   /** Extension "grab video from this page" hand-off (capture server /grab). */
-  onGrabVideo(cb: (url: string) => void): Promise<UnlistenFn> {
-    return listen<string>("grab:video", (e) => cb(e.payload));
+  onGrabVideo(
+    cb: (grab: { url: string; hasCookies: boolean }) => void
+  ): Promise<UnlistenFn> {
+    return listen<{ url: string; hasCookies: boolean }>("grab:video", (e) =>
+      cb(e.payload)
+    );
   },
 
   onQueueEmpty(cb: (action: string) => void): Promise<UnlistenFn> {

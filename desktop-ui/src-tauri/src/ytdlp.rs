@@ -8,7 +8,7 @@
 use crate::engine::{TaskCtx, EVENT_CHANGED};
 use crate::models::{file_type_from_name, now_millis, Download};
 use futures_util::StreamExt;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::time::{Duration, Instant};
@@ -231,6 +231,130 @@ pub async fn install_ffmpeg(app: &AppHandle) -> Result<ToolsStatus, String> {
 }
 
 // ---------------------------------------------------------------------------
+// Browser cookies for sign-in-gated videos
+// ---------------------------------------------------------------------------
+
+/// One cookie handed over by the browser extension with a /grab request.
+#[derive(Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GrabCookie {
+    pub name: String,
+    pub value: String,
+    #[serde(default)]
+    pub domain: String,
+    #[serde(default)]
+    pub path: String,
+    #[serde(default)]
+    pub secure: bool,
+    /// Unix seconds; 0 = session cookie.
+    #[serde(default)]
+    pub expires: u64,
+}
+
+pub struct JarEntry {
+    host: String,
+    cookies: Vec<GrabCookie>,
+    /// Set once a cookie-assisted probe succeeds; same-host video downloads
+    /// then run yt-dlp with the cookies too, so the queued download doesn't
+    /// fail on the same sign-in wall the probe just cleared.
+    armed: bool,
+}
+
+/// Cookies from the latest extension /grab, memory only. A single slot is
+/// enough: the Grab Video dialog handles one page at a time, and each new
+/// /grab replaces the previous entry. Nothing here ever reaches the DB; an
+/// app restart simply forgets them.
+#[derive(Default)]
+pub struct GrabCookieJar(std::sync::Mutex<Option<JarEntry>>);
+
+const MAX_JAR_COOKIES: usize = 200;
+
+impl GrabCookieJar {
+    /// Replace the jar with this grab's cookies (or clear it when empty).
+    pub fn store(&self, host: String, mut cookies: Vec<GrabCookie>) {
+        cookies.truncate(MAX_JAR_COOKIES);
+        *self.0.lock().unwrap() = (!cookies.is_empty()).then_some(JarEntry {
+            host,
+            cookies,
+            armed: false,
+        });
+    }
+
+    fn for_host(&self, host: &str, armed_only: bool) -> Option<Vec<GrabCookie>> {
+        self.0
+            .lock()
+            .unwrap()
+            .as_ref()
+            .filter(|e| host_matches(&e.host, host) && (!armed_only || e.armed))
+            .map(|e| e.cookies.clone())
+    }
+
+    fn arm(&self, host: &str) {
+        if let Some(e) = self.0.lock().unwrap().as_mut() {
+            if host_matches(&e.host, host) {
+                e.armed = true;
+            }
+        }
+    }
+}
+
+/// Same site, ignoring a leading "www." (a grab from www.youtube.com must
+/// cover playlist entry URLs on youtube.com and vice versa).
+fn host_matches(a: &str, b: &str) -> bool {
+    fn norm(h: &str) -> &str {
+        h.strip_prefix("www.").unwrap_or(h)
+    }
+    norm(&a.to_ascii_lowercase()) == norm(&b.to_ascii_lowercase())
+}
+
+fn url_host(url: &str) -> Option<String> {
+    reqwest::Url::parse(url)
+        .ok()?
+        .host_str()
+        .map(|h| h.to_ascii_lowercase())
+}
+
+/// Netscape cookies.txt written for a single yt-dlp run; deleted on drop so
+/// the cookies never outlive the process call.
+struct TempCookieFile(PathBuf);
+
+impl Drop for TempCookieFile {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
+}
+
+fn write_cookie_file(url: &str, cookies: &[GrabCookie]) -> Result<TempCookieFile, String> {
+    fn clean(s: &str) -> String {
+        s.replace(['\t', '\r', '\n'], "")
+    }
+    let fallback_host = url_host(url).unwrap_or_default();
+    let mut out = String::from("# Netscape HTTP Cookie File\n");
+    for c in cookies {
+        let name = clean(&c.name);
+        if name.is_empty() {
+            continue;
+        }
+        let domain = if c.domain.is_empty() {
+            fallback_host.clone()
+        } else {
+            clean(&c.domain)
+        };
+        let include_sub = if domain.starts_with('.') { "TRUE" } else { "FALSE" };
+        let path = if c.path.is_empty() { "/".into() } else { clean(&c.path) };
+        let secure = if c.secure { "TRUE" } else { "FALSE" };
+        out.push_str(&format!(
+            "{domain}\t{include_sub}\t{path}\t{secure}\t{}\t{name}\t{}\n",
+            c.expires,
+            clean(&c.value)
+        ));
+    }
+    let file = std::env::temp_dir().join(format!("apex-grab-{}.txt", uuid::Uuid::new_v4()));
+    std::fs::write(&file, out).map_err(|e| format!("cannot write cookie file: {e}"))?;
+    Ok(TempCookieFile(file))
+}
+
+// ---------------------------------------------------------------------------
 // Probing
 // ---------------------------------------------------------------------------
 
@@ -269,19 +393,41 @@ pub struct VideoProbe {
 
 const MAX_PLAYLIST_ENTRIES: usize = 200;
 
-pub async fn probe(app: &AppHandle, url: &str) -> Result<VideoProbe, String> {
+pub async fn probe(
+    app: &AppHandle,
+    url: &str,
+    use_browser_cookies: bool,
+) -> Result<VideoProbe, String> {
     let ytdlp = find_ytdlp(app)
         .ok_or("yt-dlp is not installed; install it under Settings → Video Grabber")?;
     let proxy_url = app
         .try_state::<crate::engine::DownloadManager>()
         .map(|m| m.get_settings().proxy_url)
         .unwrap_or_default();
+    // Opt-in only: the user clicked "Retry using your browser sign-in" after
+    // a sign-in-gated failure. The cookies came in with the extension's /grab
+    // and sit in the memory-only jar.
+    let host = url_host(url);
+    let cookie_file = if use_browser_cookies {
+        let cookies = host
+            .as_deref()
+            .and_then(|h| app.state::<GrabCookieJar>().for_host(h, false))
+            .ok_or(
+                "No browser cookies are available for this site. Use Grab video from the browser extension again.",
+            )?;
+        Some(write_cookie_file(url, &cookies)?)
+    } else {
+        None
+    };
     // --flat-playlist: playlist URLs list their entries without probing each
     // video (fast); plain video URLs still return full format data.
     let mut cmd = command(&ytdlp);
     cmd.args(["-J", "--flat-playlist", "--no-warnings"]);
     if !proxy_url.is_empty() {
         cmd.arg("--proxy").arg(&proxy_url);
+    }
+    if let Some(f) = &cookie_file {
+        cmd.arg("--cookies").arg(&f.0);
     }
     cmd.arg("--").arg(url);
     let output = tokio::time::timeout(Duration::from_secs(90), cmd.output())
@@ -301,6 +447,13 @@ pub async fn probe(app: &AppHandle, url: &str) -> Result<VideoProbe, String> {
 
     let json: serde_json::Value =
         serde_json::from_slice(&output.stdout).map_err(|e| format!("bad yt-dlp output: {e}"))?;
+    // The cookies worked here, so the queued download for this site will hit
+    // the same wall; arm the jar so drive_video runs with them too.
+    if use_browser_cookies {
+        if let Some(h) = &host {
+            app.state::<GrabCookieJar>().arm(h);
+        }
+    }
     let has_ffmpeg = find_ffmpeg(app).is_some();
     if json["_type"].as_str() == Some("playlist") {
         Ok(build_playlist_probe(&json, has_ffmpeg))
@@ -602,6 +755,16 @@ pub(crate) async fn drive_video(ctx: &TaskCtx, d: &mut Download) -> Result<bool,
     }
     if !proxy_url.is_empty() {
         cmd.arg("--proxy").arg(&proxy_url);
+    }
+    // Armed jar (the user's cookie-assisted probe succeeded for this site):
+    // run the download with the same browser cookies. The temp file lives
+    // only as long as this function; a restart loses the jar and the
+    // download fails with the plain sign-in error instead.
+    let cookie_guard = url_host(&d.url)
+        .and_then(|h| ctx.app.try_state::<GrabCookieJar>()?.for_host(&h, true))
+        .and_then(|cookies| write_cookie_file(&d.url, &cookies).ok());
+    if let Some(f) = &cookie_guard {
+        cmd.arg("--cookies").arg(&f.0);
     }
     cmd.arg("--").arg(&d.url);
     cmd.stdout(Stdio::piped()).stderr(Stdio::piped());

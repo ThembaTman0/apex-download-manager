@@ -63,13 +63,28 @@ $("grabVideo").addEventListener("click", async () => {
     return;
   }
   status.textContent = "Sending…";
+  // Site cookies ride along (to 127.0.0.1 only, kept in Apex's memory) so
+  // the app can offer a sign-in retry when the video is gated.
+  let cookies = [];
+  try {
+    cookies = (await chrome.cookies.getAll({ url })).map((c) => ({
+      name: c.name,
+      value: c.value,
+      domain: c.domain || "",
+      path: c.path || "/",
+      secure: !!c.secure,
+      expires: c.expirationDate ? Math.floor(c.expirationDate) : 0,
+    }));
+  } catch {
+    // cookies unavailable: the grab still works without the retry option
+  }
   try {
     const ctrl = new AbortController();
     setTimeout(() => ctrl.abort(), 3000);
     const res = await fetch(`http://127.0.0.1:${cfg.port}/grab`, {
       method: "POST",
       headers: { "content-type": "application/json", "x-apex-token": cfg.token },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({ url, cookies }),
       signal: ctrl.signal,
     });
     if (res.status === 404) {

@@ -5,6 +5,7 @@ import {
   Clapperboard,
   Download,
   FolderOpen,
+  KeyRound,
   Link2,
   ListVideo,
   Loader2,
@@ -31,6 +32,9 @@ export function GrabVideoDialog() {
   const open = useDownloadsStore((s) => s.videoDialogOpen);
   const setOpen = useDownloadsStore((s) => s.setVideoDialogOpen);
   const pendingVideoUrl = useDownloadsStore((s) => s.pendingVideoUrl);
+  const pendingVideoHasCookies = useDownloadsStore(
+    (s) => s.pendingVideoHasCookies
+  );
   const settings = useDownloadsStore((s) => s.settings);
   const addVideo = useDownloadsStore((s) => s.addVideo);
   const setActiveNav = useDownloadsStore((s) => s.setActiveNav);
@@ -79,7 +83,7 @@ export function GrabVideoDialog() {
 
   const ytdlpMissing = tools !== null && !tools.ytdlpPath;
 
-  const analyze = async (target?: string) => {
+  const analyze = async (target?: string, withCookies = false) => {
     const u = (target ?? url).trim();
     if (!/^https?:\/\/\S+$/i.test(u)) {
       setError("Enter a valid http(s) video page URL");
@@ -91,7 +95,7 @@ export function GrabVideoDialog() {
     setProbe(null);
     setExcluded(new Set());
     try {
-      const p = await backend.probeVideo(u);
+      const p = await backend.probeVideo(u, withCookies);
       setProbe(p);
       setSelected(0);
     } catch (e) {
@@ -129,6 +133,15 @@ export function GrabVideoDialog() {
       setBusy(false);
     }
   };
+
+  // Errors shaped like a sign-in wall (YouTube's "confirm you're not a bot",
+  // members-only videos, plain 401/403 walls). Only then is the cookie retry
+  // offered.
+  const signInGated =
+    !!error &&
+    /sign.?in|log.?in|cookie|bot|account|private|member|401|403|unauthorized|forbidden/i.test(
+      error
+    );
 
   const pickedCount = probe?.playlist
     ? probe.playlist.length - excluded.size
@@ -401,6 +414,24 @@ export function GrabVideoDialog() {
 
                 {error && (
                   <p className="text-xs text-error-soft mb-4 break-all">{error}</p>
+                )}
+                {signInGated && pendingVideoHasCookies && (
+                  <div className="rounded-lg bg-white/[0.04] border border-white/[0.08] p-3 mb-4">
+                    <button
+                      onClick={() => analyze(undefined, true)}
+                      disabled={probing}
+                      className="px-3.5 py-2 rounded-lg bg-white/[0.06] border border-white/[0.08] text-ink hover:bg-white/[0.1] disabled:opacity-50 text-xs font-medium flex items-center gap-1.5 transition-colors"
+                    >
+                      <KeyRound className="w-3.5 h-3.5" />
+                      Retry using your browser sign-in
+                    </button>
+                    <p className="text-[10px] text-ink-muted mt-2 leading-relaxed">
+                      Sends this site's cookies from your browser along with the
+                      request. They stay on this PC and are used only for this
+                      grab. On YouTube this can occasionally sign you out in the
+                      browser.
+                    </p>
+                  </div>
                 )}
                 {updateHint && (
                   <p className="text-[11px] text-warning mb-4">
