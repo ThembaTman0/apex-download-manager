@@ -294,6 +294,70 @@ connections, paused and resumed, and scheduled.
 
 ---
 
+## Part 2b: Chrome Web Store
+
+Registration fee paid 2026-07-27. Upload
+`browser-extension-chromium.zip`, the same flavor Edge takes.
+
+### Policy risk: the video-grab feature
+
+**Read this before submitting a build that contains the grab feature.**
+Chrome Web Store policy does not allow extensions that facilitate the
+unauthorized download of copyrighted or streaming media, and Google
+enforces it against YouTube downloaders specifically. Google purged video
+downloader extensions during 2025, and repeat offenders such as
+SaveFrom.net have been removed more than once. Firefox and Edge have no
+equivalent rule, which is why the same package is fine on both of those.
+
+What makes the risk concrete in our package, regardless of intent:
+
+- `bg.js` registers a context menu titled "Grab video on this page with
+  Apex".
+- `popup.html` has a "Grab video from this page" button.
+- `popup.js` (and the desktop dialog) uses a YouTube watch URL as the
+  placeholder.
+
+The defence that the extension itself downloads nothing, and only hands a
+page URL to a desktop app that the user drives, is real but untested.
+Reviewers act on "facilitates", and the strings above make the intent
+plain. A rejection on a brand new developer account is a poor opening
+move, and repeat violations put the account itself at risk.
+
+**Recommended: keep the first Chrome submission free of the grab
+feature.** Get the core download manager listed and established, then
+decide separately whether to test the boundary. Download managers as such
+are permitted; it is the media-grabbing that draws enforcement.
+
+If a Chrome-specific build is made, strip the popup button, the context
+menu item, and the `activeTab` permission (which exists only for the grab
+feature), and keep the version number aligned with the other stores.
+
+### Field answers
+
+Chrome, like Edge, has **no public release-notes field**. There is no
+per-version changelog for users, so version changes are only worth stating
+in the review-facing fields.
+
+| Tab | Field | Answer |
+| --- | --- | --- |
+| Privacy practices | "Single purpose" | Use the single-purpose text in the Edge section. |
+| Privacy practices | Permission justifications | Use the per-permission answers in the Edge section, one per box. |
+| Privacy practices | Host permission justification | Use the `<all_urls>` answer in the Edge section. |
+| Privacy practices | "Are you using remote code?" | No. MV3 forbids it and none is loaded. |
+| Privacy practices | Data usage disclosures | Nothing is collected. Tick none of the data types, then tick all three certification statements. |
+| Privacy practices | Privacy policy URL | https://apex-download-manager.vercel.app/privacy.html |
+| Store listing | Description, screenshots | Reuse the listing copy in `STORE_LISTING.md`. Screenshots are 1280x800, same assets as Edge. |
+| Distribution | Visibility, regions | Public, all regions. |
+
+Note the Chrome Web Store policy update taking effect **2026-08-01**:
+data collection must be strictly necessary to the disclosed single
+purpose, and any post-install change in data handling must be disclosed
+prominently. The extension collects nothing, so it complies, but keep the
+single-purpose statement and the data disclosures consistent with each
+other.
+
+---
+
 ## Part 3: Checklist before any upload
 
 1. Bump `version` in `browser-extension/manifest.json`.
