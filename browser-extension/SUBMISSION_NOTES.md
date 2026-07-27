@@ -382,6 +382,102 @@ in the review-facing fields.
 | Store listing | Description, screenshots | Reuse the listing copy in `STORE_LISTING.md`. Screenshots are 1280x800, same assets as Edge. |
 | Distribution | Visibility, regions | Public, all regions. |
 
+### Privacy tab answers (1,000 chars per box)
+
+Chrome asks per-permission, in its own boxes, and displays the data-usage
+section publicly. These are tuned to the Chrome package, which has no
+`activeTab`. If the form ever lists `activeTab`, the wrong zip was
+uploaded. Written 2026-07-27, all within the limit; re-check the count if
+edited.
+
+**Single purpose** (801)
+
+```
+Apex Download Manager hands downloads from the browser to the Apex Download Manager desktop application running on the same computer, so they can be downloaded with multiple connections, paused and resumed, queued, and scheduled.
+
+That is the extension's only function. When a download starts, the extension passes the file's URL, along with the cookies and referring page for that URL, to the Apex app listening on 127.0.0.1, then cancels the browser's own copy so the file is not fetched twice. If the app is not running or declines, the browser download is resumed so nothing is lost.
+
+The extension has no other feature set. It registers no content scripts, reads no page content, shows no injected UI, and makes no request to any server other than the local application on the user's own machine.
+```
+
+**downloads** (702)
+
+```
+This is the extension's core function. It listens for downloads starting in the browser, using chrome.downloads.onDeterminingFilename, so the URL can be handed to the Apex desktop application, and it cancels the browser's own copy once the app has accepted the download, so the file is not fetched twice.
+
+The same permission is what makes the safety net possible: if the app is unreachable or declines the download, the extension restarts it in the browser so the user never loses a file. It also erases the leftover cancelled entries that would otherwise accumulate in the browser's download list.
+
+Without this permission the extension cannot detect or redirect downloads and has no function at all.
+```
+
+**cookies** (698)
+
+```
+Downloads behind a sign-in fail without the session cookie, because the desktop application fetches the file in its own HTTP client rather than through the browser.
+
+When the user starts a download, the extension calls chrome.cookies.getAll for that one specific URL and passes the result to the Apex application on 127.0.0.1, so the app can request the file as the signed-in user. This is the only use.
+
+Cookies are read only for the URL being downloaded, at the moment it is downloaded. They are not read for any other site, are not stored by the extension, are not sent to any remote server, and never leave the user's computer. The desktop application discards them once the download completes.
+```
+
+**contextMenus** (540)
+
+```
+Adds the extension's manual entry points, so a user can send a file to the Apex application without first starting a browser download.
+
+Two items are registered: "Download with Apex" on links, and "Download media with Apex" on images, video, and audio. Choosing either passes that one URL to the local application.
+
+These menu items are the only interface the extension adds outside its own toolbar popup. Without this permission the manual path is unavailable and users could only send files that the browser had already begun downloading.
+```
+
+**storage** (577)
+
+```
+Stores the user's own configuration with chrome.storage.sync: whether capture is enabled, the port the desktop application listens on, whether to hide the browser's download shelf during a capture, and the pairing token that the application issues when the user approves pairing.
+
+The pairing token is the reason this permission is necessary. Without persistence the user would have to pair the extension with the application again on every browser restart.
+
+No browsing data, download history, or page content is stored. The stored values are settings the user set themselves.
+```
+
+**notifications** (773)
+
+```
+Reports failures the user would otherwise never see, because the extension has no page interface and its work happens in the background.
+
+Three cases: the Apex application could not be reached, so the download was handed back to the browser; the pairing token is no longer valid, so the user needs to pair again; and unfinished downloads restored by the browser at startup were dismissed because the application was not running.
+
+Without notifications these would fail silently and the user would be left wondering why a download behaved unexpectedly. Notifications are throttled, at most one per five minutes for the stale-token case and batched into a single summary for the startup case. They are never used for promotion, offers, or any message unrelated to a download.
+```
+
+**Host permission** (874) - the box that triggers the in-depth review, so
+it argues necessity first and bounds the scope second
+
+```
+The extension needs the cookies belonging to whatever file the user chooses to download, and a download can come from any site, so the pattern cannot be narrowed to a fixed list of hosts without breaking downloads on every site not on it.
+
+When a download starts, the extension calls chrome.cookies.getAll for that one URL and forwards the result to the Apex desktop application on 127.0.0.1 so files behind a sign-in download correctly. The same breadth allows the "Download with Apex" context menu to work on any page.
+
+The breadth is not used to observe browsing. The extension registers no content scripts, injects nothing into any page, reads no page content, and never sends a request to any remote server. Its only network destination is the application on the user's own computer, reachable only after the user approves pairing in a prompt shown by that application.
+```
+
+**Remote code:** No. MV3 forbids remotely hosted code and none is loaded;
+there is no `eval`, no external `<script>`, and no remote module.
+
+**Data usage: tick nothing, then certify all three disclosures.** The
+extension transmits nothing off the device. Cookies and the download URL
+go to a local process on the same machine at the user's request, which is
+not collection, and the published privacy policy says the same. The
+Firefox manifest declares `data_collection_permissions: none`, so this is
+consistent across all three stores.
+
+Expect this to be the one combination a reviewer might question: the
+`cookies` permission plus `<all_urls>` with no declared data collection.
+The answer, if asked, is that nothing leaves the user's machine.
+
+**Privacy policy URL:** https://apex-download-manager.vercel.app/privacy.html
+(verified live 2026-07-27, and its text matches these declarations).
+
 Note the Chrome Web Store policy update taking effect **2026-08-01**:
 data collection must be strictly necessary to the disclosed single
 purpose, and any post-install change in data handling must be disclosed
