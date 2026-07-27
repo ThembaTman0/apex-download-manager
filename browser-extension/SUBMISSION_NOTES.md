@@ -296,8 +296,9 @@ connections, paused and resumed, and scheduled.
 
 ## Part 2b: Chrome Web Store
 
-Registration fee paid 2026-07-27. Upload
-`browser-extension-chromium.zip`, the same flavor Edge takes.
+Registration fee paid 2026-07-27. Upload **`browser-extension-chrome.zip`**,
+which is the Edge package with the video-grab feature and the `activeTab`
+permission removed. Do not upload the Edge zip; see the policy risk below.
 
 ### Policy risk: the video-grab feature
 
@@ -323,14 +324,22 @@ Reviewers act on "facilitates", and the strings above make the intent
 plain. A rejection on a brand new developer account is a poor opening
 move, and repeat violations put the account itself at risk.
 
-**Recommended: keep the first Chrome submission free of the grab
-feature.** Get the core download manager listed and established, then
-decide separately whether to test the boundary. Download managers as such
-are permitted; it is the media-grabbing that draws enforcement.
+**Decision 2026-07-27: the Chrome build ships without the grab feature.**
+Get the core download manager listed and established first, then decide
+separately whether to test the boundary. Download managers as such are
+permitted; it is the media-grabbing that draws enforcement.
 
-If a Chrome-specific build is made, strip the popup button, the context
-menu item, and the `activeTab` permission (which exists only for the grab
-feature), and keep the version number aligned with the other stores.
+`build-zips.ps1` implements this. The grab code is delimited in the
+sources by `#grab-begin` / `#grab-end` markers and the Chrome flavor
+strips those regions and drops `activeTab`, so it is a build-time variant
+rather than a code fork. Keep the markers balanced when editing that code;
+the script throws on an unbalanced pair and refuses to emit a zip.
+
+The Chrome package therefore has no `activeTab` permission, no popup grab
+button, and no page context-menu item. Its permission set is `downloads`,
+`downloads.ui`, `cookies`, `contextMenus`, `storage`, `notifications`,
+plus the `<all_urls>` host permission, so skip the `activeTab`
+justification when filling the privacy practices tab.
 
 ### Field answers
 
@@ -361,22 +370,25 @@ other.
 ## Part 3: Checklist before any upload
 
 1. Bump `version` in `browser-extension/manifest.json`.
-2. Rebuild **both** zips with forward-slash entry names. Windows path
-   separators in zip entry names make AMO's validator reject the package
-   ("Invalid file name in archive"), while Edge and load-unpacked tolerate
-   them silently. Build with a raw `System.IO.Compression.ZipArchive`
-   script that sets entry names explicitly; `Compress-Archive` gets this
-   wrong. Read `manifest.json` with
-   `[System.IO.File]::ReadAllText(path, [System.Text.Encoding]::UTF8)`,
-   because `Get-Content` plus `ConvertTo-Json` mangles non-ASCII
-   characters in the description.
-3. Confirm the chromium zip's manifest has `background.service_worker`
-   only and no `browser_specific_settings`. Edge hard-rejects
-   `background.scripts` in MV3.
-4. Each zip should contain exactly these eight entries and nothing else:
+2. Run `powershell -File browser-extension\build-zips.ps1`. It rebuilds
+   all three zips and then verifies them: forward-slash entry names, eight
+   entries each, parseable manifest, no leftover `#grab` markers, and the
+   expected per-flavor feature flags. Read its summary line rather than
+   assuming it worked.
+
+   The script exists because two hand-rolled mistakes have each broken a
+   submission: `Compress-Archive` writes backslash entry names, which
+   AMO's validator rejects ("Invalid file name in archive") while Edge and
+   load-unpacked tolerate silently; and `Get-Content` plus `ConvertTo-Json`
+   mangles non-ASCII characters in the manifest description.
+3. Note that rebuilding regenerates the zips for stores that may already
+   be reviewing the current ones. If a submission is in flight and the
+   source has since changed, restore the submitted artifacts with
+   `git checkout -- <zip>` so the repo keeps matching what reviewers hold.
+4. Each zip contains exactly these eight entries and nothing else:
    `manifest.json`, `bg.js`, `popup.html`, `popup.js`, and
-   `icons/{16,32,48,128}.png`. The markdown files in this folder are
-   documentation and must never be packaged.
+   `icons/{16,32,48,128}.png`. The markdown files and the build script in
+   this folder are never packaged.
 4. If a permission was added or removed, say so explicitly in the
    reviewer notes and explain the narrowest use. Unexplained new
    permissions are the most common cause of a slow review.

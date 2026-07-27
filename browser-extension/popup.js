@@ -43,6 +43,7 @@ async function ping(port, token) {
   }
 }
 
+// #grab-begin
 // Hand the current tab's URL to Apex's video grabber (yt-dlp). The app opens
 // its Grab Video dialog pre-filled — nothing downloads until the user picks a
 // quality there, so this is just a hand-off, not a capture.
@@ -86,6 +87,7 @@ $("grabVideo").addEventListener("click", async () => {
     status.textContent = "Couldn't reach Apex. Is it running?";
   }
 });
+// #grab-end
 
 // One-click pairing: ask Apex for the token; the user approves in a native
 // Apex dialog. Long timeout — the request blocks until they click Allow.

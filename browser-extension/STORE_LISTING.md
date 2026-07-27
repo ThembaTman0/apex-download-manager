@@ -6,22 +6,29 @@ first-time submission steps. For the fields the stores ask on **every new
 version** (release notes, notes to reviewer, source-code and data
 questions), see `SUBMISSION_NOTES.md`.
 
-Everything needed to publish the extension. Two zip flavors at the repo
-root (manifest at zip root, never nested):
+Everything needed to publish the extension. Three zip flavors at the repo
+root, all built from this folder by `build-zips.ps1` (manifest at zip
+root, never nested):
 
 - `browser-extension.zip`: Firefox/AMO flavor. Manifest as-is (background
   has both `service_worker` and `scripts`; `browser_specific_settings`
   with the gecko id and data_collection_permissions). Also the sideload
   zip: works for load-unpacked in every browser.
-- `browser-extension-chromium.zip`: Edge Add-ons and Chrome Web Store
-  flavor. Same files, manifest transformed: `background.service_worker`
-  only, no `browser_specific_settings`. Edge's validator hard-rejects
+- `browser-extension-chromium.zip`: Edge Add-ons flavor. Same files,
+  manifest transformed: `background.service_worker` only, no
+  `browser_specific_settings`. Edge's validator hard-rejects
   `background.scripts` in MV3 (Chrome merely ignores it), so the dual
   manifest cannot be submitted there.
+- `browser-extension-chrome.zip`: Chrome Web Store flavor. The Edge
+  package with the video-grab feature stripped (`#grab-begin` /
+  `#grab-end` regions removed) and `activeTab` dropped, because Chrome
+  policy forbids extensions that facilitate downloading streaming media.
+  See `SUBMISSION_NOTES.md` for the reasoning.
 
-Rebuild both after any extension change (bump `version` in manifest.json
-first; the chromium transform is scripted in the session notes: strip
-`browser_specific_settings`, set background to service_worker only).
+Rebuild all three after any extension change: bump `version` in
+manifest.json, then run `powershell -File browser-extension\build-zips.ps1`.
+The script does the per-flavor manifest transforms and verifies its own
+output.
 
 `web-ext lint`: 0 errors, 10 warnings (all "unsupported API" notices for
 Chromium-only APIs the code feature-detects; safe to ignore).

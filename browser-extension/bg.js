@@ -344,13 +344,16 @@ chrome.runtime.onInstalled.addListener(() => {
     title: "Download media with Apex",
     contexts: ["image", "video", "audio"],
   });
+  // #grab-begin
   chrome.contextMenus.create({
     id: "apex-grab-page",
     title: "Grab video on this page with Apex",
     contexts: ["page"],
   });
+  // #grab-end
 });
 
+// #grab-begin
 // Page-level grab: hand the page URL to Apex's yt-dlp grabber. The app opens
 // its Grab Video dialog pre-filled; the user picks a quality there.
 async function grabPage(url) {
@@ -384,12 +387,15 @@ async function grabPage(url) {
     });
   }
 }
+// #grab-end
 
 chrome.contextMenus.onClicked.addListener(async (info) => {
+  // #grab-begin
   if (info.menuItemId === "apex-grab-page") {
     grabPage(info.pageUrl);
     return;
   }
+  // #grab-end
   const url = info.menuItemId === "apex-link" ? info.linkUrl : info.srcUrl;
   if (!url) return;
   await configReady;
