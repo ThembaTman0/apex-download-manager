@@ -1,5 +1,11 @@
 # Store submission kit
 
+This file holds the things that stay the same between releases: listing
+copy, privacy policy, permission justifications, screenshots, and the
+first-time submission steps. For the fields the stores ask on **every new
+version** (release notes, notes to reviewer, source-code and data
+questions), see `SUBMISSION_NOTES.md`.
+
 Everything needed to publish the extension. Two zip flavors at the repo
 root (manifest at zip root, never nested):
 
