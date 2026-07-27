@@ -1,16 +1,11 @@
-Security hardening for the browser-capture server, plus dark dropdown menus and update notes at a glance.
+Grab videos straight from the page you are watching, plus a clear warning when a browser pairing goes stale.
 
-**Security**
+**New**
 
-- Capture server locked down: responses are only shared with paired browser extensions (web pages can no longer probe it), token checks are constant-time, and slow connections time out.
-- Browser cookies used for a download are purged from the local database once it completes.
-- Downloaded files' Mark-of-the-Web now records only the site origin, not the full URL.
-- Filenames matching Windows reserved device names (CON, NUL, …) are sanitized.
-- Free disk space is checked before preallocating a download.
-- Plain-HTTP (unencrypted) downloads are now flagged with a warning in the capture prompt and details panel.
-- Tightened the app's content-security policy.
+- Grab video from a page. With the browser extension updated to 1.3.2, a "Grab video from this page" button in the extension popup, and a right-click item on any page, hand the page address straight to Apex. The video grabber opens already filled in, and nothing is downloaded until you pick a quality here.
 
 **Improvements & fixes**
 
-- Dropdown option lists (speed limit, post-download action) now render dark instead of flashing white.
-- The update notification shows a one-line summary of what's new, with a link to the full release notes.
+- Apex now tells the extension when its pairing token is out of date, so the browser can prompt you to pair again instead of quietly failing to capture downloads. Previously a stale token looked like a working connection while every capture was being rejected.
+- Regenerating the browser token now takes a second click to confirm. Regenerating stops every paired browser from capturing until it pairs again, which is easy to trigger by accident.
+- Tidied wording across dialogs, settings, and notifications.
