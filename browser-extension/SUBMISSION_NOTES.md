@@ -341,6 +341,30 @@ button, and no page context-menu item. Its permission set is `downloads`,
 plus the `<all_urls>` host permission, so skip the `activeTab`
 justification when filling the privacy practices tab.
 
+### EEA trader / non-trader declaration (account level, asked once)
+
+Required by the EU Digital Services Act. The test is whether the
+publisher acts "for purposes relating to his trade, business, craft or
+profession". Google states that each publisher must decide for
+themselves and will not answer for a specific case.
+
+The consequence is asymmetric and worth understanding before answering:
+**a trader's legal name, phone number, and physical address are displayed
+publicly on the store listing to EEA users.** Google's own FAQ warns to
+use an address you are comfortable having shared publicly. For a solo
+developer that means a home address on a public page.
+
+Apex Download Manager is free, has no monetization of any kind, no
+accounts, and no telemetry, so as things stand it is not trade or
+business activity and **non-trader** is the fitting answer. This must be
+revisited if the project ever takes payment, takes donations at any
+meaningful scale, or is published on behalf of a registered business. The
+declaration is reversible at any time; toggling trader to non-trader and
+back also restarts verification if details need changing.
+
+Not legal advice. See the
+[Trader FAQ](https://developer.chrome.com/docs/webstore/program-policies/trader-verification-faq).
+
 ### Field answers
 
 Chrome, like Edge, has **no public release-notes field**. There is no
