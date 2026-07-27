@@ -485,6 +485,27 @@ When a download starts, the extension calls chrome.cookies.getAll for that one U
 The breadth is not used to observe browsing. The extension registers no content scripts, injects nothing into any page, reads no page content, and never sends a request to any remote server. Its only network destination is the application on the user's own computer, reachable only after the user approves pairing in a prompt shown by that application.
 ```
 
+**Expect the "Broad Host Permissions" warning.** It is informational, not
+a blocker, and it appears at submit time suggesting `activeTab` or a
+narrowed host list. Neither substitutes here, and the reasoning is worth
+keeping straight:
+
+- A download can come from any host, so there is no finite site list to
+  enumerate. Any list would silently break downloads elsewhere.
+- `activeTab` is granted only on an explicit gesture toward the extension,
+  and only for the active tab. Automatic capture involves no such gesture,
+  the user clicks a link on the page. And download URLs often sit on a
+  different host than the page (CDNs, signed URLs), so the origin
+  `activeTab` would grant is not the one whose cookies are needed.
+
+**Possible refinement at the next version bump:** replace `<all_urls>`
+with `["http://*/*", "https://*/*"]`. Cookies and captured downloads are
+HTTP(S) only, and the local app is reached over `http://127.0.0.1`, so
+nothing breaks, and it drops `file://`, `ftp://` and other unused schemes.
+It will *not* avoid the in-depth review, since both patterns count as
+broad, so do it when all three stores are getting a new package anyway
+rather than re-uploading mid-submission.
+
 **Remote code:** No. MV3 forbids remotely hosted code and none is loaded;
 there is no `eval`, no external `<script>`, and no remote module.
 
