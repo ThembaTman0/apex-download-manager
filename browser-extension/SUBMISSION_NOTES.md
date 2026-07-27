@@ -138,6 +138,104 @@ Edge asks a similar but differently worded set. Upload
 | "Privacy policy URL" | https://apex-download-manager.vercel.app/privacy.html |
 | "Test account" | Not needed. State that explicitly. |
 
+### Per-permission justifications (Edge asks for one per permission)
+
+Edge wants each answer framed as *why the extension cannot function
+without it*, not just what it does. Paste these as-is.
+
+**`activeTab`**
+
+```
+The extension's "Grab video from this page" feature needs the address of
+the page the user is looking at. When the user clicks that button in the
+extension popup, popup.js calls
+chrome.tabs.query({active: true, currentWindow: true}) and reads tab.url,
+then sends that single URL to the Apex Download Manager desktop app on the
+user's own machine (http://127.0.0.1) so the app can open its video
+grabber pre-filled with it. Without activeTab the popup cannot learn which
+page to hand over and the feature cannot work.
+
+Scope: activeTab is read-only here and is used solely at the moment of
+that click. It is not used to inject scripts or read page content, and the
+extension has no content scripts. No data leaves the user's machine.
+```
+
+**`downloads`**
+
+```
+This is the extension's core purpose. It listens for a download starting
+in the browser so the URL can be handed to the Apex desktop app, and
+cancels the browser's own copy once the app has accepted it. Without the
+downloads permission the extension cannot detect or redirect downloads and
+has no function at all.
+```
+
+**`downloads.ui`**
+
+```
+Hides the browser's download shelf during a capture. Because the browser's
+copy of the download is cancelled immediately after hand-off, the shelf
+would otherwise flash a cancelled entry for every download the user sends
+to Apex.
+```
+
+**`cookies`**
+
+```
+Downloads behind a login fail without the session cookie. When the user
+downloads a file, the extension reads the cookies for that specific URL
+only and forwards them to the local Apex app so the app can fetch the file
+as the logged-in user. Cookies are read for no other purpose, are never
+sent anywhere except http://127.0.0.1 on the user's own machine, and are
+not retained by the extension.
+```
+
+**`contextMenus`**
+
+```
+Provides the right-click items the extension is built around: "Download
+with Apex" on links and media, and "Grab video on this page with Apex" on
+a page. Without it these entry points cannot exist.
+```
+
+**`storage`**
+
+```
+Persists the user's own settings: whether capture is enabled, the local
+port number, and the pairing token issued by the desktop app. Without it
+the user would have to re-pair with the app on every browser restart.
+```
+
+**`notifications`**
+
+```
+Tells the user when something needs their attention and there is no other
+surface to say it on: the Apex app could not be reached and the download
+was handed back to the browser, or the pairing token has expired and they
+need to pair again. Notifications are throttled and are only raised in
+response to a real failure.
+```
+
+**`<all_urls>` (host permission)**
+
+```
+Required so that cookies.getAll works for whatever URL the user chooses to
+download, since a download can originate from any site, and so the
+right-click menu items work on any site. This is a capability the download
+hand-off needs, not a data-collection surface: the extension registers no
+content scripts, reads no page content, and makes no requests to any
+remote server. Its only network destination is http://127.0.0.1, the Apex
+desktop app on the user's own machine.
+```
+
+**"Single purpose" description (Edge and CWS both ask)**
+
+```
+Hands downloads from the browser to the Apex Download Manager desktop app
+running on the same computer, so they can be downloaded with multiple
+connections, paused and resumed, and scheduled.
+```
+
 ---
 
 ## Part 3: Checklist before any upload
