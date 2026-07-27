@@ -138,6 +138,48 @@ Edge asks a similar but differently worded set. Upload
 | "Privacy policy URL" | https://apex-download-manager.vercel.app/privacy.html |
 | "Test account" | Not needed. State that explicitly. |
 
+### "Notes for certification" (2,000 character limit)
+
+Edge caps this field at 2,000 characters, so the fuller AMO reviewer notes
+in Q2 do not fit. Trim rather than truncate, and check the count before
+pasting. Keep the permission explanation and the "no build step" and
+"localhost only" claims; those are what a reviewer needs.
+
+**Careful when a submission was cancelled:** the reviewer compares against
+the last *published* version, not the last one you uploaded. If a version
+was cancelled before review, its changes were never seen, so fold them
+into these notes too.
+
+**v1.3.2 as submitted 2026-07-27 (1,990 chars, supersedes a cancelled
+1.3.1):**
+
+```
+Supersedes 1.3.1, which was cancelled before review, so this covers two versions of changes.
+
+New in 1.3.2
+
+1. "Grab video from this page". A popup button and a page context-menu item read the current tab's URL and POST it as JSON to the local Apex desktop app at http://127.0.0.1:43666/grab, with the pairing token in an x-apex-token header. The app opens its video grabber pre-filled. No download starts from this action; the user chooses a quality in the app. No page content is read.
+
+2. New permission: activeTab. Used only by chrome.tabs.query({active: true, currentWindow: true}) in popup.js, to read tab.url when the user clicks that button. Never used for script injection or to read page content. The context-menu path instead uses the pageUrl the event already supplies.
+
+3. Stale pairing tokens are now surfaced. A 401 from the local app raises a "pair again" notification, throttled to one per 5 minutes, and the popup reports a stale token instead of showing a green "Connected" dot while captures silently fail.
+
+From 1.3.1 (never published)
+
+4. When the browser restores several interrupted downloads at startup and Apex is not running, the extension shows one summary notification instead of one per download.
+
+Standing notes
+
+- No build step. The zip is the source: plain unminified JavaScript, no bundler, no libraries.
+- No test account needed.
+- No remote network requests. The only destination is http://127.0.0.1, the Apex desktop app on the user's own machine, gated by a pairing token the user approves in the app.
+- No content scripts, no analytics, no data collection.
+
+Testing without the app: with Apex absent, a download is handed back to the browser and completes normally, the popup shows a red dot and "Apex isn't running", and the grab button reports it could not reach Apex. Nothing is lost.
+
+Full path: install the free Windows app from https://apex-download-manager.vercel.app, open the popup, click "Pair with Apex app", approve the prompt in the app.
+```
+
 ### Per-permission justifications (Edge asks for one per permission)
 
 Edge wants each answer framed as *why the extension cannot function
