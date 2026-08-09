@@ -1,11 +1,10 @@
-Grab videos straight from the page you are watching, plus a clear warning when a browser pairing goes stale.
+Apex now stays in the tray when Windows starts it, even if you left the window open last time.
 
 **New**
 
-- Grab video from a page. With the browser extension updated to 1.3.2, a "Grab video from this page" button in the extension popup, and a right-click item on any page, hand the page address straight to Apex. The video grabber opens already filled in, and nothing is downloaded until you pick a quality here.
+- Videos that need you to be signed in. When a site refuses a video because the request does not look signed in, Apex can now offer to retry using your browser sign-in. Update the browser extension to 1.3.3, then use "Grab video from this page": the extension hands Apex the cookies for that one page, Apex keeps them in memory for that single retry, and they are never written to its database. Nothing is retried unless you click the button.
 
 **Improvements & fixes**
 
-- Apex now tells the extension when its pairing token is out of date, so the browser can prompt you to pair again instead of quietly failing to capture downloads. Previously a stale token looked like a working connection while every capture was being rejected.
-- Regenerating the browser token now takes a second click to confirm. Regenerating stops every paired browser from capturing until it pairs again, which is easy to trigger by accident.
-- Tidied wording across dialogs, settings, and notifications.
+- Starting with Windows keeps Apex in the tray, as it was always meant to. If you shut down with the Apex window open, the next sign-in reopened the window instead of leaving Apex running quietly. Apex was restoring the window's saved visibility along with its size and position, which overrode the tray launch.
+- A relaunch by Windows itself no longer forces the window open. Opening Apex again yourself still brings the window to the front, as before.
