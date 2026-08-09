@@ -43,16 +43,33 @@ pub(crate) fn apply_autostart(app: &tauri::AppHandle, enabled: bool) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            // Second launch: surface the existing window instead.
-            show_main_window(app);
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            // Second launch: surface the existing window instead. A launch
+            // carrying --autostart is the OS starting us at sign-in, not the
+            // user asking for the window, so leave it in the tray.
+            if !args.iter().any(|a| a == "--autostart") {
+                show_main_window(app);
+            }
         }))
         // The capture prompt must NOT have its state restored: it manages its
         // own size (auto-fits content) and visibility (Rust shows it per
         // capture) — a session that ended with it hidden would otherwise
         // resurrect every future prompt invisible and mis-sized.
+        //
+        // VISIBLE is dropped from the flags for the same reason, for every
+        // window: visibility is decided here, not by whatever the last session
+        // happened to end on. The main window is created hidden and shown once
+        // the frontend reports its first paint, and an --autostart launch stays
+        // in the tray. Restoring a saved `visible: true` broke both — it popped
+        // the window open at sign-in whenever the previous session ended with
+        // it on screen, and un-hid it before WebView2 had painted, which is the
+        // white flash `visible: false` exists to prevent.
         .plugin(
             tauri_plugin_window_state::Builder::default()
+                .with_state_flags(
+                    tauri_plugin_window_state::StateFlags::all()
+                        & !tauri_plugin_window_state::StateFlags::VISIBLE,
+                )
                 .with_denylist(&["capture"])
                 .build(),
         )
