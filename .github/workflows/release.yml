@@ -6,11 +6,20 @@
 # PUBLIC repo apex-download-manager-releases — the website's /dl redirect
 # and the in-app updater both need anonymous access to the assets.
 #
+# Pushing the tag is the whole release procedure. This workflow creates the
+# release in the public repo itself, so there is no manual pre-create step
+# any more. What is still done by hand, before tagging: bump the version in
+# tauri.conf.json AND src-tauri/Cargo.toml, and rewrite RELEASE_NOTES.md
+# (its first line is the teaser in the app's update toast). The workflow
+# refuses to build if the tag and those two files disagree.
+#
 # Required repo secrets:
-#   TAURI_SIGNING_PRIVATE_KEY — contents of ~/.tauri/apex-updater.key
-#   (TAURI_SIGNING_PRIVATE_KEY_PASSWORD too, if the key has a password)
-#   RELEASES_TOKEN — fine-grained PAT with "Contents: read and write" on
-#   the public releases repo (the default GITHUB_TOKEN can't write there)
+#   TAURI_SIGNING_PRIVATE_KEY — contents of ~/.tauri/apex-updater-v2.key
+#   (TAURI_SIGNING_PRIVATE_KEY_PASSWORD too, if the key has a password;
+#   the current key has none, so that secret does not exist)
+#   RELEASES_TOKEN — PAT with "Contents: read and write" on the public
+#   releases repo, used both to create the release and to upload the assets
+#   (the default GITHUB_TOKEN cannot write to another repo)
 name: Release
 
 on:
@@ -42,6 +51,22 @@ jobs:
         working-directory: desktop-ui
         run: npm ci
 
+      # Guard against the mistake this repo has actually made: tagging without
+      # bumping. Both version files must agree with the tag or nothing runs.
+      - name: Check the tag matches the app version
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}" -replace '^v', ''
+          $conf = (Get-Content desktop-ui/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $cargo = ([regex]::Match((Get-Content desktop-ui/src-tauri/Cargo.toml -Raw), '(?m)^version\s*=\s*"([^"]+)"')).Groups[1].Value
+          "tag=$tag  tauri.conf.json=$conf  Cargo.toml=$cargo"
+          if ($conf -ne $tag -or $cargo -ne $tag) {
+            throw "Version mismatch. Tag says $tag, tauri.conf.json says $conf, Cargo.toml says $cargo. Bump both files, then move the tag."
+          }
+          if (-not (Test-Path RELEASE_NOTES.md) -or -not (Get-Content RELEASE_NOTES.md -Raw).Trim()) {
+            throw "RELEASE_NOTES.md is missing or empty. It becomes both the release body and the updater teaser."
+          }
+
       # RELEASE_NOTES.md becomes the release body AND latest.json `notes`
       # (tauri-action copies its releaseBody input into the updater JSON —
       # the pre-created release's body is NOT used for that). The app shows
@@ -53,6 +78,31 @@ jobs:
           "body<<NOTES_EOF" >> $env:GITHUB_OUTPUT
           Get-Content RELEASE_NOTES.md -Raw >> $env:GITHUB_OUTPUT
           "NOTES_EOF" >> $env:GITHUB_OUTPUT
+
+      # tauri-action cannot create the release itself: it sends this repo's
+      # commit SHA as target_commitish, that SHA does not exist in the releases
+      # repo, and the API answers 422. Creating the release here first reduces
+      # tauri-action's job to uploading assets, which is the one thing it does
+      # reliably across repos. This used to be a manual web-UI step before
+      # every tag; it is idempotent, so re-running a failed build is safe.
+      - name: Ensure the release exists in the public repo
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          $repo = "ThembaTman0/apex-download-manager-releases"
+          $tag = "${{ github.ref_name }}"
+          gh release view $tag --repo $repo *> $null
+          if ($LASTEXITCODE -eq 0) {
+            "Release $tag already exists in $repo, leaving it as is."
+          } else {
+            "Creating release $tag in $repo."
+            gh release create $tag --repo $repo --target main `
+              --title "Apex Download Manager $tag" --notes-file RELEASE_NOTES.md
+            if ($LASTEXITCODE -ne 0) {
+              throw "Could not create release $tag in $repo. Check that RELEASES_TOKEN still has Contents: read and write there."
+            }
+          }
 
       - name: Build and publish release
         uses: tauri-apps/tauri-action@v0
