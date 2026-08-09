@@ -19,26 +19,28 @@ What users see. Write for a user, not a reviewer: what is new, what is
 fixed, and anything that needs a matching app version. Keep it to a
 handful of bullets.
 
-**v1.3.2 (paste this):**
+**v1.3.3 (paste this):**
 
 ```
-New in 1.3.2
+New in 1.3.3
 
-- Grab video from a page. The popup has a new "Grab video from this page"
-  button, and right-clicking a page offers "Grab video on this page with
-  Apex". Both hand the page address to the Apex app, which opens its video
-  grabber already filled in. Nothing is downloaded until you choose a
-  quality in the app. Requires Apex 1.0.8 or newer.
-- Clearer pairing problems. If your pairing token is out of date, for
-  example after regenerating it in Apex Settings, the extension now tells
-  you to pair again instead of quietly handing the download back to the
-  browser. The popup says the same thing rather than showing a misleading
-  "Connected".
-- Tidied wording in the popup.
+- Videos that need you to be signed in. Some sites refuse a video unless
+  the request comes from a signed-in account. When that happens, Apex can
+  now offer to retry using your browser sign-in. Using "Grab video from
+  this page" hands Apex the cookies for that one page along with its
+  address; Apex holds them in memory for that single attempt, never writes
+  them to its database, and only uses them if you click the retry button.
+  Requires Apex 1.0.9 or newer.
+- Narrower site access. The extension now asks for http and https pages
+  only, rather than every address. Nothing changes in what it does; it is
+  simply a smaller permission.
 
 As always, if Apex is not running the download simply continues in the
 browser, so nothing is lost.
 ```
+
+**v1.3.2 (published, kept for reference):** grab video from a page, clearer
+stale-pairing messages, tidied popup wording.
 
 ### Q2. "Notes to Reviewer" (private, reviewer only)
 
@@ -46,31 +48,41 @@ Reviewers want: what changed since the last reviewed version, why any new
 permission is there, whether a build step is involved, and how to test
 without an account. Lead with the changes, then the standing answers.
 
-**v1.3.2 (paste this):**
+**v1.3.3 (paste this):**
 
 ```
-What changed since 1.3.1
+What changed since 1.3.2
 
-1. New "grab video from this page" hand-off. The popup button and a new
-   page context-menu item read the current tab's address and POST it as
-   JSON to the local Apex app at http://127.0.0.1:43666/grab, with the
-   pairing token in an x-apex-token header. The app opens its video
-   grabber dialog pre-filled with that address. No download starts from
-   this action; the user still has to choose a quality inside the app.
-   Nothing is read from the page itself.
+1. The "grab video from this page" hand-off now includes that page's
+   cookies. Both entry points (the popup button and the page context-menu
+   item) call chrome.cookies.getAll for the page URL and include the
+   result, as structured name/value/domain/path/secure/expiry objects, in
+   the same JSON POST to http://127.0.0.1:43666/grab that already carried
+   the URL. Nothing else is sent and no page content is read.
 
-2. New permission in this version: activeTab. It is used only for
-   chrome.tabs.query({active: true, currentWindow: true}) in popup.js, to
-   read the .url of the tab the user is looking at when they click the
-   grab button. It is never used to inject scripts or read page content.
-   The context-menu path does not use it at all; it uses the pageUrl the
-   contextMenus event already provides.
+   Why: sites increasingly refuse video metadata unless the request looks
+   signed in. The desktop app fetches in its own HTTP client, outside the
+   browser, so it cannot inherit the session otherwise. The app analyses
+   the page without cookies first and only offers a "retry using your
+   browser sign-in" button if that fails; the cookies are held in memory
+   for that one retry, are never written to its database, and are gone
+   when the app closes.
 
-3. Stale pairing token is now surfaced instead of swallowed. A 401 from
-   the local app raises a "pair again" notification, throttled to at most
-   one per five minutes, and the popup pings with the token so it can say
-   the token is stale rather than showing a green "Connected" dot while
-   captures are silently failing.
+   This is the same trust boundary the extension already crosses for
+   ordinary downloads, where a Cookie header for the download URL is
+   forwarded so files behind a login fetch correctly. The destination is
+   unchanged: http://127.0.0.1 on the user's own machine, gated by a
+   pairing token the user approved in a native prompt in the app. Nothing
+   is sent to any remote server.
+
+2. Host permissions narrowed from <all_urls> to
+   ["http://*/*", "https://*/*"]. This is a reduction, not a new
+   permission: it drops file://, ftp:// and other schemes the extension
+   never handled. Cookies and captured downloads are HTTP(S) only, and the
+   local app is reached over http://127.0.0.1.
+
+No new permissions are requested in this version. The cookies permission
+was already present and already used for the download path.
 
 Standing notes
 
@@ -164,23 +176,18 @@ the last *published* version, not the last one you uploaded. If a version
 was cancelled before review, its changes were never seen, so fold them
 into these notes too.
 
-**v1.3.2 as submitted 2026-07-27 (1,990 chars, supersedes a cancelled
-1.3.1):**
+**v1.3.3 (paste this):**
 
 ```
-Supersedes 1.3.1, which was cancelled before review, so this covers two versions of changes.
+New in 1.3.3
 
-New in 1.3.2
+1. "Grab video from this page" now sends that page's cookies with its URL. Both entry points (popup button, page context menu) call chrome.cookies.getAll for the page URL and include the result, as structured name/value/domain/path/secure/expiry objects, in the JSON POST to http://127.0.0.1:43666/grab. No page content is read.
 
-1. "Grab video from this page". A popup button and a page context-menu item read the current tab's URL and POST it as JSON to the local Apex desktop app at http://127.0.0.1:43666/grab, with the pairing token in an x-apex-token header. The app opens its video grabber pre-filled. No download starts from this action; the user chooses a quality in the app. No page content is read.
+Why: sites increasingly refuse video metadata unless the request looks signed in, and the desktop app fetches outside the browser, so it cannot inherit the session. The app analyses without cookies first and only offers a "retry using your browser sign-in" button if that fails. The cookies stay in the app's memory for that one retry, are never written to its database, and are gone when it closes. The extension already forwards a Cookie header for ordinary downloads so files behind a login work; this is the same boundary.
 
-2. New permission: activeTab. Used only by chrome.tabs.query({active: true, currentWindow: true}) in popup.js, to read tab.url when the user clicks that button. Never used for script injection or to read page content. The context-menu path instead uses the pageUrl the event already supplies.
+2. Host permissions narrowed from <all_urls> to ["http://*/*","https://*/*"]. A reduction, not a new permission: it drops file:// and ftp://, which the extension never handled.
 
-3. Stale pairing tokens are now surfaced. A 401 from the local app raises a "pair again" notification, throttled to one per 5 minutes, and the popup reports a stale token instead of showing a green "Connected" dot while captures silently fail.
-
-From 1.3.1 (never published)
-
-4. When the browser restores several interrupted downloads at startup and Apex is not running, the extension shows one summary notification instead of one per download.
+No new permissions in this version; cookies was already present and used for the download path.
 
 Standing notes
 
@@ -191,7 +198,7 @@ Standing notes
 
 Testing without the app: with Apex absent, a download is handed back to the browser and completes normally, the popup shows a red dot and "Apex isn't running", and the grab button reports it could not reach Apex. Nothing is lost.
 
-Full path: install the free Windows app from https://apex-download-manager.vercel.app, open the popup, click "Pair with Apex app", approve the prompt in the app.
+Full path: install the free Windows app from https://apex-download-manager.vercel.app, open the popup, click "Pair with Apex app", approve the prompt in the app. The sign-in retry needs Apex 1.0.9 or newer.
 ```
 
 ### Per-permission justifications (Edge asks for one per permission)
@@ -241,9 +248,14 @@ to Apex.
 Downloads behind a login fail without the session cookie. When the user
 downloads a file, the extension reads the cookies for that specific URL
 only and forwards them to the local Apex app so the app can fetch the file
-as the logged-in user. Cookies are read for no other purpose, are never
-sent anywhere except http://127.0.0.1 on the user's own machine, and are
-not retained by the extension.
+as the logged-in user. The same applies to "Grab video from this page":
+the cookies for that one page are sent with its address, so the app can
+offer to retry as the signed-in user when a site refuses a video to a
+signed-out request.
+
+Cookies are read for no other purpose, are read only for the exact URL
+being acted on, are never sent anywhere except http://127.0.0.1 on the
+user's own machine, and are not retained by the extension.
 ```
 
 **`contextMenus`**
@@ -272,7 +284,7 @@ need to pair again. Notifications are throttled and are only raised in
 response to a real failure.
 ```
 
-**`<all_urls>` (host permission)**
+**`http://*/*` and `https://*/*` (host permission)**
 
 ```
 Required so that cookies.getAll works for whatever URL the user chooses to
@@ -282,6 +294,11 @@ hand-off needs, not a data-collection surface: the extension registers no
 content scripts, reads no page content, and makes no requests to any
 remote server. Its only network destination is http://127.0.0.1, the Apex
 desktop app on the user's own machine.
+
+The pattern is the narrowest one that still covers every site a download
+can come from. It was <all_urls> up to version 1.3.2 and was reduced to
+http and https in 1.3.3, since cookies and captured downloads are HTTP(S)
+only and the local app is reached over http://127.0.0.1.
 ```
 
 **"Single purpose" description (Edge and CWS both ask)**
@@ -362,8 +379,14 @@ the script throws on an unbalanced pair and refuses to emit a zip.
 The Chrome package therefore has no `activeTab` permission, no popup grab
 button, and no page context-menu item. Its permission set is `downloads`,
 `downloads.ui`, `cookies`, `contextMenus`, `storage`, `notifications`,
-plus the `<all_urls>` host permission, so skip the `activeTab`
-justification when filling the privacy practices tab.
+plus the `http://*/*` and `https://*/*` host permissions, so skip the
+`activeTab` justification when filling the privacy practices tab.
+
+**What 1.3.3 changes for Chrome:** only the host-permission narrowing. The
+version's headline feature, sending page cookies with a video grab, lives
+entirely inside the stripped `#grab` regions, so the Chrome package does
+not contain it and its cookie use is still the download path alone. Keep
+the Chrome privacy answers below describing that and nothing more.
 
 ### EEA trader / non-trader declaration (account level, asked once)
 
@@ -399,7 +422,7 @@ in the review-facing fields.
 | --- | --- | --- |
 | Privacy practices | "Single purpose" | Use the single-purpose text in the Edge section. |
 | Privacy practices | Permission justifications | Use the per-permission answers in the Edge section, one per box. |
-| Privacy practices | Host permission justification | Use the `<all_urls>` answer in the Edge section. |
+| Privacy practices | Host permission justification | Use the host-permission answer in the Edge section. |
 | Privacy practices | "Are you using remote code?" | No. MV3 forbids it and none is loaded. |
 | Privacy practices | Data usage disclosures | Nothing is collected. Tick none of the data types, then tick all three certification statements. |
 | Privacy practices | Privacy policy URL | https://apex-download-manager.vercel.app/privacy.html |
@@ -474,11 +497,11 @@ Three cases: the Apex application could not be reached, so the download was hand
 Without notifications these would fail silently and the user would be left wondering why a download behaved unexpectedly. Notifications are throttled, at most one per five minutes for the stale-token case and batched into a single summary for the startup case. They are never used for promotion, offers, or any message unrelated to a download.
 ```
 
-**Host permission** (874) - the box that triggers the in-depth review, so
+**Host permission** (956) - the box that triggers the in-depth review, so
 it argues necessity first and bounds the scope second
 
 ```
-The extension needs the cookies belonging to whatever file the user chooses to download, and a download can come from any site, so the pattern cannot be narrowed to a fixed list of hosts without breaking downloads on every site not on it.
+The extension needs the cookies belonging to whatever file the user chooses to download, and a download can come from any site, so the pattern cannot be narrowed to a fixed list of hosts without breaking downloads on every site not on it. It is limited to the http and https schemes, the only ones the extension handles.
 
 When a download starts, the extension calls chrome.cookies.getAll for that one URL and forwards the result to the Apex desktop application on 127.0.0.1 so files behind a sign-in download correctly. The same breadth allows the "Download with Apex" context menu to work on any page.
 
@@ -498,13 +521,13 @@ keeping straight:
   different host than the page (CDNs, signed URLs), so the origin
   `activeTab` would grant is not the one whose cookies are needed.
 
-**Possible refinement at the next version bump:** replace `<all_urls>`
-with `["http://*/*", "https://*/*"]`. Cookies and captured downloads are
-HTTP(S) only, and the local app is reached over `http://127.0.0.1`, so
-nothing breaks, and it drops `file://`, `ftp://` and other unused schemes.
-It will *not* avoid the in-depth review, since both patterns count as
-broad, so do it when all three stores are getting a new package anyway
-rather than re-uploading mid-submission.
+**Done in 1.3.3:** `<all_urls>` was replaced with
+`["http://*/*", "https://*/*"]`, batched into a version all three stores
+were getting anyway rather than re-uploaded mid-submission. Cookies and
+captured downloads are HTTP(S) only and the local app is reached over
+`http://127.0.0.1`, so nothing breaks; it drops `file://`, `ftp://` and
+other unused schemes. Do not expect it to avoid the in-depth review, since
+both patterns count as broad.
 
 **Remote code:** No. MV3 forbids remotely hosted code and none is loaded;
 there is no `eval`, no external `<script>`, and no remote module.
@@ -517,7 +540,8 @@ Firefox manifest declares `data_collection_permissions: none`, so this is
 consistent across all three stores.
 
 Expect this to be the one combination a reviewer might question: the
-`cookies` permission plus `<all_urls>` with no declared data collection.
+`cookies` permission plus broad host permissions with no declared data
+collection.
 The answer, if asked, is that nothing leaves the user's machine.
 
 **Privacy policy URL:** https://apex-download-manager.vercel.app/privacy.html
@@ -590,13 +614,15 @@ other.
 
 Pull from these when a store asks the same thing in different words.
 
-- **Why host permissions / `<all_urls>`?** Needed for `cookies.getAll` on
-  whatever URL the user chooses to download, so files behind a login
-  download correctly, and so the right-click item works on any site. There
-  are no content scripts and no page content is read.
-- **Why `cookies`?** Cookies are read only for the exact URL being
-  downloaded, and are sent only to the local app on 127.0.0.1, so a
-  download behind a login succeeds. They are used for nothing else.
+- **Why host permissions (`http://*/*`, `https://*/*`)?** Needed for
+  `cookies.getAll` on whatever URL the user chooses to download, so files
+  behind a login download correctly, and so the right-click item works on
+  any site. There are no content scripts and no page content is read. It
+  was `<all_urls>` through 1.3.2 and narrowed in 1.3.3.
+- **Why `cookies`?** Cookies are read only for the exact URL being acted
+  on, the file being downloaded or the page being grabbed, and are sent
+  only to the local app on 127.0.0.1, so a download or a grab behind a
+  login succeeds. They are used for nothing else.
 - **Why `downloads` and `downloads.ui`?** To notice a starting download so
   it can be handed to the local app, and to cancel the browser's own copy
   once the app has accepted it. `downloads.ui` hides the download shelf on

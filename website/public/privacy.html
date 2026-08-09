@@ -45,6 +45,15 @@
       The app uses them solely to perform the download you requested.
       Nothing leaves your machine.
     </p>
+    <p>
+      Using "Grab video from this page" works the same way: the page address
+      is sent to the local app together with the cookies for that one page,
+      so that if a site refuses the video to a signed-out request, the app
+      can offer to retry as the signed-in you. The app holds those cookies
+      in memory only, for that single retry. They are never written to its
+      database and are gone when the app closes. Nothing is retried unless
+      you ask for it, and nothing leaves your machine.
+    </p>
 
     <h2>The website</h2>
     <p>

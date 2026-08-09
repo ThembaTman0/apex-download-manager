@@ -88,16 +88,18 @@ Nothing leaves the user's machine.
 - `downloads` / `downloads.ui`: detect new browser downloads so they can be
   handed to the local Apex app; cancel the browser's copy after handoff.
   `downloads.ui` hides the download shelf during capture on Chromium.
-- `cookies`: forwarded only for the specific URL being downloaded, only to
-  the local app, so files behind logins download correctly. Never read for
-  any other purpose.
+- `cookies`: forwarded only for the specific URL being acted on, the file
+  being downloaded or the page being handed to the video grabber, and only
+  to the local app, so files behind logins download correctly. Never read
+  for any other purpose.
 - `contextMenus`: the "Download with Apex" right-click items.
 - `storage`: the user's settings (enabled flag, port, pairing token).
 - `notifications`: tell the user when Apex is unreachable and a download
   was handed back to the browser.
-- `<all_urls>` (host permission): required for `cookies.getAll` on
-  arbitrary download URLs and for the context menu to work on any site.
-  The extension has no content scripts and reads no page content.
+- `http://*/*`, `https://*/*` (host permissions): required for
+  `cookies.getAll` on arbitrary download URLs and for the context menu to
+  work on any site. The extension has no content scripts and reads no page
+  content. This was `<all_urls>` through version 1.3.2.
 
 Note for the AMO reviewer: the extension only communicates with a
 localhost HTTP endpoint (`http://127.0.0.1:<port>`) exposed by the Apex
