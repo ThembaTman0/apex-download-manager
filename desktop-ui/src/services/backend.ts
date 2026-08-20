@@ -80,6 +80,7 @@ export const backend = {
     invoke<void>("remove_download", { id, deleteFile }),
   pauseAll: () => invoke<void>("pause_all"),
   resumeAll: () => invoke<void>("resume_all"),
+  retryFailed: () => invoke<void>("retry_failed"),
   openDownload: (id: string) => invoke<void>("open_download", { id }),
   showInFolder: (id: string) => invoke<void>("show_in_folder", { id }),
 
@@ -95,7 +96,8 @@ export const backend = {
     title: string,
     ext: string,
     selector: string,
-    saveDir?: string
+    saveDir?: string,
+    subtitleLang?: string
   ): Promise<Download> {
     const raw = await invoke<RawDownload>("add_video", {
       url,
@@ -103,6 +105,7 @@ export const backend = {
       ext,
       selector,
       saveDir: saveDir || null,
+      subtitleLang: subtitleLang || null,
     });
     return toDownload(raw);
   },

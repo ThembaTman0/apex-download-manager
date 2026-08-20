@@ -280,6 +280,7 @@ impl DownloadManager {
             kind: crate::models::default_kind(),
             speed_limit_kbps: 0,
             video_format: None,
+            subtitle_lang: None,
             etag: None,
             last_modified: None,
             segment_states: Vec::new(),
@@ -307,6 +308,7 @@ impl DownloadManager {
         ext: String,
         selector: String,
         save_dir: Option<String>,
+        subtitle_lang: Option<String>,
     ) -> Result<Download, String> {
         let url = url.trim().to_string();
         if !url.starts_with("http://") && !url.starts_with("https://") {
@@ -349,6 +351,7 @@ impl DownloadManager {
             kind: "video".into(),
             speed_limit_kbps: 0,
             video_format: Some(selector),
+            subtitle_lang: subtitle_lang.filter(|l| !l.trim().is_empty()),
             etag: None,
             last_modified: None,
             segment_states: Vec::new(),

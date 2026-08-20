@@ -47,6 +47,7 @@ impl Db {
             "ALTER TABLE downloads ADD COLUMN video_format TEXT",
             "ALTER TABLE downloads ADD COLUMN speed_limit_kbps INTEGER",
             "ALTER TABLE downloads ADD COLUMN queue_order INTEGER",
+            "ALTER TABLE downloads ADD COLUMN subtitle_lang TEXT",
         ] {
             let _ = conn.execute(ddl, []);
         }
@@ -73,15 +74,15 @@ impl Db {
                 "INSERT INTO downloads (id, name, url, file_type, size_bytes, downloaded_bytes, status,
                     segments, modified_at, created_at, save_path, supports_ranges, error, segment_states,
                     etag, last_modified, start_at, request_headers, kind, video_format, speed_limit_kbps,
-                    queue_order)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22)
+                    queue_order, subtitle_lang)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23)
                  ON CONFLICT(id) DO UPDATE SET
                     name = ?2, url = ?3, file_type = ?4, size_bytes = ?5, downloaded_bytes = ?6,
                     status = ?7, segments = ?8, modified_at = ?9, save_path = ?11,
                     supports_ranges = ?12, error = ?13, segment_states = ?14,
                     etag = ?15, last_modified = ?16, start_at = ?17, request_headers = ?18,
                     kind = ?19, video_format = ?20, speed_limit_kbps = ?21,
-                    queue_order = ?22",
+                    queue_order = ?22, subtitle_lang = ?23",
                 params![
                     d.id,
                     d.name,
@@ -105,6 +106,7 @@ impl Db {
                     d.video_format,
                     d.speed_limit_kbps as i64,
                     d.queue_order,
+                    d.subtitle_lang,
                 ],
             )
             .map_err(|e| e.to_string())?;
@@ -276,5 +278,6 @@ fn row_to_download(row: &rusqlite::Row) -> rusqlite::Result<Download> {
         segment_states,
         request_headers,
         queue_order: row.get("queue_order")?,
+        subtitle_lang: row.get("subtitle_lang")?,
     })
 }

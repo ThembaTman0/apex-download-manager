@@ -37,6 +37,9 @@ export function GrabVideoDialog() {
   );
   const settings = useDownloadsStore((s) => s.settings);
   const addVideo = useDownloadsStore((s) => s.addVideo);
+  // "" means no subtitles, which is the default. Otherwise a yt-dlp language
+  // code, prefixed "auto:" for machine transcripts.
+  const [subtitleLang, setSubtitleLang] = useState("");
   const setActiveNav = useDownloadsStore((s) => s.setActiveNav);
 
   const [url, setUrl] = useState("");
@@ -110,6 +113,11 @@ export function GrabVideoDialog() {
     }
   };
 
+  // Audio-only pulls have no picture to caption, so the picker is hidden and
+  // any earlier choice is ignored rather than silently applied.
+  const wantsSubtitles =
+    !!subtitleLang && !probe?.options[selected]?.audioOnly;
+
   const grab = async () => {
     if (!probe) return;
     const opt = probe.options[selected];
@@ -122,10 +130,24 @@ export function GrabVideoDialog() {
         let n = 0;
         for (const entry of picked) {
           setQueued(++n);
-          await addVideo(entry.url, entry.title, opt.ext, opt.selector, saveDir || undefined);
+          await addVideo(
+            entry.url,
+            entry.title,
+            opt.ext,
+            opt.selector,
+            saveDir || undefined,
+            wantsSubtitles ? subtitleLang : undefined
+          );
         }
       } else {
-        await addVideo(url.trim(), probe.title, opt.ext, opt.selector, saveDir || undefined);
+        await addVideo(
+          url.trim(),
+          probe.title,
+          opt.ext,
+          opt.selector,
+          saveDir || undefined,
+          wantsSubtitles ? subtitleLang : undefined
+        );
       }
       setOpen(false);
     } catch (e) {
@@ -387,6 +409,41 @@ export function GrabVideoDialog() {
                             </p>
                           )}
                         </div>
+
+                        {probe.subtitles.length > 0 &&
+                          !probe.options[selected]?.audioOnly && (
+                            <label className="block mb-4">
+                              <span className="text-xs font-medium text-ink-muted mb-1.5 block">
+                                Subtitles
+                              </span>
+                              <select
+                                value={subtitleLang}
+                                onChange={(e) => setSubtitleLang(e.target.value)}
+                                className="w-full bg-raised text-ink border border-white/[0.08] rounded-lg text-sm px-3 py-2.5 outline-none focus:border-accent/50 transition-colors"
+                              >
+                                <option value="" className="bg-raised text-ink">
+                                  None
+                                </option>
+                                {probe.subtitles.map((t) => (
+                                  <option
+                                    key={(t.auto ? "auto:" : "") + t.lang}
+                                    value={(t.auto ? "auto:" : "") + t.lang}
+                                    className="bg-raised text-ink"
+                                  >
+                                    {t.label}
+                                    {t.auto ? " (auto-generated)" : ""}
+                                  </option>
+                                ))}
+                              </select>
+                              {subtitleLang !== "" && (
+                                <p className="text-[10px] text-ink-faint mt-1.5 leading-relaxed">
+                                  {probe.hasFfmpeg
+                                    ? "Saved as an .srt file next to the video, and embedded in it."
+                                    : "Saved as a subtitle file next to the video. Install FFmpeg under Settings → Video Grabber to embed it instead."}
+                                </p>
+                              )}
+                            </label>
+                          )}
 
                         <label className="block mb-5">
                           <span className="text-xs font-medium text-ink-muted mb-1.5 block">

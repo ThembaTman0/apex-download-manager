@@ -76,6 +76,12 @@ pub struct Download {
     /// applies on top). Adjustable while the download runs.
     #[serde(default)]
     pub speed_limit_kbps: u64,
+    /// Subtitle track to fetch alongside a video (kind == "video"): a yt-dlp
+    /// language code, prefixed "auto:" when it is a machine transcript rather
+    /// than a published track, since the two need different yt-dlp flags.
+    /// None means no subtitles, which is the default.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub subtitle_lang: Option<String>,
     /// yt-dlp -f selector chosen in the quality picker (kind == "video").
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub video_format: Option<String>,

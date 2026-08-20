@@ -122,6 +122,14 @@ export interface PlaylistEntry {
   durationSeconds: number | null;
 }
 
+export interface SubtitleTrack {
+  /** Language code as yt-dlp knows it ("en", "pt-BR"). */
+  lang: string;
+  label: string;
+  /** Machine transcript rather than a published track. */
+  auto: boolean;
+}
+
 export interface VideoProbe {
   title: string;
   uploader: string | null;
@@ -131,6 +139,8 @@ export interface VideoProbe {
   options: VideoFormatOption[];
   /** Present when the URL is a playlist; options are generic ladders. */
   playlist: PlaylistEntry[] | null;
+  /** Available subtitle tracks, published ones first. Empty for playlists. */
+  subtitles: SubtitleTrack[];
 }
 
 export interface YtdlpUpdateCheck {

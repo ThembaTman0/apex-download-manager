@@ -333,6 +333,7 @@ pub fn run() {
             commands::remove_download,
             commands::pause_all,
             commands::resume_all,
+            commands::retry_failed,
             commands::open_download,
             commands::show_in_folder,
             commands::get_settings,
@@ -389,6 +390,7 @@ mod tests {
             segment_states: Vec::new(),
             request_headers: Vec::new(),
             queue_order: None,
+            subtitle_lang: None,
         }
     }
 

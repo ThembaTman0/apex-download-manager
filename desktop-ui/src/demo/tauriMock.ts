@@ -389,6 +389,15 @@ if (!("__TAURI_INTERNALS__" in window)) {
         }
       }
     },
+    retry_failed: () => {
+      for (const d of state.values()) {
+        if (d.status === "failed") {
+          d.status = "downloading";
+          d.error = undefined;
+          touch(d);
+        }
+      }
+    },
     set_download_url: (a) => {
       const d = state.get(a?.id);
       if (!d) throw new Error("download not found");

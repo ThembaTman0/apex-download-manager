@@ -9,7 +9,9 @@ export function StatusBar() {
   const downloads = useDownloadsStore((s) => s.downloads);
   const settings = useDownloadsStore((s) => s.settings);
   const saveSettings = useDownloadsStore((s) => s.saveSettings);
-  const resumeDownload = useDownloadsStore((s) => s.resumeDownload);
+  // One call rather than one per failure: after a dropped connection the
+  // list can be long, and the engine already knows which rows qualify.
+  const retryFailed = useDownloadsStore((s) => s.retryFailed);
 
   const active = downloads.filter((d) => d.status === "downloading");
   const queued = downloads.filter((d) => d.status === "queued");
@@ -55,7 +57,7 @@ export function StatusBar() {
             {failed.length} failed
           </span>
           <button
-            onClick={() => failed.forEach((d) => resumeDownload(d.id))}
+            onClick={retryFailed}
             className="flex items-center gap-1 hover:text-error-soft underline underline-offset-2 transition-colors"
             title="Retry all failed downloads"
           >

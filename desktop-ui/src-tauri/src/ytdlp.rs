@@ -379,6 +379,18 @@ pub struct PlaylistEntry {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct SubtitleTrack {
+    /// Language code as yt-dlp knows it ("en", "pt-BR").
+    pub lang: String,
+    /// The extractor's own name for the track when it gives one.
+    pub label: String,
+    /// A machine transcript rather than a published track. These need
+    /// --write-auto-subs, and are worth marking: the quality is not the same.
+    pub auto: bool,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct VideoProbe {
     pub title: String,
     pub uploader: Option<String>,
@@ -389,6 +401,9 @@ pub struct VideoProbe {
     /// Present when the URL is a playlist: its videos, in playlist order.
     /// `options` then holds generic quality ladders (per-video formats vary).
     pub playlist: Option<Vec<PlaylistEntry>>,
+    /// Subtitle tracks on offer, published ones first. Empty for playlists:
+    /// the flat probe never looks inside the individual videos.
+    pub subtitles: Vec<SubtitleTrack>,
 }
 
 const MAX_PLAYLIST_ENTRIES: usize = 200;
@@ -538,6 +553,7 @@ fn build_playlist_probe(json: &serde_json::Value, has_ffmpeg: bool) -> VideoProb
         has_ffmpeg,
         options,
         playlist: Some(entries),
+        subtitles: Vec::new(),
     }
 }
 
@@ -676,7 +692,57 @@ fn build_probe(json: &serde_json::Value, has_ffmpeg: bool) -> VideoProbe {
         has_ffmpeg,
         options,
         playlist: None,
+        subtitles: subtitle_tracks(json),
     }
+}
+
+/// Flatten yt-dlp's `subtitles` and `automatic_captions` maps into one list.
+///
+/// Published tracks come first; auto-captions follow, minus any language the
+/// publisher already covers. YouTube offers machine translation into ~190
+/// languages, so the tail is long by nature - it is capped rather than
+/// truncated arbitrarily in the middle of the alphabet.
+fn subtitle_tracks(json: &serde_json::Value) -> Vec<SubtitleTrack> {
+    const MAX_SUBTITLE_TRACKS: usize = 300;
+
+    fn collect(v: &serde_json::Value, auto: bool) -> Vec<SubtitleTrack> {
+        let mut out: Vec<SubtitleTrack> = v
+            .as_object()
+            .map(|m| {
+                m.iter()
+                    // "live_chat" is a transcript of the chat replay, not
+                    // subtitles, and yt-dlp lists it alongside them.
+                    .filter(|(lang, _)| lang.as_str() != "live_chat")
+                    .map(|(lang, entries)| {
+                        let label = entries
+                            .as_array()
+                            .and_then(|a| a.first())
+                            .and_then(|e| e["name"].as_str())
+                            .unwrap_or(lang)
+                            .to_string();
+                        SubtitleTrack {
+                            lang: lang.clone(),
+                            label,
+                            auto,
+                        }
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        out.sort_by(|a, b| a.label.to_lowercase().cmp(&b.label.to_lowercase()));
+        out
+    }
+
+    let mut tracks = collect(&json["subtitles"], false);
+    let published: std::collections::HashSet<String> =
+        tracks.iter().map(|t| t.lang.clone()).collect();
+    tracks.extend(
+        collect(&json["automatic_captions"], true)
+            .into_iter()
+            .filter(|t| !published.contains(&t.lang)),
+    );
+    tracks.truncate(MAX_SUBTITLE_TRACKS);
+    tracks
 }
 
 // ---------------------------------------------------------------------------
@@ -724,6 +790,9 @@ pub(crate) async fn drive_video(ctx: &TaskCtx, d: &mut Download) -> Result<bool,
         (t, g) => t.min(g),
     };
 
+    // The audio-only ladder entry is the one selector that asks for no video.
+    let audio_only = d.video_format.as_deref().unwrap_or("").contains("ba[ext");
+
     let mut cmd = command(&ytdlp);
     cmd.args([
         "--no-playlist",
@@ -745,9 +814,26 @@ pub(crate) async fn drive_video(ctx: &TaskCtx, d: &mut Download) -> Result<bool,
         if let Some(dir) = ff.parent() {
             cmd.arg("--ffmpeg-location").arg(dir);
         }
-        if !d.video_format.as_deref().unwrap_or("").contains("ba[ext") {
+        if !audio_only {
             // Only meaningful when streams are merged; mp4 plays everywhere.
             cmd.arg("--merge-output-format").arg("mp4");
+        }
+    }
+    // Subtitles, when one was picked in the quality dialog. Skipped for
+    // audio-only pulls, where there is no picture to caption and no
+    // container that would take an embedded track.
+    if let (Some(track), false) = (d.subtitle_lang.as_deref(), audio_only) {
+        let (flag, lang) = match track.strip_prefix("auto:") {
+            Some(lang) => ("--write-auto-subs", lang),
+            None => ("--write-subs", track),
+        };
+        cmd.arg(flag);
+        cmd.arg("--sub-langs").arg(lang);
+        if ffmpeg.is_some() {
+            // Both need ffmpeg: srt is the format every player reads, and
+            // embedding puts the track inside the file so it travels with it.
+            // The sidecar file is kept as well - some players prefer it.
+            cmd.args(["--convert-subs", "srt", "--embed-subs"]);
         }
     }
     if speed_limit > 0 {
@@ -962,3 +1048,61 @@ pub fn remove_partials(d: &Download) {
     }
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn published_tracks_come_before_auto_captions() {
+        let j = json!({
+            "subtitles": { "de": [{ "name": "German" }] },
+            "automatic_captions": { "af": [{ "name": "Afrikaans" }] },
+        });
+        let t = subtitle_tracks(&j);
+        assert_eq!(t.len(), 2);
+        assert_eq!((t[0].lang.as_str(), t[0].auto), ("de", false));
+        assert_eq!((t[1].lang.as_str(), t[1].auto), ("af", true));
+    }
+
+    #[test]
+    fn a_published_track_hides_the_machine_transcript_for_that_language() {
+        // YouTube lists both for the original language; offering the
+        // auto-generated twin of a real track is noise.
+        let j = json!({
+            "subtitles": { "en": [{ "name": "English" }] },
+            "automatic_captions": {
+                "en": [{ "name": "English (auto)" }],
+                "zu": [{ "name": "Zulu" }],
+            },
+        });
+        let t = subtitle_tracks(&j);
+        assert_eq!(t.len(), 2);
+        assert!(t.iter().any(|x| x.lang == "en" && !x.auto));
+        assert!(t.iter().any(|x| x.lang == "zu" && x.auto));
+        assert!(!t.iter().any(|x| x.lang == "en" && x.auto));
+    }
+
+    #[test]
+    fn live_chat_is_not_a_subtitle_track() {
+        let j = json!({
+            "subtitles": { "live_chat": [{ "name": "Chat replay" }] },
+            "automatic_captions": {},
+        });
+        assert!(subtitle_tracks(&j).is_empty());
+    }
+
+    #[test]
+    fn a_video_without_subtitles_offers_none() {
+        assert!(subtitle_tracks(&json!({})).is_empty());
+        assert!(subtitle_tracks(&json!({ "subtitles": {}, "automatic_captions": {} })).is_empty());
+    }
+
+    #[test]
+    fn a_track_without_a_name_falls_back_to_its_language_code() {
+        let j = json!({ "subtitles": { "pt-BR": [{ "ext": "vtt" }] } });
+        let t = subtitle_tracks(&j);
+        assert_eq!(t[0].label, "pt-BR");
+    }
+}

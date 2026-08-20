@@ -201,8 +201,9 @@ pub async fn add_video(
     ext: String,
     selector: String,
     save_dir: Option<String>,
+    subtitle_lang: Option<String>,
 ) -> Result<Download, String> {
-    mgr.add_video(url, title, ext, selector, save_dir)
+    mgr.add_video(url, title, ext, selector, save_dir, subtitle_lang)
 }
 
 #[tauri::command]
@@ -263,6 +264,19 @@ pub async fn resume_all(mgr: State<'_, DownloadManager>) -> Result<(), String> {
             d.status,
             crate::models::DownloadStatus::Paused | crate::models::DownloadStatus::Failed
         ) {
+            let _ = mgr.resume(&d.id);
+        }
+    }
+    Ok(())
+}
+
+/// Resume every failed download, and only those. Distinct from `resume_all`:
+/// after a network drop the user wants the casualties retried without
+/// un-pausing the downloads they stopped on purpose.
+#[tauri::command]
+pub async fn retry_failed(mgr: State<'_, DownloadManager>) -> Result<(), String> {
+    for d in mgr.list()? {
+        if d.status == crate::models::DownloadStatus::Failed {
             let _ = mgr.resume(&d.id);
         }
     }

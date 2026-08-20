@@ -74,7 +74,8 @@ interface DownloadsState {
     title: string,
     ext: string,
     selector: string,
-    saveDir?: string
+    saveDir?: string,
+    subtitleLang?: string
   ) => Promise<void>;
   pauseDownload: (id: string) => Promise<void>;
   resumeDownload: (id: string) => Promise<void>;
@@ -86,6 +87,7 @@ interface DownloadsState {
   removeDownloads: (ids: string[], deleteFile: boolean) => Promise<void>;
   pauseAll: () => Promise<void>;
   resumeAll: () => Promise<void>;
+  retryFailed: () => Promise<void>;
   openFile: (id: string) => Promise<void>;
   showInFolder: (id: string) => Promise<void>;
   copyUrls: (ids: string[]) => Promise<void>;
@@ -277,8 +279,15 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
     }));
   },
 
-  addVideo: async (url, title, ext, selector, saveDir) => {
-    const d = await backend.addVideo(url, title, ext, selector, saveDir);
+  addVideo: async (url, title, ext, selector, saveDir, subtitleLang) => {
+    const d = await backend.addVideo(
+      url,
+      title,
+      ext,
+      selector,
+      saveDir,
+      subtitleLang
+    );
     set((s) => ({
       downloads: s.downloads.some((x) => x.id === d.id)
         ? s.downloads.map((x) => (x.id === d.id ? d : x))
@@ -334,6 +343,14 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
   resumeAll: async () => {
     try {
       await backend.resumeAll();
+    } catch (e) {
+      set({ lastError: String(e) });
+    }
+  },
+
+  retryFailed: async () => {
+    try {
+      await backend.retryFailed();
     } catch (e) {
       set({ lastError: String(e) });
     }
