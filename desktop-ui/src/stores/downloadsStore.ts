@@ -80,6 +80,9 @@ interface DownloadsState {
   resumeDownload: (id: string) => Promise<void>;
   restartDownload: (id: string) => Promise<void>;
   moveInQueue: (id: string, direction: QueueMove) => Promise<void>;
+  /** Point a download at a fresh address and resume it. Throws on rejection
+   *  so the panel can show why inline instead of only in a toast. */
+  setDownloadUrl: (id: string, url: string) => Promise<void>;
   removeDownloads: (ids: string[], deleteFile: boolean) => Promise<void>;
   pauseAll: () => Promise<void>;
   resumeAll: () => Promise<void>;
@@ -231,6 +234,12 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
     } catch (e) {
       set({ lastError: String(e) });
     }
+  },
+
+  setDownloadUrl: async (id, url) => {
+    // Deliberately not swallowed: the caller shows the reason next to the
+    // field the user just typed into, which is where they are looking.
+    await backend.setDownloadUrl(id, url);
   },
 
   setDownloadSpeedLimit: async (id, kbps) => {

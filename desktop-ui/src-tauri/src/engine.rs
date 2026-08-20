@@ -717,6 +717,46 @@ impl DownloadManager {
         Ok(())
     }
 
+    /// Point a download at a fresh URL and carry on from the bytes already on
+    /// disk. Signed CDN links expire while something sits paused or queued;
+    /// without this the only way forward is to start the whole file again.
+    ///
+    /// The existing resume validation still has the last word: if the server
+    /// behind the new address disagrees about the file (ETag/If-Range), the
+    /// transfer restarts from zero exactly as it would have anyway.
+    pub fn set_url(&self, id: &str, url: &str) -> Result<(), String> {
+        let url = url.trim().to_string();
+        if !url.starts_with("http://") && !url.starts_with("https://") {
+            return Err("Only http(s) URLs are supported".into());
+        }
+        if self.active.lock().unwrap().contains_key(id) {
+            return Err("Pause the download before changing its address".into());
+        }
+        let mut d = self
+            .db
+            .lock()
+            .unwrap()
+            .get_download(id)?
+            .ok_or("download not found")?;
+        if d.status == DownloadStatus::Completed {
+            return Err("That download has already finished".into());
+        }
+        if d.url == url {
+            return Ok(());
+        }
+
+        d.request_headers = carry_headers(&d.url, &url, std::mem::take(&mut d.request_headers));
+        ensure_referer(&url, &mut d.request_headers);
+        d.url = url;
+        d.error = None;
+        d.modified_at = now_millis();
+        self.db.lock().unwrap().upsert_download(&d)?;
+        self.emit_changed(&d);
+        // The point of a fresh address is to keep going, so pick it back up -
+        // try_start queues it instead if every slot is busy.
+        self.resume(id)
+    }
+
     pub fn resume(&self, id: &str) -> Result<(), String> {
         let d = self
             .db
@@ -1459,6 +1499,38 @@ struct ProbeResult {
 /// navigations) one matching the URL's origin. Some WAF configurations
 /// (observed on Cloudflare) refuse ranged requests that carry no Referer,
 /// so a bare header set would break both the probe and segmented transfer.
+/// Which captured browser headers survive an address change.
+///
+/// They were collected for the old address, so moving to another host must
+/// not hand that host's session cookies (or its Referer) to the new one:
+/// both are dropped and the referer is rebuilt from the new URL. A same-host
+/// swap - the usual case, a re-signed CDN link - keeps the browser context
+/// that made the original download work. An address that will not parse is
+/// treated as a different host, which is the cautious reading.
+fn carry_headers(
+    old_url: &str,
+    new_url: &str,
+    headers: Vec<(String, String)>,
+) -> Vec<(String, String)> {
+    let old_host = host_of(old_url);
+    if old_host.is_some() && old_host == host_of(new_url) {
+        return headers;
+    }
+    headers
+        .into_iter()
+        .filter(|(k, _)| {
+            !k.eq_ignore_ascii_case("cookie") && !k.eq_ignore_ascii_case("referer")
+        })
+        .collect()
+}
+
+/// Lowercased host of a URL, or None if it will not parse.
+fn host_of(url: &str) -> Option<String> {
+    reqwest::Url::parse(url)
+        .ok()
+        .and_then(|u| u.host_str().map(|h| h.to_ascii_lowercase()))
+}
+
 fn ensure_referer(url: &str, headers: &mut Vec<(String, String)>) {
     if headers
         .iter()
@@ -2098,6 +2170,47 @@ fn percent_decode(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn hdrs() -> Vec<(String, String)> {
+        vec![
+            ("Cookie".into(), "session=secret".into()),
+            ("Referer".into(), "https://cdn.example.com/".into()),
+            ("User-Agent".into(), "Apex".into()),
+        ]
+    }
+
+    #[test]
+    fn a_resigned_link_on_the_same_host_keeps_its_browser_context() {
+        let kept = carry_headers(
+            "https://cdn.example.com/f.bin?token=old",
+            "https://cdn.example.com/f.bin?token=new",
+            hdrs(),
+        );
+        assert_eq!(kept.len(), 3);
+    }
+
+    #[test]
+    fn moving_to_another_host_drops_cookies_and_referer() {
+        let kept = carry_headers(
+            "https://cdn.example.com/f.bin",
+            "https://other.example.net/f.bin",
+            hdrs(),
+        );
+        assert_eq!(kept.len(), 1);
+        assert!(kept.iter().all(|(k, _)| k == "User-Agent"));
+    }
+
+    #[test]
+    fn host_comparison_ignores_case_and_unparseable_urls() {
+        // Same host, different casing: still the same session.
+        assert_eq!(
+            carry_headers("https://CDN.Example.com/a", "https://cdn.example.com/b", hdrs()).len(),
+            3
+        );
+        // Junk in either slot is treated as a different host.
+        assert_eq!(carry_headers("not a url", "https://cdn.example.com/b", hdrs()).len(), 1);
+        assert_eq!(carry_headers("https://cdn.example.com/a", "not a url", hdrs()).len(), 1);
+    }
 
     #[test]
     fn queue_moves_land_where_expected() {

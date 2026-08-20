@@ -328,6 +328,7 @@ pub fn run() {
             commands::get_download_segments,
             commands::schedule_download,
             commands::move_in_queue,
+            commands::set_download_url,
             commands::set_download_speed_limit,
             commands::remove_download,
             commands::pause_all,

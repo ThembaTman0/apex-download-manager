@@ -389,6 +389,24 @@ if (!("__TAURI_INTERNALS__" in window)) {
         }
       }
     },
+    set_download_url: (a) => {
+      const d = state.get(a?.id);
+      if (!d) throw new Error("download not found");
+      const url = String(a?.url ?? "").trim();
+      if (!/^https?:\/\//.test(url)) {
+        throw new Error("Only http(s) URLs are supported");
+      }
+      if (d.status === "downloading") {
+        throw new Error("Pause the download before changing its address");
+      }
+      if (d.status === "completed") {
+        throw new Error("That download has already finished");
+      }
+      d.url = url;
+      d.error = undefined;
+      d.status = "downloading";
+      touch(d);
+    },
     move_in_queue: (a) => {
       const queued = [...state.values()]
         .filter((d) => d.status === "queued")

@@ -53,6 +53,8 @@ export const backend = {
     invoke<void>("schedule_download", { id, startAt }),
   moveInQueue: (id: string, direction: QueueMove) =>
     invoke<void>("move_in_queue", { id, direction }),
+  setDownloadUrl: (id: string, url: string) =>
+    invoke<void>("set_download_url", { id, url }),
   setDownloadSpeedLimit: (id: string, kbps: number) =>
     invoke<void>("set_download_speed_limit", { id, kbps }),
   getDownloadSegments: (id: string) =>

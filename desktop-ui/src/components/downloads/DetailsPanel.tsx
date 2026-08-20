@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Copy, FolderOpen, ShieldAlert, X } from "lucide-react";
+import { Copy, FolderOpen, Link2, ShieldAlert, X } from "lucide-react";
 import { useDownloadsStore } from "@/stores/downloadsStore";
 import { formatBytes, formatETA, formatSpeed } from "@/lib/utils";
 import { StatusBadge } from "./StatusBadge";
 import { SegmentMap } from "./SegmentMap";
-import type { Segment } from "@/types";
+import type { DownloadStatus, Segment } from "@/types";
 
 export function DetailsPanel() {
   const detailsId = useDownloadsStore((s) => s.detailsId);
@@ -74,27 +74,12 @@ export function DetailsPanel() {
             <SpeedLimitRow id={download.id} limit={download.speedLimitKbps} />
             <Row label="Added">{download.createdAt.toLocaleString()}</Row>
 
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] text-ink-muted">URL</span>
-                <button
-                  onClick={() => copyUrls([download.id])}
-                  className="text-ink-muted hover:text-ink transition-colors"
-                  title="Copy URL"
-                >
-                  <Copy className="w-3 h-3" />
-                </button>
-              </div>
-              <p className="text-[11px] text-ink-mid break-all font-mono leading-relaxed select-text">
-                {download.url}
-              </p>
-              {download.url.startsWith("http://") && (
-                <p className="flex items-center gap-1 mt-1 text-[11px] text-warning">
-                  <ShieldAlert className="w-3 h-3 shrink-0" />
-                  Not encrypted: this download uses plain HTTP
-                </p>
-              )}
-            </div>
+            <UrlBlock
+              id={download.id}
+              url={download.url}
+              status={download.status}
+              onCopy={() => copyUrls([download.id])}
+            />
 
             <div>
               <div className="flex items-center justify-between mb-1">
@@ -132,6 +117,137 @@ export function DetailsPanel() {
         </motion.aside>
       )}
     </AnimatePresence>
+  );
+}
+
+/** The address, with a way to replace it. Signed CDN links expire while a
+ *  download sits paused; pasting a fresh one keeps the bytes already on disk
+ *  instead of starting the file over. */
+function UrlBlock({
+  id,
+  url,
+  status,
+  onCopy,
+}: {
+  id: string;
+  url: string;
+  status: DownloadStatus;
+  onCopy: () => void;
+}) {
+  const setDownloadUrl = useDownloadsStore((s) => s.setDownloadUrl);
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(url);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  // A finished file has nothing left to fetch, and a running one would have
+  // to be torn down mid-flight - the engine rejects both.
+  const canEdit =
+    status !== "completed" && status !== "downloading" && status !== "merging";
+
+  // Switching downloads (or the backend confirming a change) resets the field.
+  useEffect(() => {
+    setEditing(false);
+    setValue(url);
+    setError(null);
+  }, [id, url]);
+
+  const submit = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await setDownloadUrl(id, value);
+      setEditing(false);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[11px] text-ink-muted">URL</span>
+        <span className="flex items-center gap-2">
+          {canEdit && !editing && (
+            <button
+              onClick={() => setEditing(true)}
+              className="text-ink-muted hover:text-ink transition-colors"
+              title="Replace the address (for expired links)"
+            >
+              <Link2 className="w-3 h-3" />
+            </button>
+          )}
+          <button
+            onClick={onCopy}
+            className="text-ink-muted hover:text-ink transition-colors"
+            title="Copy URL"
+          >
+            <Copy className="w-3 h-3" />
+          </button>
+        </span>
+      </div>
+
+      {editing ? (
+        <>
+          <textarea
+            value={value}
+            autoFocus
+            rows={3}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                if (!busy) submit();
+              } else if (e.key === "Escape") {
+                setEditing(false);
+                setValue(url);
+                setError(null);
+              }
+            }}
+            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-md text-[11px] text-ink font-mono break-all px-2 py-1.5 outline-none focus:border-accent/50 transition-colors resize-none leading-relaxed"
+          />
+          <p className="text-[10px] text-ink-faint mt-1 leading-relaxed">
+            Downloading continues from what is already on disk. If the new
+            address serves a different file, it starts over.
+          </p>
+          {error && (
+            <p className="text-[11px] text-error-soft mt-1 break-all">{error}</p>
+          )}
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={submit}
+              disabled={busy || !value.trim() || value.trim() === url}
+              className="text-[11px] px-2 py-1 rounded-md bg-accent/15 text-accent hover:bg-accent/25 disabled:opacity-40 disabled:hover:bg-accent/15 transition-colors"
+            >
+              {busy ? "Updating…" : "Update and resume"}
+            </button>
+            <button
+              onClick={() => {
+                setEditing(false);
+                setValue(url);
+                setError(null);
+              }}
+              className="text-[11px] px-2 py-1 rounded-md text-ink-muted hover:text-ink transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </>
+      ) : (
+        <p className="text-[11px] text-ink-mid break-all font-mono leading-relaxed select-text">
+          {url}
+        </p>
+      )}
+
+      {url.startsWith("http://") && !editing && (
+        <p className="flex items-center gap-1 mt-1 text-[11px] text-warning">
+          <ShieldAlert className="w-3 h-3 shrink-0" />
+          Not encrypted: this download uses plain HTTP
+        </p>
+      )}
+    </div>
   );
 }
 
