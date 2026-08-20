@@ -25,7 +25,24 @@ import {
 import { backend } from "@/services/backend";
 import { useDownloadsStore } from "@/stores/downloadsStore";
 import { formatBytes } from "@/lib/utils";
-import type { QueueDoneAction, Settings, ToolsStatus } from "@/types";
+import type {
+  Category,
+  CategoryRule,
+  QueueDoneAction,
+  Settings,
+  ToolsStatus,
+} from "@/types";
+
+/** The built-in categories, in the order the panel lists them. */
+const CATEGORIES: Category[] = [
+  "Video",
+  "Music",
+  "Programs",
+  "Archives",
+  "Documents",
+  "Images",
+  "Other",
+];
 
 export function SettingsPage() {
   const settings = useDownloadsStore((s) => s.settings);
@@ -253,7 +270,7 @@ export function SettingsPage() {
         <Field
           icon={FolderTree}
           label="Auto-organize"
-          hint="Saves into Video, Music, Programs… subfolders automatically"
+          hint="Saves into Video, Music, Programs… subfolders. Give a category its own folder, or send extra file types to it, below."
         >
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
             <input
@@ -266,6 +283,13 @@ export function SettingsPage() {
               Sort downloads into category folders
             </span>
           </label>
+          {form.autoOrganize && (
+            <CategoryRules
+              rules={form.categoryRules}
+              downloadDir={form.downloadDir}
+              onChange={(categoryRules) => update({ categoryRules })}
+            />
+          )}
         </Field>
 
         <Field
@@ -726,6 +750,88 @@ function toHHMM(min: number): string {
 function fromHHMM(v: string): number {
   const [h, m] = v.split(":").map(Number);
   return ((h || 0) * 60 + (m || 0)) % (24 * 60);
+}
+
+/** Per-category destination and extra file types. A category with nothing
+ *  filled in keeps its defaults, so the whole panel can be ignored. */
+function CategoryRules({
+  rules,
+  downloadDir,
+  onChange,
+}: {
+  rules: CategoryRule[];
+  downloadDir: string;
+  onChange: (rules: CategoryRule[]) => void;
+}) {
+  const ruleFor = (category: Category): CategoryRule =>
+    rules.find((r) => r.category === category) ?? {
+      category,
+      folder: "",
+      extensions: [],
+    };
+
+  // Rules that say nothing are dropped rather than stored as empty rows.
+  const put = (category: Category, patch: Partial<CategoryRule>) => {
+    const next = { ...ruleFor(category), ...patch };
+    const rest = rules.filter((r) => r.category !== category);
+    const meaningful = next.folder.trim() !== "" || next.extensions.length > 0;
+    onChange(meaningful ? [...rest, next] : rest);
+  };
+
+  const browseFor = async (category: Category) => {
+    const { open } = await import("@tauri-apps/plugin-dialog");
+    const dir = await open({
+      directory: true,
+      defaultPath: downloadDir || undefined,
+      title: `Choose the ${category} folder`,
+    });
+    if (typeof dir === "string") put(category, { folder: dir });
+  };
+
+  return (
+    <div className="mt-3 rounded-lg border border-white/[0.06] divide-y divide-white/[0.06]">
+      {CATEGORIES.map((category) => {
+        const rule = ruleFor(category);
+        return (
+          <div
+            key={category}
+            className="flex items-center gap-2 px-2.5 py-2 flex-wrap"
+          >
+            <span className="text-xs text-ink-mid w-20 shrink-0">{category}</span>
+            <input
+              value={rule.folder}
+              placeholder={category}
+              onChange={(e) => put(category, { folder: e.target.value })}
+              title="Leave empty for a subfolder of the download folder. A full path can point at another drive."
+              className="flex-1 min-w-[150px] bg-white/[0.04] border border-white/[0.08] rounded-md text-xs text-ink px-2 py-1.5 outline-none focus:border-accent/50 transition-colors placeholder:text-ink-faint"
+            />
+            <button
+              onClick={() => browseFor(category)}
+              title="Browse…"
+              className="px-2 py-1.5 rounded-md bg-white/[0.06] border border-white/[0.08] text-ink-muted hover:text-ink hover:bg-white/[0.1] transition-colors"
+            >
+              <FolderOpen className="w-3.5 h-3.5" />
+            </button>
+            <input
+              value={rule.extensions.join(" ")}
+              placeholder="extra types"
+              onChange={(e) =>
+                put(category, {
+                  // Accept "heic, .avif" and store HEIC AVIF.
+                  extensions: e.target.value
+                    .split(/[\s,;]+/)
+                    .map((x) => x.replace(/^\./, "").toUpperCase())
+                    .filter(Boolean),
+                })
+              }
+              title="File types to file here instead of where they would normally go, e.g. heic avif"
+              className="w-28 bg-white/[0.04] border border-white/[0.08] rounded-md text-xs text-ink px-2 py-1.5 outline-none focus:border-accent/50 transition-colors placeholder:text-ink-faint uppercase placeholder:normal-case"
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function Field({

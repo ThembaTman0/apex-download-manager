@@ -17,11 +17,20 @@ export function formatSpeed(bytesPerSec: number): string {
   return `${formatBytes(bytesPerSec)}/s`;
 }
 
-import type { Category } from "@/types";
+import type { Category, CategoryRule } from "@/types";
 
 // Mirrors category_for_type in src-tauri/src/models.rs.
-export function categoryForType(type: string): Category {
+export function categoryForType(
+  type: string,
+  rules?: CategoryRule[]
+): Category {
   const t = type.toUpperCase();
+  // A rule the user wrote wins over the built-in table below, so the filter
+  // chips agree with where the engine actually files things.
+  const claimed = rules?.find((r) =>
+    r.extensions.some((e) => e.trim().toUpperCase() === t)
+  );
+  if (claimed) return claimed.category;
   if (["MP4", "MKV", "AVI", "MOV", "WEBM", "WMV", "FLV", "M4V"].includes(t)) return "Video";
   if (["MP3", "FLAC", "WAV", "M4A", "AAC", "OGG", "WMA"].includes(t)) return "Music";
   if (["EXE", "MSI", "DMG", "PKG", "DEB", "RPM", "APK", "ISO", "IMG", "MSU"].includes(t)) return "Programs";

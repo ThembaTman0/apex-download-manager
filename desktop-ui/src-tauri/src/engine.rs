@@ -1,6 +1,6 @@
 use crate::db::Db;
 use crate::models::{
-    category_for_type, file_type_from_name, now_millis, Download, DownloadStatus, Segment,
+    file_type_from_name, now_millis, Download, DownloadStatus, Segment,
     Settings,
 };
 use reqwest::header;
@@ -249,14 +249,7 @@ impl DownloadManager {
             .unwrap_or_else(|| filename_from_url(&url));
         let dir = match explicit_dir {
             Some(d) => d,
-            None if settings.auto_organize => {
-                let category = category_for_type(&file_type_from_name(&name));
-                Path::new(&settings.download_dir)
-                    .join(category)
-                    .to_string_lossy()
-                    .to_string()
-            }
-            None => settings.download_dir,
+            None => settings.folder_for_file(&name),
         };
         let now = now_millis();
         let d = Download {
@@ -320,14 +313,7 @@ impl DownloadManager {
         let name = sanitize_filename(&format!("{}.{}", title.trim(), ext));
         let dir = match save_dir.filter(|d| !d.trim().is_empty()) {
             Some(d) => d,
-            None if settings.auto_organize => {
-                let category = category_for_type(&file_type_from_name(&name));
-                Path::new(&settings.download_dir)
-                    .join(category)
-                    .to_string_lossy()
-                    .to_string()
-            }
-            None => settings.download_dir,
+            None => settings.folder_for_file(&name),
         };
         let now = now_millis();
         let d = Download {
@@ -423,15 +409,7 @@ impl DownloadManager {
             .filter(|n| !n.trim().is_empty())
             .map(|n| sanitize_filename(&n))
             .unwrap_or_else(|| filename_from_url(&url));
-        let folder = if settings.auto_organize {
-            let category = category_for_type(&file_type_from_name(&preview_name));
-            Path::new(&settings.download_dir)
-                .join(category)
-                .to_string_lossy()
-                .to_string()
-        } else {
-            settings.download_dir.clone()
-        };
+        let folder = settings.folder_for_file(&preview_name);
         // A repeat of something already downloaded gets flagged in the prompt,
         // so approving is a conscious "yes, again" (the new copy is renamed
         // alongside the old one, never overwriting it).
@@ -576,10 +554,7 @@ impl DownloadManager {
                     p.name = sanitize_filename(&server_name);
                     p.file_name = Some(p.name.clone());
                     if settings.auto_organize {
-                        p.folder = Path::new(&settings.download_dir)
-                            .join(category_for_type(&file_type_from_name(&p.name)))
-                            .to_string_lossy()
-                            .to_string();
+                        p.folder = settings.folder_for_file(&p.name);
                     }
                 }
             }

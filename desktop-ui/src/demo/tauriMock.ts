@@ -197,6 +197,11 @@ const demoSettings = {
   offpeakStartMin: 23 * 60,
   offpeakEndMin: 7 * 60,
   peakLimitKbps: 512,
+  categoryRules: [] as {
+    category: string;
+    folder: string;
+    extensions: string[];
+  }[],
 };
 
 if (!("__TAURI_INTERNALS__" in window)) {

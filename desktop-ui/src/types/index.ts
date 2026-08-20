@@ -78,6 +78,19 @@ export interface Settings {
   offpeakEndMin: number;
   /** Cap outside the off-peak window (KB/s); 0 disables the cap. */
   peakLimitKbps: number;
+  /** Per-category overrides for auto-organize; categories without a rule
+   *  keep the built-in extension table and a subfolder of their own name. */
+  categoryRules: CategoryRule[];
+}
+
+export interface CategoryRule {
+  category: Category;
+  /** "" keeps <download folder>/<category>; relative hangs off the download
+   *  folder; absolute is used as it stands. */
+  folder: string;
+  /** Extra file types routed here (uppercase, no dot), checked before the
+   *  built-in table. */
+  extensions: string[];
 }
 
 /** A browser capture awaiting the user's approval before it downloads. */

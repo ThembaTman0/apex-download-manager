@@ -292,11 +292,8 @@ pub fn run() {
                 let mut last = String::new();
                 loop {
                     tokio::time::sleep(Duration::from_millis(1500)).await;
-                    if !handle
-                        .state::<DownloadManager>()
-                        .get_settings()
-                        .watch_clipboard
-                    {
+                    let settings = handle.state::<DownloadManager>().get_settings();
+                    if !settings.watch_clipboard {
                         continue;
                     }
                     let text = handle.clipboard().read_text().unwrap_or_default();
@@ -304,7 +301,9 @@ pub fn run() {
                         continue;
                     }
                     last = text.clone();
-                    if models::is_downloadable_url(&text) {
+                    // Settings-aware so a file type the user routed to a
+                    // category is offered like any other known type.
+                    if models::is_downloadable_url(&text, &settings) {
                         let _ = handle.emit("clipboard:url", text.trim().to_string());
                     }
                 }

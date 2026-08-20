@@ -111,6 +111,23 @@ pub fn default_kind() -> String {
     "http".into()
 }
 
+/// A user override for one auto-organize category.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct CategoryRule {
+    /// One of the built-in category names ("Video", "Music", ...).
+    pub category: String,
+    /// Where files of this category land. Empty keeps the default
+    /// "<download folder>/<category>"; a relative path is taken from the
+    /// download folder; an absolute path is used as it stands, so a category
+    /// can point at another drive.
+    pub folder: String,
+    /// Extra file types routed here (uppercase, no dot). Checked before the
+    /// built-in table, so a type can be moved from the category it would
+    /// otherwise land in.
+    pub extensions: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
@@ -154,6 +171,9 @@ pub struct Settings {
     pub offpeak_end_min: u32,
     /// Cap applied outside the off-peak window (KB/s); 0 disables the cap.
     pub peak_limit_kbps: u64,
+    /// Per-category overrides for auto-organize. Categories with no rule keep
+    /// the built-in extension table and a subfolder named after themselves.
+    pub category_rules: Vec<CategoryRule>,
 }
 
 impl Default for Settings {
@@ -179,6 +199,7 @@ impl Default for Settings {
             offpeak_start_min: 23 * 60,
             offpeak_end_min: 7 * 60,
             peak_limit_kbps: 512,
+            category_rules: Vec::new(),
         }
     }
 }
@@ -201,6 +222,46 @@ impl Settings {
             self.peak_limit_kbps
         } else {
             self.speed_limit_kbps.min(self.peak_limit_kbps)
+        }
+    }
+
+    /// Category a file type belongs to, honouring the user's rules. An
+    /// extension listed in a rule wins over the built-in table, so a type can
+    /// be moved out of the category it would otherwise land in.
+    pub fn category_for(&self, file_type: &str) -> &str {
+        for rule in &self.category_rules {
+            if rule
+                .extensions
+                .iter()
+                .any(|e| e.trim().eq_ignore_ascii_case(file_type))
+            {
+                return &rule.category;
+            }
+        }
+        category_for_type(&file_type.to_ascii_uppercase())
+    }
+
+    /// Where a download of this name should be saved. The single place that
+    /// answers the question, so the add, video, capture-staging and
+    /// capture-rename paths cannot drift apart.
+    pub fn folder_for_file(&self, file_name: &str) -> String {
+        if !self.auto_organize {
+            return self.download_dir.clone();
+        }
+        let category = self.category_for(&file_type_from_name(file_name)).to_string();
+        let custom = self
+            .category_rules
+            .iter()
+            .find(|r| r.category.eq_ignore_ascii_case(&category))
+            .map(|r| r.folder.trim())
+            .filter(|f| !f.is_empty());
+        let base = std::path::Path::new(&self.download_dir);
+        match custom {
+            // An absolute folder points wherever the user said, including
+            // another drive; a relative one hangs off the download folder.
+            Some(f) if std::path::Path::new(f).is_absolute() => f.to_string(),
+            Some(f) => base.join(f).to_string_lossy().to_string(),
+            None => base.join(&category).to_string_lossy().to_string(),
         }
     }
 }
@@ -251,8 +312,9 @@ pub fn category_for_type(t: &str) -> &'static str {
 }
 
 /// Heuristic used by the clipboard watcher: an http(s) URL whose path ends in
-/// a file extension people actually download.
-pub fn is_downloadable_url(text: &str) -> bool {
+/// a file extension people actually download. Takes settings so a type the
+/// user routed to a category counts as downloadable too.
+pub fn is_downloadable_url(text: &str, settings: &Settings) -> bool {
     let t = text.trim();
     if !(t.starts_with("http://") || t.starts_with("https://")) || t.contains(char::is_whitespace) {
         return false;
@@ -263,5 +325,112 @@ pub fn is_downloadable_url(text: &str) -> bool {
         Some((_, e)) if !e.is_empty() && e.len() <= 5 => e.to_uppercase(),
         _ => return false,
     };
-    category_for_type(&ext) != "Other" || matches!(ext.as_str(), "BIN" | "JAR" | "APPX" | "CRX" | "XPI")
+    settings.category_for(&ext) != "Other"
+        || matches!(ext.as_str(), "BIN" | "JAR" | "APPX" | "CRX" | "XPI")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::{Path, PathBuf};
+
+    fn settings() -> Settings {
+        Settings {
+            download_dir: PathBuf::from("C:").join("Downloads").to_string_lossy().into(),
+            auto_organize: true,
+            ..Settings::default()
+        }
+    }
+
+    fn rule(category: &str, folder: &str, extensions: &[&str]) -> CategoryRule {
+        CategoryRule {
+            category: category.into(),
+            folder: folder.into(),
+            extensions: extensions.iter().map(|e| e.to_string()).collect(),
+        }
+    }
+
+    fn under_downloads(rest: &str) -> String {
+        Path::new("C:")
+            .join("Downloads")
+            .join(rest)
+            .to_string_lossy()
+            .into()
+    }
+
+    #[test]
+    fn the_clipboard_watcher_offers_a_type_the_user_claimed() {
+        let plain = Settings::default();
+        assert!(!is_downloadable_url("https://x.example/photo.heic", &plain));
+        let mut s = settings();
+        s.category_rules = vec![rule("Images", "", &["HEIC"])];
+        assert!(is_downloadable_url("https://x.example/photo.heic", &s));
+        // Unchanged for the cases it already handled either way.
+        assert!(is_downloadable_url("https://x.example/setup.exe", &plain));
+        assert!(!is_downloadable_url("https://x.example/page", &plain));
+    }
+
+    #[test]
+    fn without_rules_a_file_lands_in_its_built_in_category() {
+        assert_eq!(
+            settings().folder_for_file("holiday.mp4"),
+            under_downloads("Video")
+        );
+    }
+
+    #[test]
+    fn auto_organize_off_puts_everything_in_the_download_folder() {
+        let mut s = settings();
+        s.auto_organize = false;
+        s.category_rules = vec![rule("Video", r"D:\Media", &[])];
+        assert_eq!(s.folder_for_file("holiday.mp4"), s.download_dir);
+    }
+
+    #[test]
+    fn a_relative_rule_folder_hangs_off_the_download_folder() {
+        let mut s = settings();
+        s.category_rules = vec![rule("Video", "Movies", &[])];
+        assert_eq!(s.folder_for_file("holiday.mp4"), under_downloads("Movies"));
+    }
+
+    #[test]
+    fn an_absolute_rule_folder_can_point_at_another_drive() {
+        let mut s = settings();
+        s.category_rules = vec![rule("Video", r"D:\Media\Films", &[])];
+        assert_eq!(s.folder_for_file("holiday.mp4"), r"D:\Media\Films");
+    }
+
+    #[test]
+    fn an_empty_rule_folder_keeps_the_default_subfolder() {
+        let mut s = settings();
+        s.category_rules = vec![rule("Video", "   ", &["MP4"])];
+        assert_eq!(s.folder_for_file("holiday.mp4"), under_downloads("Video"));
+    }
+
+    #[test]
+    fn a_listed_extension_moves_a_type_out_of_its_built_in_category() {
+        let mut s = settings();
+        // An mp4 is Video by default; the user wants these filed as Archives.
+        s.category_rules = vec![rule("Archives", "", &["MP4"])];
+        assert_eq!(s.category_for("MP4"), "Archives");
+        assert_eq!(s.folder_for_file("holiday.mp4"), under_downloads("Archives"));
+    }
+
+    #[test]
+    fn a_type_the_built_in_table_does_not_know_can_be_claimed() {
+        let mut s = settings();
+        s.category_rules = vec![rule("Images", "", &["heic"])];
+        // Matching ignores case in both directions, and the built-in answer
+        // for an unknown type is Other.
+        assert_eq!(s.category_for("HEIC"), "Images");
+        assert_eq!(Settings::default().category_for("HEIC"), "Other");
+        assert_eq!(s.folder_for_file("photo.heic"), under_downloads("Images"));
+    }
+
+    #[test]
+    fn the_first_matching_rule_wins() {
+        let mut s = settings();
+        s.category_rules = vec![rule("Music", "", &["MP4"]), rule("Video", "", &["MP4"])];
+        assert_eq!(s.category_for("MP4"), "Music");
+    }
 }

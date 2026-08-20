@@ -410,6 +410,7 @@ export const useFilteredDownloads = (): Download[] => {
   const searchQuery = useDownloadsStore((s) => s.searchQuery);
   const statusFilter = useDownloadsStore((s) => s.statusFilter);
   const categoryFilter = useDownloadsStore((s) => s.categoryFilter);
+  const categoryRules = useDownloadsStore((s) => s.settings?.categoryRules);
   return useMemo(() => {
     const q = searchQuery.toLowerCase();
     return downloads.filter((d) => {
@@ -434,10 +435,13 @@ export const useFilteredDownloads = (): Download[] => {
       ) {
         return false;
       }
-      if (categoryFilter !== "all" && categoryForType(d.type) !== categoryFilter) {
+      if (
+        categoryFilter !== "all" &&
+        categoryForType(d.type, categoryRules) !== categoryFilter
+      ) {
         return false;
       }
       return true;
     });
-  }, [downloads, searchQuery, statusFilter, categoryFilter]);
+  }, [downloads, searchQuery, statusFilter, categoryFilter, categoryRules]);
 };
