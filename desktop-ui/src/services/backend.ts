@@ -3,6 +3,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
   DiskUsage,
   Download,
+  QueueMove,
   PendingCapture,
   Segment,
   Settings,
@@ -50,6 +51,8 @@ export const backend = {
   restartDownload: (id: string) => invoke<void>("restart_download", { id }),
   scheduleDownload: (id: string, startAt: number | null) =>
     invoke<void>("schedule_download", { id, startAt }),
+  moveInQueue: (id: string, direction: QueueMove) =>
+    invoke<void>("move_in_queue", { id, direction }),
   setDownloadSpeedLimit: (id: string, kbps: number) =>
     invoke<void>("set_download_speed_limit", { id, kbps }),
   getDownloadSegments: (id: string) =>

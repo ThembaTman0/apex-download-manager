@@ -327,6 +327,7 @@ pub fn run() {
             commands::restart_download,
             commands::get_download_segments,
             commands::schedule_download,
+            commands::move_in_queue,
             commands::set_download_speed_limit,
             commands::remove_download,
             commands::pause_all,
@@ -386,6 +387,7 @@ mod tests {
             last_modified: None,
             segment_states: Vec::new(),
             request_headers: Vec::new(),
+            queue_order: None,
         }
     }
 

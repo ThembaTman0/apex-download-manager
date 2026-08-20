@@ -51,6 +51,15 @@ pub async fn set_download_speed_limit(
 }
 
 #[tauri::command]
+pub async fn move_in_queue(
+    mgr: State<'_, DownloadManager>,
+    id: String,
+    direction: String,
+) -> Result<(), String> {
+    mgr.move_in_queue(&id, &direction)
+}
+
+#[tauri::command]
 pub async fn schedule_download(
     mgr: State<'_, DownloadManager>,
     id: String,

@@ -46,6 +46,7 @@ impl Db {
             "ALTER TABLE downloads ADD COLUMN kind TEXT",
             "ALTER TABLE downloads ADD COLUMN video_format TEXT",
             "ALTER TABLE downloads ADD COLUMN speed_limit_kbps INTEGER",
+            "ALTER TABLE downloads ADD COLUMN queue_order INTEGER",
         ] {
             let _ = conn.execute(ddl, []);
         }
@@ -71,14 +72,16 @@ impl Db {
             .execute(
                 "INSERT INTO downloads (id, name, url, file_type, size_bytes, downloaded_bytes, status,
                     segments, modified_at, created_at, save_path, supports_ranges, error, segment_states,
-                    etag, last_modified, start_at, request_headers, kind, video_format, speed_limit_kbps)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21)
+                    etag, last_modified, start_at, request_headers, kind, video_format, speed_limit_kbps,
+                    queue_order)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22)
                  ON CONFLICT(id) DO UPDATE SET
                     name = ?2, url = ?3, file_type = ?4, size_bytes = ?5, downloaded_bytes = ?6,
                     status = ?7, segments = ?8, modified_at = ?9, save_path = ?11,
                     supports_ranges = ?12, error = ?13, segment_states = ?14,
                     etag = ?15, last_modified = ?16, start_at = ?17, request_headers = ?18,
-                    kind = ?19, video_format = ?20, speed_limit_kbps = ?21",
+                    kind = ?19, video_format = ?20, speed_limit_kbps = ?21,
+                    queue_order = ?22",
                 params![
                     d.id,
                     d.name,
@@ -101,6 +104,7 @@ impl Db {
                     d.kind,
                     d.video_format,
                     d.speed_limit_kbps as i64,
+                    d.queue_order,
                 ],
             )
             .map_err(|e| e.to_string())?;
@@ -143,13 +147,49 @@ impl Db {
         Ok(out)
     }
 
+    /// Everything still waiting, in the order it will actually start.
+    /// Scheduled items are included: they hold a place in the queue even
+    /// though the ticker will not start them until their time comes.
+    pub fn queued_in_order(&self) -> Result<Vec<Download>, String> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT * FROM downloads WHERE status = 'queued'
+                 ORDER BY COALESCE(queue_order, created_at) ASC, created_at ASC",
+            )
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([], row_to_download)
+            .map_err(|e| e.to_string())?;
+        let mut out = Vec::new();
+        for r in rows {
+            out.push(r.map_err(|e| e.to_string())?);
+        }
+        Ok(out)
+    }
+
+    /// Write the queue positions back after a move. Renumbering the whole
+    /// queue from zero (rather than nudging one key) keeps the values dense
+    /// and collision-free no matter how often things are shuffled.
+    pub fn set_queue_order(&self, ids_in_order: &[String]) -> Result<(), String> {
+        for (i, id) in ids_in_order.iter().enumerate() {
+            self.conn
+                .execute(
+                    "UPDATE downloads SET queue_order = ?1 WHERE id = ?2",
+                    params![i as i64, id],
+                )
+                .map_err(|e| e.to_string())?;
+        }
+        Ok(())
+    }
+
     pub fn oldest_queued(&self, now_millis: i64) -> Result<Option<Download>, String> {
         let mut stmt = self
             .conn
             .prepare(
                 "SELECT * FROM downloads
                  WHERE status = 'queued' AND (start_at IS NULL OR start_at <= ?1)
-                 ORDER BY created_at ASC LIMIT 1",
+                 ORDER BY COALESCE(queue_order, created_at) ASC, created_at ASC LIMIT 1",
             )
             .map_err(|e| e.to_string())?;
         let mut rows = stmt
@@ -235,5 +275,6 @@ fn row_to_download(row: &rusqlite::Row) -> rusqlite::Result<Download> {
         last_modified: row.get("last_modified")?,
         segment_states,
         request_headers,
+        queue_order: row.get("queue_order")?,
     })
 }

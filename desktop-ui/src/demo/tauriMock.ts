@@ -28,6 +28,7 @@ type RawDemoDownload = {
   savePath: string;
   supportsRanges: boolean;
   startAt: number | null;
+  queueOrder?: number | null;
   kind: string;
   speedLimitKbps: number;
   error?: string | null;
@@ -110,6 +111,27 @@ const demoDownloads: RawDemoDownload[] = [
     savePath: "C:\\Users\\Alex\\Downloads\\Apex\\Programs\\node-v22.4.0-x64.msi",
     supportsRanges: false,
     startAt: null,
+    kind: "http",
+    speedLimitKbps: 0,
+  },
+  {
+    id: "demo-6",
+    name: "blender-4.2-windows-x64.msi",
+    url: "https://download.blender.org/release/blender-4.2-windows-x64.msi",
+    type: "MSI",
+    sizeBytes: Math.round(384 * MB),
+    downloadedBytes: 0,
+    progress: 0,
+    speedBytesPerSec: 0,
+    etaSeconds: 0,
+    status: "queued",
+    segments: 1,
+    modifiedAt: now,
+    createdAt: now - 7 * 60_000,
+    savePath: "C:\Users\Alex\Downloads\Apex\Programs\blender-4.2-windows-x64.msi",
+    supportsRanges: true,
+    startAt: null,
+    queueOrder: null,
     kind: "http",
     speedLimitKbps: 0,
   },
@@ -366,6 +388,32 @@ if (!("__TAURI_INTERNALS__" in window)) {
           touch(d);
         }
       }
+    },
+    move_in_queue: (a) => {
+      const queued = [...state.values()]
+        .filter((d) => d.status === "queued")
+        .sort(
+          (x, y) =>
+            (x.queueOrder ?? x.createdAt) - (y.queueOrder ?? y.createdAt),
+        );
+      const from = queued.findIndex((d) => d.id === a?.id);
+      if (from < 0) return;
+      const last = queued.length - 1;
+      const to =
+        a?.direction === "top"
+          ? 0
+          : a?.direction === "bottom"
+            ? last
+            : a?.direction === "up"
+              ? Math.max(0, from - 1)
+              : Math.min(last, from + 1);
+      if (to === from) return;
+      const [moved] = queued.splice(from, 1);
+      queued.splice(to, 0, moved);
+      queued.forEach((d, i) => {
+        d.queueOrder = i;
+        touch(d);
+      });
     },
     schedule_download: (a) => {
       const d = state.get(a?.id);

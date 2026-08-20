@@ -284,6 +284,9 @@ impl DownloadManager {
             last_modified: None,
             segment_states: Vec::new(),
             request_headers,
+            // Unordered until the user moves it: new arrivals fall in behind
+            // whatever is already waiting, by creation time.
+            queue_order: None,
         };
         self.db.lock().unwrap().upsert_download(&d)?;
         self.emit_changed(&d);
@@ -350,6 +353,7 @@ impl DownloadManager {
             last_modified: None,
             segment_states: Vec::new(),
             request_headers: Vec::new(),
+            queue_order: None,
         };
         self.db.lock().unwrap().upsert_download(&d)?;
         self.emit_changed(&d);
@@ -900,6 +904,39 @@ impl DownloadManager {
     }
 
     /// Fill any free slots with the oldest queued downloads.
+    /// Move a waiting download within the queue. `direction` is one of
+    /// "top", "up", "down", "bottom".
+    ///
+    /// Only queued downloads take part: something already running has no
+    /// position to change, and reordering finished or failed rows would mean
+    /// nothing. If the move frees the front of the queue and a slot is
+    /// available, the new head starts immediately.
+    pub fn move_in_queue(&self, id: &str, direction: &str) -> Result<(), String> {
+        let mut queue = self.db.lock().unwrap().queued_in_order()?;
+        let from = queue
+            .iter()
+            .position(|d| d.id == id)
+            .ok_or_else(|| "that download is not waiting in the queue".to_string())?;
+        let to = queue_target(from, queue.len() - 1, direction)?;
+        if to == from {
+            return Ok(());
+        }
+        let moved = queue.remove(from);
+        queue.insert(to, moved);
+
+        let ids: Vec<String> = queue.iter().map(|d| d.id.clone()).collect();
+        self.db.lock().unwrap().set_queue_order(&ids)?;
+        // Every row between the two positions shifted, so re-emit the lot -
+        // the UI numbers each queued row from what it holds.
+        for (i, d) in queue.iter_mut().enumerate() {
+            d.queue_order = Some(i as i64);
+            self.emit_changed(d);
+        }
+        // A new head only helps if there is room to run it.
+        self.promote_queued();
+        Ok(())
+    }
+
     pub fn promote_queued(&self) {
         loop {
             let max = self.get_settings().max_concurrent as usize;
@@ -937,6 +974,18 @@ pub(crate) struct TaskCtx {
 /// Whole-download retry attempts after a failure (on top of the per-segment
 /// retries inside drive_download). Delays grow 5s → 15s → 45s.
 const MAX_RETRIES: u32 = 3;
+
+/// Where a queued download lands for a given move. `last` is the index of the
+/// final item, so a move that would run off either end simply stays put.
+fn queue_target(from: usize, last: usize, direction: &str) -> Result<usize, String> {
+    Ok(match direction {
+        "top" => 0,
+        "up" => from.saturating_sub(1),
+        "down" => (from + 1).min(last),
+        "bottom" => last,
+        other => return Err(format!("unknown queue move: {other}")),
+    })
+}
 
 /// Errors worth retrying: transient network/server trouble. Permanent
 /// conditions (bad disk path, gone/private content, missing tools) fail fast.
@@ -2049,6 +2098,34 @@ fn percent_decode(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn queue_moves_land_where_expected() {
+        // Queue of five, moving the middle item.
+        assert_eq!(queue_target(2, 4, "top"), Ok(0));
+        assert_eq!(queue_target(2, 4, "up"), Ok(1));
+        assert_eq!(queue_target(2, 4, "down"), Ok(3));
+        assert_eq!(queue_target(2, 4, "bottom"), Ok(4));
+    }
+
+    #[test]
+    fn queue_moves_stay_put_at_the_ends() {
+        // Nothing above the head or below the tail: the move is a no-op
+        // rather than an error, so a menu click at the end does nothing.
+        assert_eq!(queue_target(0, 4, "up"), Ok(0));
+        assert_eq!(queue_target(0, 4, "top"), Ok(0));
+        assert_eq!(queue_target(4, 4, "down"), Ok(4));
+        assert_eq!(queue_target(4, 4, "bottom"), Ok(4));
+        // A queue of one has nowhere to go in any direction.
+        for dir in ["top", "up", "down", "bottom"] {
+            assert_eq!(queue_target(0, 0, dir), Ok(0));
+        }
+    }
+
+    #[test]
+    fn unknown_queue_move_is_rejected() {
+        assert!(queue_target(1, 3, "sideways").is_err());
+    }
 
     #[test]
     fn sanitize_strips_path_traversal() {

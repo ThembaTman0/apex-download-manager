@@ -5,6 +5,7 @@ import type {
   DiskUsage,
   Download,
   NavItem,
+  QueueMove,
   Settings,
   SpeedSample,
 } from "@/types";
@@ -78,6 +79,7 @@ interface DownloadsState {
   pauseDownload: (id: string) => Promise<void>;
   resumeDownload: (id: string) => Promise<void>;
   restartDownload: (id: string) => Promise<void>;
+  moveInQueue: (id: string, direction: QueueMove) => Promise<void>;
   removeDownloads: (ids: string[], deleteFile: boolean) => Promise<void>;
   pauseAll: () => Promise<void>;
   resumeAll: () => Promise<void>;
@@ -218,6 +220,14 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
   scheduleDownload: async (id, startAt) => {
     try {
       await backend.scheduleDownload(id, startAt);
+    } catch (e) {
+      set({ lastError: String(e) });
+    }
+  },
+
+  moveInQueue: async (id, direction) => {
+    try {
+      await backend.moveInQueue(id, direction);
     } catch (e) {
       set({ lastError: String(e) });
     }

@@ -14,6 +14,8 @@ import {
   CalendarClock,
   ChevronUp,
   ChevronDown,
+  ChevronsUp,
+  ChevronsDown,
   Copy,
   ExternalLink,
   FileDown,
@@ -54,6 +56,20 @@ const ROW_HEIGHT = 37;
 export function DownloadsTable() {
   const filtered = useFilteredDownloads();
   const { selectedIds, toggleSelect, selectAll, clearSelection } = useDownloadsStore();
+  const allDownloads = useDownloadsStore((s) => s.downloads);
+  // Queue positions come from the whole list, not the filtered view: a search
+  // that hides half the queue must not renumber what is left.
+  const queuePositions = useMemo(() => {
+    const waiting = allDownloads
+      .filter((d) => d.status === "queued")
+      .sort(
+        (a, b) =>
+          (a.queueOrder ?? a.createdAt.getTime()) -
+          (b.queueOrder ?? b.createdAt.getTime())
+      );
+    return new Map(waiting.map((d, i) => [d.id, i]));
+  }, [allDownloads]);
+  const queueLength = queuePositions.size;
   const [sorting, setSorting] = useState<SortingState>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   // Anchor of the last keyboard move, so ↑/↓ continue from where the user was.
@@ -172,6 +188,19 @@ export function DownloadsTable() {
               </span>
             );
           }
+          const pos = queuePositions.get(d.id);
+          if (pos !== undefined) {
+            return (
+              <span
+                className="inline-flex items-center gap-1.5 text-[11px] text-ink-mid"
+                title={`Position ${pos + 1} of ${queueLength} in the queue`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-ink-dim" />
+                Queued
+                <span className="text-ink-faint tabular-nums">#{pos + 1}</span>
+              </span>
+            );
+          }
           return <StatusBadge status={info.getValue()} />;
         },
       }),
@@ -185,7 +214,15 @@ export function DownloadsTable() {
         ),
       }),
     ],
-    [allSelected, selectedIds, toggleSelect, selectAll, clearSelection]
+    [
+      allSelected,
+      selectedIds,
+      toggleSelect,
+      selectAll,
+      clearSelection,
+      queuePositions,
+      queueLength,
+    ]
   );
 
   const table = useReactTable({
@@ -344,6 +381,8 @@ export function DownloadsTable() {
                 selected={selectedIds.has(row.original.id)}
                 measureRef={virtualizer.measureElement}
                 index={vRow.index}
+                queuePos={queuePositions.get(row.original.id)}
+                queueLength={queueLength}
               />
             );
           })}
@@ -370,9 +409,19 @@ interface RowProps {
   selected: boolean;
   measureRef: (el: HTMLTableRowElement | null) => void;
   index: number;
+  /** Zero-based place in the queue; undefined when the row is not waiting. */
+  queuePos?: number;
+  queueLength: number;
 }
 
-function TableRow({ row, selected, measureRef, index }: RowProps) {
+function TableRow({
+  row,
+  selected,
+  measureRef,
+  index,
+  queuePos,
+  queueLength,
+}: RowProps) {
   const d = row.original;
   const {
     toggleSelect,
@@ -386,6 +435,7 @@ function TableRow({ row, selected, measureRef, index }: RowProps) {
     setChecksumTarget,
     setScheduleTarget,
     setDetailsId,
+    moveInQueue,
   } = useDownloadsStore();
 
   const canPause = d.status === "downloading" || d.status === "queued";
@@ -443,6 +493,35 @@ function TableRow({ row, selected, measureRef, index }: RowProps) {
             />
           )}
           <Separator />
+          {queuePos !== undefined && queueLength > 1 && (
+            <>
+              <MenuItem
+                icon={ChevronsUp}
+                label="Move to Top"
+                disabled={queuePos === 0}
+                onSelect={() => moveInQueue(d.id, "top")}
+              />
+              <MenuItem
+                icon={ChevronUp}
+                label="Move Up"
+                disabled={queuePos === 0}
+                onSelect={() => moveInQueue(d.id, "up")}
+              />
+              <MenuItem
+                icon={ChevronDown}
+                label="Move Down"
+                disabled={queuePos === queueLength - 1}
+                onSelect={() => moveInQueue(d.id, "down")}
+              />
+              <MenuItem
+                icon={ChevronsDown}
+                label="Move to Bottom"
+                disabled={queuePos === queueLength - 1}
+                onSelect={() => moveInQueue(d.id, "bottom")}
+              />
+              <Separator />
+            </>
+          )}
           {canSchedule && (
             <MenuItem
               icon={CalendarClock}

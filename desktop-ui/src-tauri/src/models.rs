@@ -83,6 +83,13 @@ pub struct Download {
     pub etag: Option<String>,
     #[serde(skip)]
     pub last_modified: Option<String>,
+    /// Where this download sits in the queue - lower runs sooner. Unset on
+    /// everything created before queue ordering existed, and on downloads the
+    /// user has never reordered; those fall back to created_at, which is what
+    /// the queue used to be sorted by, so the order people already had does
+    /// not shuffle on upgrade.
+    #[serde(default)]
+    pub queue_order: Option<i64>,
     /// Live per-connection layout - on the wire so the UI can draw the
     /// proportional segment map without polling a second command.
     #[serde(default)]

@@ -6,6 +6,9 @@ export type DownloadStatus =
   | "queued"
   | "merging";
 
+/** Where to move a waiting download, relative to the rest of the queue. */
+export type QueueMove = "top" | "up" | "down" | "bottom";
+
 export interface Download {
   id: string;
   name: string;
@@ -33,6 +36,8 @@ export interface Download {
   videoFormat?: string;
   /** Live per-connection layout; grows while re-splitting is active. */
   segmentStates?: Segment[];
+  /** Position in the waiting queue; null until the download is reordered. */
+  queueOrder: number | null;
 }
 
 export type Category =
