@@ -45,11 +45,11 @@ struct PendingCapture {
     staged_at: i64,
     /// From the post-stage probe; 0 until (unless) the server tells us.
     size_bytes: u64,
-    /// Probe found the link refused (4xx) — shown as a hint in the prompt.
+    /// Probe found the link refused (4xx) - shown as a hint in the prompt.
     warning: String,
 }
 
-/// The page that linked the file, from the browser-captured Referer —
+/// The page that linked the file, from the browser-captured Referer -
 /// shown in the approval window so the user can tell which site asked.
 fn referrer_of(headers: &[(String, String)]) -> String {
     headers
@@ -116,7 +116,7 @@ pub struct DownloadManager {
 
 /// Default User-Agent when the browser didn't supply its own (manual adds).
 /// A browser UA, not an honest product string: WAFs commonly 403 download-tool
-/// UAs (verified against Cloudflare — "ApexDownloadManager/1.0" was refused
+/// UAs (verified against Cloudflare - "ApexDownloadManager/1.0" was refused
 /// where this exact string passed). Captures override it with the real
 /// browser's UA via request_headers.
 const DEFAULT_UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
@@ -494,7 +494,7 @@ impl DownloadManager {
                 warning,
             },
         );
-        // Probe in the background for the server's real file name and size —
+        // Probe in the background for the server's real file name and size -
         // onCreated fires before the browser resolves the filename, and
         // tokenized URLs name the file uselessly. The prompt should show
         // what the user is actually approving.
@@ -526,7 +526,7 @@ impl DownloadManager {
         {
             Ok(Ok(p)) => p,
             // A 4xx means the link itself is bad (tokenized URLs expire fast)
-            // — worth telling the user before they approve into a failure.
+            // - worth telling the user before they approve into a failure.
             // Network errors and timeouts stay silent; the engine retries
             // those on its own after approval.
             Ok(Err(e)) if e.contains("server returned 4") => {
@@ -601,7 +601,7 @@ impl DownloadManager {
         }
         let app = self.app.clone();
         // Window creation must happen on the main thread on Windows. Built
-        // visible (the reliable native path) — React fills it in immediately.
+        // visible (the reliable native path) - React fills it in immediately.
         let _ = app.clone().run_on_main_thread(move || {
             if let Ok(win) = tauri::WebviewWindowBuilder::new(
                 &app,
@@ -1015,7 +1015,7 @@ async fn run_download(ctx: TaskCtx, mgr: DownloadManager, mut d: Download) {
                 }
             }
             Ok(false) => {
-                // Cancelled by the user — pause, keeping progress.
+                // Cancelled by the user - pause, keeping progress.
                 d.status = DownloadStatus::Paused;
                 d.speed_bytes_per_sec = 0;
                 d.eta_seconds = 0;
@@ -1118,7 +1118,7 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
         d.etag = probe.etag;
         d.last_modified = probe.last_modified;
         if let Some(name) = probe.file_name {
-            // Adopt the server's name unless we already have a real one —
+            // Adopt the server's name unless we already have a real one -
             // tokenized CDN URLs (Google video links etc.) put hundreds of
             // random chars and no extension in the last path segment.
             if d.name.is_empty()
@@ -1318,7 +1318,7 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
     sync_progress(d, segs, total, 0.0);
 
     if ctx.cancel.is_cancelled() {
-        // If the server can't resume, partial data is useless — start over next time.
+        // If the server can't resume, partial data is useless - start over next time.
         if !d.supports_ranges {
             for s in d.segment_states.iter_mut() {
                 s.downloaded = 0;
@@ -1339,7 +1339,7 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
         d.progress = 100.0;
     }
 
-    // 5. All segments done — move the temp file into place.
+    // 5. All segments done - move the temp file into place.
     d.status = DownloadStatus::Merging;
     let _ = ctx.app.emit(EVENT_CHANGED, &*d);
     let mut target = final_path(d);
@@ -1364,7 +1364,7 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
 
 /// Mark-of-the-Web: tag a completed file as internet-sourced so SmartScreen
 /// and Defender apply the same scrutiny they would to a browser download.
-/// Only the origin goes into HostUrl — full URLs often carry signed auth
+/// Only the origin goes into HostUrl - full URLs often carry signed auth
 /// tokens in their query string, which shouldn't sit in an ADS next to the
 /// file forever (browsers redact the same way).
 #[cfg(windows)]
@@ -1458,7 +1458,7 @@ async fn probe_url(
         .map_err(|e| format!("connection failed: {e}"))?;
     // Some WAFs refuse a ranged request they would serve plain. Retry without
     // Range once; range support then comes from Accept-Ranges instead of the
-    // 206 (headers only — the body is never read, so no full transfer here).
+    // 206 (headers only - the body is never read, so no full transfer here).
     let mut via_plain_retry = false;
     if !resp.status().is_success() {
         let ranged_status = resp.status();
@@ -1502,7 +1502,7 @@ async fn probe_url(
         let size = resp.content_length().unwrap_or(0);
         // On the plain retry the server never saw our Range header, so its
         // Accept-Ranges claim is the only signal. A 200 to the ranged probe,
-        // by contrast, is the server demonstrating it ignores Range — don't
+        // by contrast, is the server demonstrating it ignores Range - don't
         // trust Accept-Ranges there.
         let supports_ranges = via_plain_retry
             && size > 0
@@ -1567,7 +1567,7 @@ struct SegCell {
 type SegTable = Arc<Mutex<Vec<Arc<SegCell>>>>;
 
 /// Hard cap on how many segments a download may fan out to over its
-/// lifetime — bounds the persisted layout and the UI. Re-splitting stops on
+/// lifetime - bounds the persisted layout and the UI. Re-splitting stops on
 /// its own long before this (remainders drop under 2×MIN_SEGMENT_BYTES).
 const MAX_TOTAL_SEGMENTS: usize = 128;
 
@@ -1746,7 +1746,7 @@ async fn download_segment(
             // A no-range server can serve a body that differs from the probe's
             // (the probe carried a Range header some servers vary on). This
             // response's own Content-Length is the real target; without one,
-            // EOF is the completion signal — hyper errors on premature close,
+            // EOF is the completion signal - hyper errors on premature close,
             // so a clean EOF genuinely means the body is complete.
             body_expected = resp.content_length().filter(|cl| *cl > 0);
         }
@@ -1770,7 +1770,7 @@ async fn download_segment(
             };
             let chunk = match chunk {
                 Err(_) => {
-                    // Stalled for 60s — retry from the current offset.
+                    // Stalled for 60s - retry from the current offset.
                     if attempts >= 4 {
                         return Err(format!("segment {index}: connection stalled"));
                     }
@@ -1793,7 +1793,7 @@ async fn download_segment(
                     } else {
                         body_expected
                     };
-                    // Never write past our range — the boundary may have
+                    // Never write past our range - the boundary may have
                     // moved closer since the request went out (re-splitting),
                     // and sloppy servers overshoot.
                     let bytes = if let Some(exp) = expected {
@@ -1818,7 +1818,7 @@ async fn download_segment(
                         .map_err(|e| format!("write failed: {e}"))?;
                     done += bytes.len() as u64;
                     cell.downloaded.store(done, Ordering::Relaxed);
-                    // Data is flowing again — only consecutive dead attempts
+                    // Data is flowing again - only consecutive dead attempts
                     // should count toward the retry limit, or multi-hour
                     // downloads die from a handful of scattered hiccups.
                     attempts = 0;

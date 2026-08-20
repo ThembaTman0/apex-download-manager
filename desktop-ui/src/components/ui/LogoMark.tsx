@@ -1,7 +1,7 @@
 import type { SVGProps } from "react";
 
 /**
- * The Apex peak-A mark — same geometry as the website logo and the
+ * The Apex peak-A mark - same geometry as the website logo and the
  * generated app/extension icons (see website/public/favicon.svg).
  * Inherits color via currentColor.
  */
@@ -14,7 +14,7 @@ export function LogoMark(props: SVGProps<SVGSVGElement>) {
 }
 
 /**
- * Mark on a black rounded-square badge — the in-app brand chip used in
+ * Mark on a black rounded-square badge - the in-app brand chip used in
  * the sidebar and the capture window. Matches the desktop/taskbar icon:
  * near-black tile, white notched peak-A. Colors are brand artwork
  * (fixed, like the chart constants); the ring keeps the tile visible

@@ -37,7 +37,7 @@ export function ProgressCell({ progress, status, segments }: Props) {
           {Math.round(progress)}%
         </span>
       </div>
-      {/* Glanceable extra — dropped at narrow widths along with the toolbar
+      {/* Glanceable extra - dropped at narrow widths along with the toolbar
           labels; the details panel still shows the full map. */}
       {showMap && (
         <div className="hidden xl:flex items-center gap-2 mt-1">

@@ -3,7 +3,7 @@
 // Nothing per-user or per-region is stored, so nothing more can be served.
 // Returns { total: 0 } until a KV database is connected; the site hides
 // the counter when the total is 0. version/sizeMb are omitted when the
-// GitHub API is unreachable — the site falls back to static text.
+// GitHub API is unreachable - the site falls back to static text.
 
 const REPO = "ThembaTman0/apex-download-manager-releases";
 const RELEASE_CACHE_TTL_MS = 5 * 60 * 1000;

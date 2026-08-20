@@ -491,7 +491,7 @@ fn build_playlist_probe(json: &serde_json::Value, has_ffmpeg: bool) -> VideoProb
         .take(MAX_PLAYLIST_ENTRIES)
         .collect::<Vec<_>>();
 
-    // Generic ladder — per-video formats differ, so offer height caps.
+    // Generic ladder - per-video formats differ, so offer height caps.
     let sel = |h: u64| {
         if has_ffmpeg {
             format!("bv*[height<={h}]+ba/b[height<={h}]")
@@ -684,7 +684,7 @@ fn build_probe(json: &serde_json::Value, has_ffmpeg: bool) -> VideoProbe {
 // ---------------------------------------------------------------------------
 
 /// Drive a `kind == "video"` download through a yt-dlp child process.
-/// Returns Ok(true) on completion, Ok(false) when cancelled, Err on failure —
+/// Returns Ok(true) on completion, Ok(false) when cancelled, Err on failure -
 /// the same contract as the HTTP engine's `drive_download`.
 pub(crate) async fn drive_video(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String> {
     let ytdlp = find_ytdlp(&ctx.app)
@@ -699,7 +699,7 @@ pub(crate) async fn drive_video(ctx: &TaskCtx, d: &mut Download) -> Result<bool,
         .file_stem()
         .map(|s| s.to_string_lossy().to_string())
         .unwrap_or_else(|| d.name.clone());
-    // yt-dlp never overwrites — an existing "<stem>.mp4" would make it report
+    // yt-dlp never overwrites - an existing "<stem>.mp4" would make it report
     // instant success without downloading. Mirror the HTTP engine: pick a
     // free " (n)" stem. Partials (.part/.ytdl) don't count, so resumes keep
     // their stem and continue.

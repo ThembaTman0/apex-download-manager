@@ -60,7 +60,7 @@ pub struct Download {
     pub eta_seconds: u64,
     pub status: DownloadStatus,
     pub segments: u32,
-    /// Unix millis — the frontend converts to Date.
+    /// Unix millis - the frontend converts to Date.
     pub modified_at: i64,
     pub save_path: String,
     pub supports_ranges: bool,
@@ -83,13 +83,13 @@ pub struct Download {
     pub etag: Option<String>,
     #[serde(skip)]
     pub last_modified: Option<String>,
-    /// Live per-connection layout — on the wire so the UI can draw the
+    /// Live per-connection layout - on the wire so the UI can draw the
     /// proportional segment map without polling a second command.
     #[serde(default)]
     pub segment_states: Vec<Segment>,
     /// Extra request headers captured from the browser (Cookie, Referer,
     /// User-Agent) so downloads behind logins work. Cookies are session
-    /// secrets — kept out of every UI payload via skip.
+    /// secrets - kept out of every UI payload via skip.
     #[serde(skip)]
     pub request_headers: Vec<(String, String)>,
 }

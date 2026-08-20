@@ -66,7 +66,7 @@ export function GrabVideoDialog() {
     setSaveDir(settings?.downloadDir ?? "");
     backend.ytdlpStatus().then(setTools).catch(() => setTools(null));
     if (pendingVideoUrl) {
-      // Handed off by the browser extension — skip straight to the probe.
+      // Handed off by the browser extension - skip straight to the probe.
       setUrl(pendingVideoUrl);
       analyze(pendingVideoUrl);
       return;

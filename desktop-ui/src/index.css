@@ -4,8 +4,8 @@
 @import "@fontsource/inter/latin-700.css";
 @import "tailwindcss";
 
-/* Semantic palette (Ayu-dark derived). Components must use these tokens —
-   never raw hex — so the theme stays consistent and swappable. */
+/* Semantic palette (Ayu-dark derived). Components must use these tokens -
+   never raw hex - so the theme stays consistent and swappable. */
 @theme {
   --color-bg: #0b0e14; /* window background */
   --color-surface: #0d1017; /* sidebar / bars */

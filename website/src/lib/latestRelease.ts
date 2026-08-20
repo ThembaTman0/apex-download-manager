@@ -20,7 +20,7 @@ function load(): Promise<LatestRelease> {
 
 /**
  * Latest released version and installer size from /api/stats.
- * Empty until the API answers (or forever if it can't) — callers keep a
+ * Empty until the API answers (or forever if it can't) - callers keep a
  * static fallback so the page never shows a hole.
  */
 export function useLatestRelease(): LatestRelease {

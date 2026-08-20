@@ -5,7 +5,7 @@
 //
 // Write commands (add/pause/resume/remove/…) are implemented against an
 // in-memory table with simulated transfer progress, so the whole UI is
-// exercisable in a browser — not just rendered.
+// exercisable in a browser - not just rendered.
 
 const now = Date.now();
 const GB = 1024 * 1024 * 1024;

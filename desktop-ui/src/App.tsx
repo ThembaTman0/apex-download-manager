@@ -49,7 +49,7 @@ export default function App() {
     });
   }, []);
 
-  // Quiet update check shortly after launch, then every 6 hours — Apex is
+  // Quiet update check shortly after launch, then every 6 hours - Apex is
   // tray-resident and can run for weeks, so a launch-only check would leave
   // long-running instances permanently behind. (No-op in dev / offline.)
   useEffect(() => {
@@ -68,7 +68,7 @@ export default function App() {
           setUpdateNote(teaser ?? null);
         }
       } catch {
-        // unsigned dev build or no network — ignore
+        // unsigned dev build or no network - ignore
       }
     };
     const t = setTimeout(quietCheck, 10_000);

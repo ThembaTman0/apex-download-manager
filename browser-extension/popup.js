@@ -13,7 +13,7 @@ function load() {
 }
 
 // The token rides along so Apex can vouch for it (apps ≥ 1.0.8 answer with
-// tokenValid). "Connected" alone used to lie when the token was stale —
+// tokenValid). "Connected" alone used to lie when the token was stale -
 // captures were silently rejected while the dot stayed green.
 async function ping(port, token) {
   const dot = $("dot");
@@ -45,7 +45,7 @@ async function ping(port, token) {
 
 // #grab-begin
 // Hand the current tab's URL to Apex's video grabber (yt-dlp). The app opens
-// its Grab Video dialog pre-filled — nothing downloads until the user picks a
+// its Grab Video dialog pre-filled - nothing downloads until the user picks a
 // quality there, so this is just a hand-off, not a capture.
 $("grabVideo").addEventListener("click", async () => {
   const status = $("grabStatus");
@@ -105,7 +105,7 @@ $("grabVideo").addEventListener("click", async () => {
 // #grab-end
 
 // One-click pairing: ask Apex for the token; the user approves in a native
-// Apex dialog. Long timeout — the request blocks until they click Allow.
+// Apex dialog. Long timeout - the request blocks until they click Allow.
 $("pair").addEventListener("click", async () => {
   const status = $("pairStatus");
   const port = parseInt($("port").value, 10) || DEFAULTS.port;

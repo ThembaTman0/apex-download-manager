@@ -53,14 +53,14 @@ pub fn run() {
         }))
         // The capture prompt must NOT have its state restored: it manages its
         // own size (auto-fits content) and visibility (Rust shows it per
-        // capture) — a session that ended with it hidden would otherwise
+        // capture) - a session that ended with it hidden would otherwise
         // resurrect every future prompt invisible and mis-sized.
         //
         // VISIBLE is dropped from the flags for the same reason, for every
         // window: visibility is decided here, not by whatever the last session
         // happened to end on. The main window is created hidden and shown once
         // the frontend reports its first paint, and an --autostart launch stays
-        // in the tray. Restoring a saved `visible: true` broke both — it popped
+        // in the tray. Restoring a saved `visible: true` broke both - it popped
         // the window open at sign-in whenever the previous session ended with
         // it on screen, and un-hid it before WebView2 had painted, which is the
         // white flash `visible: false` exists to prevent.
@@ -97,7 +97,7 @@ pub fn run() {
             // bandwidth-scheduler window before anything downloads.
             app.state::<DownloadManager>().apply_scheduler_limit();
 
-            // Keep the OS launch-at-sign-in entry in sync with the setting —
+            // Keep the OS launch-at-sign-in entry in sync with the setting -
             // also repairs the registry path after the app moves or updates.
             apply_autostart(
                 app.handle(),

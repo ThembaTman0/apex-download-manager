@@ -5,7 +5,7 @@
 //
 // Counting is optional: it only happens when an Upstash/Vercel KV REST
 // database is connected (KV_REST_API_URL + KV_REST_API_TOKEN env vars).
-// Without it, /dl still redirects — you just lose the counter.
+// Without it, /dl still redirects - you just lose the counter.
 
 // The public releases-only repo; the app's source repo is private.
 const REPO = "ThembaTman0/apex-download-manager-releases";

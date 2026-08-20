@@ -1,4 +1,4 @@
-# Premium Download Manager — Modern UI Technology Blueprint
+# Premium Download Manager - Modern UI Technology Blueprint
 
 > Use this prompt to redesign the project so the application looks like a premium desktop product similar to the provided mockup.
 > The focus of this document is on **UI technology choices, architecture, styling, and implementation details** needed to achieve a world-class interface.

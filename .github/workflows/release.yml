@@ -3,7 +3,7 @@
 # which the in-app updater polls.
 #
 # This source repo is PRIVATE, so releases are published to the separate
-# PUBLIC repo apex-download-manager-releases — the website's /dl redirect
+# PUBLIC repo apex-download-manager-releases - the website's /dl redirect
 # and the in-app updater both need anonymous access to the assets.
 #
 # Pushing the tag is the whole release procedure. This workflow creates the
@@ -14,10 +14,10 @@
 # refuses to build if the tag and those two files disagree.
 #
 # Required repo secrets:
-#   TAURI_SIGNING_PRIVATE_KEY — contents of ~/.tauri/apex-updater-v2.key
+#   TAURI_SIGNING_PRIVATE_KEY - contents of ~/.tauri/apex-updater-v2.key
 #   (TAURI_SIGNING_PRIVATE_KEY_PASSWORD too, if the key has a password;
 #   the current key has none, so that secret does not exist)
-#   RELEASES_TOKEN — PAT with "Contents: read and write" on the public
+#   RELEASES_TOKEN - PAT with "Contents: read and write" on the public
 #   releases repo, used both to create the release and to upload the assets
 #   (the default GITHUB_TOKEN cannot write to another repo)
 name: Release
@@ -68,7 +68,7 @@ jobs:
           }
 
       # RELEASE_NOTES.md becomes the release body AND latest.json `notes`
-      # (tauri-action copies its releaseBody input into the updater JSON —
+      # (tauri-action copies its releaseBody input into the updater JSON -
       # the pre-created release's body is NOT used for that). The app shows
       # the first content line of `notes` as a teaser in the update toast.
       - name: Read release notes

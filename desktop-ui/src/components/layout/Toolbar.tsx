@@ -167,7 +167,7 @@ export function Toolbar() {
 
       <div className="flex-1" />
 
-      {/* Search — scoped to this list */}
+      {/* Search - scoped to this list */}
       <div
         className={cn(
           "relative flex items-center w-52 rounded-md border bg-white/[0.04] transition-colors",

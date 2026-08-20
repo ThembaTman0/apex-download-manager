@@ -124,7 +124,7 @@ export function DownloadsTable() {
         size: 80,
         cell: (info) => (
           <span className="text-xs text-ink-muted tabular-nums">
-            {info.getValue() > 0 ? formatBytes(info.getValue()) : "—"}
+            {info.getValue() > 0 ? formatBytes(info.getValue()) : "-"}
           </span>
         ),
       }),
@@ -145,7 +145,7 @@ export function DownloadsTable() {
         size: 90,
         cell: (info) => (
           <span className="text-xs tabular-nums text-info">
-            {info.getValue() > 0 ? formatSpeed(info.getValue()) : "—"}
+            {info.getValue() > 0 ? formatSpeed(info.getValue()) : "-"}
           </span>
         ),
       }),

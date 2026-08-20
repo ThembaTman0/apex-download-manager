@@ -1,6 +1,6 @@
 import { GitHubIcon, LogoMark } from "./icons";
 
-// The public releases repo — the source repo is private.
+// The public releases repo - the source repo is private.
 const REPO_URL = "https://github.com/ThembaTman0/apex-download-manager-releases";
 
 export default function Footer() {

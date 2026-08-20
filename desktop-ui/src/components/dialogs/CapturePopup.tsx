@@ -34,7 +34,7 @@ const categoryIcons: Record<string, React.ElementType> = {
   Other: File,
 };
 
-/** Hostname of a URL, or the raw string when it doesn't parse. No port —
+/** Hostname of a URL, or the raw string when it doesn't parse. No port -
  * the Rust allow-list check compares bare hostnames (`host_str()`). */
 function hostOf(url: string): string {
   try {
@@ -86,11 +86,11 @@ export function CapturePopup() {
   const current = queue[0] ?? null;
 
   // Visibility is driven from Rust (which shows/raises the window on each new
-  // capture — a JS show() during the webview's initial load doesn't stick).
+  // capture - a JS show() during the webview's initial load doesn't stick).
   // Here we only need to hide the window once the queue drains, in resolve().
 
   // Re-seed the editable fields when a new capture reaches the front, and
-  // again when the probe refines the front entry's name/folder — but never
+  // again when the probe refines the front entry's name/folder - but never
   // over a value the user has already edited.
   const seeded = useRef({ name: "", folder: "" });
   useEffect(() => {
@@ -148,7 +148,7 @@ export function CapturePopup() {
   });
 
   // Free space at the chosen location, to warn before approving a file that
-  // won't fit. Debounced — saveDir changes on every keystroke.
+  // won't fit. Debounced - saveDir changes on every keystroke.
   useEffect(() => {
     setFreeBytes(null);
     if (!saveDir.trim()) return;

@@ -125,7 +125,7 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
 
     // CORS is granted to browser-extension origins only. Ordinary web pages
     // can still open the socket (they're same-machine), but without an
-    // Access-Control-Allow-Origin echo the browser withholds the response —
+    // Access-Control-Allow-Origin echo the browser withholds the response -
     // so a page can't even probe /ping to learn Apex is installed.
     let is_extension = origin.starts_with("chrome-extension://")
         || origin.starts_with("moz-extension://")
@@ -136,7 +136,7 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
         // CORS preflight for the extension's fetch()
         ("OPTIONS", _) => respond(&mut stream, 204, "", cors).await,
         // If the caller presents a token, the reply also says whether it is
-        // the current one — lets the extension popup show "token stale,
+        // the current one - lets the extension popup show "token stale,
         // re-pair" instead of a false "Connected". Absent token keeps the
         // legacy body, so older extensions see no change.
         ("GET", "/ping") => {
@@ -155,7 +155,7 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
         // approves in a native Apex dialog. The token never travels without
         // that explicit approval, so the localhost port still can't be
         // scripted into pairing by a web page (which is also filtered out by
-        // the Origin check below — pages can reach 127.0.0.1, but they can't
+        // the Origin check below - pages can reach 127.0.0.1, but they can't
         // forge an extension origin from inside a browser).
         ("POST", "/pair") => {
             let mgr = app.state::<DownloadManager>();
@@ -275,8 +275,8 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
 
             // Repeat of a download we already have? Actively-running dupes
             // are acknowledged without a second prompt (the file is on its
-            // way); completed ones fall through to a prompt below — even for
-            // always-allowed hosts — so downloading the same file twice is a
+            // way); completed ones fall through to a prompt below - even for
+            // always-allowed hosts - so downloading the same file twice is a
             // deliberate choice, not a silent second copy.
             let dup_done = match mgr.duplicate_status(&req.url, req.file_name.as_deref()) {
                 crate::engine::DupStatus::Active(name) => {

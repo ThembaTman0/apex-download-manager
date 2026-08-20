@@ -20,6 +20,6 @@ Thumbs.db
 !.vscode/extensions.json
 .idea/
 
-# Local env / secrets (none are committed by design — keep it that way)
+# Local env / secrets (none are committed by design - keep it that way)
 .env
 .env.*

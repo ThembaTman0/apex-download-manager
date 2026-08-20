@@ -13,7 +13,7 @@ export function StatsCards() {
   const cards = [
     { label: "Active", value: active.length.toString(), sub: "Downloading", icon: Download },
     { label: "Completed", value: completed.length.toString(), sub: "Total files", icon: CheckCircle },
-    { label: "Total Speed", value: totalSpeed > 0 ? formatSpeed(totalSpeed) : "—", sub: "Combined", icon: TrendingUp },
+    { label: "Total Speed", value: totalSpeed > 0 ? formatSpeed(totalSpeed) : "-", sub: "Combined", icon: TrendingUp },
     { label: "Downloaded", value: formatBytes(totalDownloaded), sub: "All time", icon: Clock },
   ];
 

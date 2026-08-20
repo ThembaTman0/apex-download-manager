@@ -37,7 +37,7 @@ impl Db {
         )
         .map_err(|e| e.to_string())?;
 
-        // Additive migrations — ignore "duplicate column" on existing DBs.
+        // Additive migrations - ignore "duplicate column" on existing DBs.
         for ddl in [
             "ALTER TABLE downloads ADD COLUMN etag TEXT",
             "ALTER TABLE downloads ADD COLUMN last_modified TEXT",
@@ -51,7 +51,7 @@ impl Db {
         }
 
         // Anything left "downloading"/"merging" from a previous session was
-        // interrupted — surface it as paused so it can be resumed. Scheduled
+        // interrupted - surface it as paused so it can be resumed. Scheduled
         // items (with a start time) stay queued for the ticker to pick up.
         conn.execute(
             "UPDATE downloads SET status = 'paused'

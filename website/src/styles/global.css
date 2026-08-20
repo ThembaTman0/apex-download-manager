@@ -1,5 +1,5 @@
 /* ---------------------------------------------------------------------------
-   Apex Download Manager — marketing site
+   Apex Download Manager - marketing site
    Monochrome dark system in the spirit of linear.app: near-black canvas,
    white type with soft glow, one warm accent reserved for the product itself.
 --------------------------------------------------------------------------- */
@@ -14,7 +14,7 @@
   --text-2: #8a8f98;
   --text-3: #5b5f66;
 
-  /* Product colors — used only inside app/extension mockups */
+  /* Product colors - used only inside app/extension mockups */
   --mk-bg: #0b0e14;
   --mk-side: #090b10;
   --mk-surface: #0f131a;

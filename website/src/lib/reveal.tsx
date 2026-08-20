@@ -24,7 +24,7 @@ export function usePrefersReducedMotion(): boolean {
   return reduced;
 }
 
-/** ?static disables entrance animations and the live demo — for screenshots/QA. */
+/** ?static disables entrance animations and the live demo - for screenshots/QA. */
 export const STATIC_MODE =
   typeof window !== "undefined" &&
   new URLSearchParams(window.location.search).has("static");

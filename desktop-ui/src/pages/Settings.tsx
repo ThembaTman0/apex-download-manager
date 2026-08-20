@@ -390,7 +390,7 @@ export function SettingsPage() {
         >
           <div className="flex gap-2">
             <code className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg text-xs text-ink font-mono px-3 py-2.5 truncate select-text">
-              {form.captureToken || "—"}
+              {form.captureToken || "-"}
             </code>
             <button
               onClick={async () => {

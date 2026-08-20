@@ -1,8 +1,8 @@
-// Apex Download Manager — capture service worker.
+// Apex Download Manager - capture service worker.
 //
 // Strategy: cancel the browser's download IMMEDIATELY, then hand the URL to
 // Apex. On Chromium the cancel happens during filename determination
-// (onDeterminingFilename), which runs before the Save As dialog — so the
+// (onDeterminingFilename), which runs before the Save As dialog - so the
 // browser's download UI never appears at all. If Apex turns out to be
 // unreachable or rejects the URL, the download is restarted in the browser
 // so nothing is ever lost.
@@ -10,7 +10,7 @@
 // downloads.setUiOptions (re-enabled whenever a download is handed back).
 //
 // Startup: downloads interrupted by a browser/OS shutdown are auto-resumed by
-// Chromium at the next launch — typically before Apex is running. Left alone,
+// Chromium at the next launch - typically before Apex is running. Left alone,
 // each of those resumes re-enters capture, fails to reach Apex, and gets
 // restarted in the browser, popping a Save As dialog with no user action at
 // every boot. Two defenses: a startup sweep erases leftover entries for URLs
@@ -82,7 +82,7 @@ async function sendToApex(url, fileName, referrer) {
 
 // A 401 means Apex is running but our token is stale (e.g. the user clicked
 // Regenerate in Apex Settings after pairing). Unlike "unreachable", retrying
-// won't help — tell the user to re-pair, at most once per throttle window so
+// won't help - tell the user to re-pair, at most once per throttle window so
 // a burst of captures doesn't stack toasts. In-memory is fine: a service-
 // worker restart re-arming the notice just means one extra toast.
 const BAD_TOKEN_NOTICE_MS = 5 * 60 * 1000;
@@ -102,7 +102,7 @@ function notifyBadToken() {
 }
 
 // Browser context Apex needs to fetch URLs behind a login: the site's
-// cookies (incl. HttpOnly — that's why the cookies permission exists),
+// cookies (incl. HttpOnly - that's why the cookies permission exists),
 // the page that linked the file, and the browser's user-agent so the
 // server sees the same client that held the session.
 async function collectHeaders(url, referrer) {
@@ -191,7 +191,7 @@ const handedBack = new Set();
 // which owns dedup: a repeat while the prompt is up refreshes that prompt, an
 // actively-downloading duplicate is acknowledged silently, and an
 // already-completed one re-prompts with a "download again?" warning. Longer
-// windows here made second clicks feel dead — the prompt must be instant.
+// windows here made second clicks feel dead - the prompt must be instant.
 const RESEND_WINDOW_MS = 1_500;
 const recentSends = new Map(); // key -> ms of last attempt
 
@@ -207,7 +207,7 @@ function isDuplicateSend(url, fileName) {
 }
 
 // A download whose startTime is this far in the past was not started by a
-// click just now — it's an entry the browser restored from a previous
+// click just now - it's an entry the browser restored from a previous
 // session (shutdown-interrupted downloads auto-resume at launch).
 const RESTORED_AGE_MS = 60_000;
 
@@ -270,18 +270,18 @@ async function captureDownload(item) {
     if (e && e.status === 401) notifyBadToken();
     if (isRestored) {
       if (e && e.status === 401) {
-        // Apex IS running — the drop notice's "Apex isn't running" wording
+        // Apex IS running - the drop notice's "Apex isn't running" wording
         // would mislead; the bad-token toast above already says what to do.
         return;
       }
       // A restored leftover and Apex is down (typical right after boot):
       // handing it back would pop a Save As dialog with no user action at
-      // every browser launch. Drop it and say so instead — batched, so a
+      // every browser launch. Drop it and say so instead - batched, so a
       // boot with many leftovers surfaces one toast, not a stack of them.
       queueRestoredDropNotice(basename(item.filename) || url);
       return;
     }
-    // Apex unavailable — give the download back to the browser, with its UI
+    // Apex unavailable - give the download back to the browser, with its UI
     // visible so the user can see it happening.
     forgetCaptured(url);
     handedBack.add(url);
@@ -297,7 +297,7 @@ async function captureDownload(item) {
 
 // Chromium: intercept during filename determination. This event fires BEFORE
 // the "Ask where to save each file" dialog, and the browser holds that dialog
-// until suggest() is called — so cancelling here means the Save As prompt
+// until suggest() is called - so cancelling here means the Save As prompt
 // never opens. Cancelling from onCreated is too late for users with that
 // setting on: the native dialog is already up, and cancel() doesn't close it.
 const seenByDeterminer = new Set();
@@ -319,7 +319,7 @@ if (chrome.downloads.onDeterminingFilename) {
 }
 
 // Fallback: Firefox has no onDeterminingFilename, and Chromium dispatches it
-// to only one extension — if another extension owns it, ours never fires. So
+// to only one extension - if another extension owns it, ours never fires. So
 // give the determiner a moment to claim the download, then handle it here.
 chrome.downloads.onCreated.addListener((item) => {
   if (!chrome.downloads.onDeterminingFilename) {

@@ -73,7 +73,7 @@ function tickRows(rows: Row[], poolIndex: number): [Row[], number] {
       return { ...r, progress, speed };
     }
     if (r.status === "done") {
-      // After a short rest, recycle the slot with a fresh file from the pool —
+      // After a short rest, recycle the slot with a fresh file from the pool -
       // but leave the bottom showcase row (blender) alone.
       if (r.name.startsWith("blender")) return r;
       if (r.doneTicks >= 4) {

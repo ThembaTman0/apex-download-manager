@@ -43,7 +43,7 @@ export function DashboardPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-ink font-medium truncate">{d.name}</p>
                       <p className="text-[10px] text-ink-muted mt-0.5">
-                        {d.sizeBytes > 0 ? formatBytes(d.sizeBytes) : "—"}
+                        {d.sizeBytes > 0 ? formatBytes(d.sizeBytes) : "-"}
                       </p>
                     </div>
                     <div className="w-28 shrink-0">
