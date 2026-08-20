@@ -8,6 +8,7 @@ mod ytdlp;
 use std::time::Duration;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tauri::window::{ProgressBarState, ProgressBarStatus};
 use tauri::{Emitter, Manager};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 
@@ -18,6 +19,83 @@ pub(crate) fn show_main_window(app: &tauri::AppHandle) {
         let _ = w.show();
         let _ = w.unminimize();
         let _ = w.set_focus();
+    }
+}
+
+/// One pass over the download list, feeding both the tray tooltip and the
+/// taskbar progress bar.
+#[derive(Default, PartialEq, Debug)]
+struct QueueSummary {
+    /// Downloading or merging right now.
+    active: usize,
+    queued: usize,
+    paused: usize,
+    /// Byte totals across in-flight downloads whose length is known. A server
+    /// that sends no content-length, or a video mid-merge, still counts as
+    /// in-flight but is left out of the ratio - otherwise it would drag the
+    /// bar towards zero for the whole transfer.
+    known_total: u64,
+    known_done: u64,
+}
+
+impl QueueSummary {
+    fn of(list: &[models::Download]) -> Self {
+        use models::DownloadStatus::*;
+        let mut s = Self::default();
+        for d in list {
+            match d.status {
+                Downloading | Merging => s.active += 1,
+                Queued => {
+                    s.queued += 1;
+                    continue;
+                }
+                Paused => s.paused += 1,
+                Completed | Failed => continue,
+            }
+            if d.size_bytes > 0 {
+                s.known_total += d.size_bytes;
+                s.known_done += d.downloaded_bytes.min(d.size_bytes);
+            }
+        }
+        s
+    }
+
+    fn tooltip(&self) -> String {
+        match (self.active, self.queued) {
+            (0, 0) => "Apex Download Manager".to_string(),
+            (a, 0) => format!("Apex: {a} downloading"),
+            (a, q) => format!("Apex: {a} downloading, {q} queued"),
+        }
+    }
+
+    /// State for the Windows taskbar button. Paused work keeps the bar up in
+    /// amber so a minimised window still admits there is something unfinished;
+    /// once nothing is in flight the bar is hidden rather than left at 100%.
+    ///
+    /// Deliberately never `Error`: a failed download stays failed until the
+    /// user acts on it, and Windows holds the button red for exactly as long
+    /// as the state is set, so one dead link would leave the taskbar shouting
+    /// indefinitely. Failures surface in the row and the notification instead.
+    fn progress_bar(&self) -> ProgressBarState {
+        if self.active == 0 && self.paused == 0 {
+            return ProgressBarState {
+                status: Some(ProgressBarStatus::None),
+                progress: None,
+            };
+        }
+        let percent = (self.known_total > 0)
+            .then(|| (self.known_done.saturating_mul(100) / self.known_total).min(100));
+        let status = match (self.active, percent) {
+            // Everything in flight is paused.
+            (0, _) => ProgressBarStatus::Paused,
+            // Running, but nothing reported a size to measure against.
+            (_, None) => ProgressBarStatus::Indeterminate,
+            _ => ProgressBarStatus::Normal,
+        };
+        ProgressBarState {
+            status: Some(status),
+            progress: percent,
+        }
     }
 }
 
@@ -174,43 +252,36 @@ pub fn run() {
                 }
             });
 
-            // --- Tray tooltip: show how many downloads are running ---
+            // --- Tray tooltip + taskbar progress: how far along the queue is ---
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                let mut last = String::new();
+                let mut last_tip = String::new();
                 loop {
                     tokio::time::sleep(Duration::from_secs(2)).await;
-                    let (active, queued) = handle
+                    let summary = handle
                         .state::<DownloadManager>()
                         .list()
-                        .map(|list| {
-                            let a = list
-                                .iter()
-                                .filter(|d| {
-                                    matches!(
-                                        d.status,
-                                        models::DownloadStatus::Downloading
-                                            | models::DownloadStatus::Merging
-                                    )
-                                })
-                                .count();
-                            let q = list
-                                .iter()
-                                .filter(|d| d.status == models::DownloadStatus::Queued)
-                                .count();
-                            (a, q)
-                        })
-                        .unwrap_or((0, 0));
-                    let tip = match (active, queued) {
-                        (0, 0) => "Apex Download Manager".to_string(),
-                        (a, 0) => format!("Apex: {a} downloading"),
-                        (a, q) => format!("Apex: {a} downloading, {q} queued"),
-                    };
-                    if tip != last {
+                        .map(|list| QueueSummary::of(&list))
+                        .unwrap_or_default();
+
+                    let tip = summary.tooltip();
+                    if tip != last_tip {
                         if let Some(tray) = handle.tray_by_id("main-tray") {
                             let _ = tray.set_tooltip(Some(tip.as_str()));
                         }
-                        last = tip;
+                        last_tip = tip;
+                    }
+
+                    // Set every tick rather than only on change. The window
+                    // has no taskbar button while it sits hidden in the tray,
+                    // and a diff against the last value would never push the
+                    // state again once it comes back. Pushing every tick
+                    // restores the bar within 2s of the window reappearing
+                    // (verified by hiding to the tray mid-download), and a
+                    // value the button already has costs one call at 0.5 Hz
+                    // and changes nothing on screen.
+                    if let Some(w) = handle.get_webview_window("main") {
+                        let _ = w.set_progress_bar(summary.progress_bar());
                     }
                 }
             });
@@ -282,4 +353,128 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use models::{Download, DownloadStatus};
+
+    fn dl(status: DownloadStatus, size_bytes: u64, downloaded_bytes: u64) -> Download {
+        Download {
+            id: "id".into(),
+            name: "f.bin".into(),
+            url: "https://example.com/f.bin".into(),
+            file_type: "other".into(),
+            size_bytes,
+            downloaded_bytes,
+            progress: 0.0,
+            speed_bytes_per_sec: 0,
+            eta_seconds: 0,
+            status,
+            segments: 1,
+            modified_at: 0,
+            save_path: String::new(),
+            supports_ranges: true,
+            error: None,
+            created_at: 0,
+            start_at: None,
+            kind: "http".into(),
+            speed_limit_kbps: 0,
+            video_format: None,
+            etag: None,
+            last_modified: None,
+            segment_states: Vec::new(),
+            request_headers: Vec::new(),
+        }
+    }
+
+    /// ProgressBarStatus is a foreign enum with no PartialEq, so compare on a
+    /// label instead of the value itself.
+    fn bar(list: &[Download]) -> (&'static str, Option<u64>) {
+        let s = QueueSummary::of(list).progress_bar();
+        let label = match s.status {
+            Some(ProgressBarStatus::None) => "none",
+            Some(ProgressBarStatus::Normal) => "normal",
+            Some(ProgressBarStatus::Indeterminate) => "indeterminate",
+            Some(ProgressBarStatus::Paused) => "paused",
+            Some(ProgressBarStatus::Error) => "error",
+            _ => "unset",
+        };
+        (label, s.progress)
+    }
+
+    #[test]
+    fn idle_hides_the_taskbar_bar() {
+        let list = [
+            dl(DownloadStatus::Completed, 100, 100),
+            dl(DownloadStatus::Failed, 100, 20),
+        ];
+        assert_eq!(bar(&list), ("none", None));
+        assert_eq!(QueueSummary::of(&list).tooltip(), "Apex Download Manager");
+    }
+
+    #[test]
+    fn running_downloads_aggregate_by_bytes() {
+        // 25 of 100 plus 75 of 300 is 100 of 400.
+        let list = [
+            dl(DownloadStatus::Downloading, 100, 25),
+            dl(DownloadStatus::Downloading, 300, 75),
+        ];
+        assert_eq!(bar(&list), ("normal", Some(25)));
+        assert_eq!(QueueSummary::of(&list).tooltip(), "Apex: 2 downloading");
+    }
+
+    #[test]
+    fn queued_work_counts_in_the_tooltip_but_not_the_bar() {
+        let list = [
+            dl(DownloadStatus::Downloading, 100, 50),
+            dl(DownloadStatus::Queued, 900, 0),
+        ];
+        assert_eq!(bar(&list), ("normal", Some(50)));
+        assert_eq!(
+            QueueSummary::of(&list).tooltip(),
+            "Apex: 1 downloading, 1 queued"
+        );
+    }
+
+    #[test]
+    fn unknown_size_is_left_out_of_the_ratio() {
+        let list = [
+            dl(DownloadStatus::Downloading, 0, 4096),
+            dl(DownloadStatus::Downloading, 100, 40),
+        ];
+        assert_eq!(bar(&list), ("normal", Some(40)));
+    }
+
+    #[test]
+    fn running_without_any_known_size_is_indeterminate() {
+        let list = [dl(DownloadStatus::Downloading, 0, 4096)];
+        assert_eq!(bar(&list), ("indeterminate", None));
+    }
+
+    #[test]
+    fn all_paused_turns_the_bar_amber_and_keeps_the_position() {
+        let list = [dl(DownloadStatus::Paused, 100, 40)];
+        assert_eq!(bar(&list), ("paused", Some(40)));
+        // Nothing is running, so the tooltip stays neutral.
+        assert_eq!(QueueSummary::of(&list).tooltip(), "Apex Download Manager");
+    }
+
+    #[test]
+    fn one_runner_beats_paused_neighbours() {
+        let list = [
+            dl(DownloadStatus::Paused, 100, 90),
+            dl(DownloadStatus::Downloading, 100, 10),
+        ];
+        assert_eq!(bar(&list), ("normal", Some(50)));
+    }
+
+    #[test]
+    fn overshooting_bytes_cannot_exceed_a_hundred() {
+        // A resumed download can briefly report more bytes than the probe
+        // reported as the length; the bar must not run past the end.
+        let list = [dl(DownloadStatus::Downloading, 100, 140)];
+        assert_eq!(bar(&list), ("normal", Some(100)));
+    }
 }
