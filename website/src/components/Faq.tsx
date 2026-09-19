@@ -1,5 +1,5 @@
 import { Reveal } from "../lib/reveal";
-import { ChevronDownIcon } from "./icons";
+import { PlusIcon } from "./icons";
 
 const ITEMS: Array<{ q: string; a: string }> = [
   {
@@ -30,28 +30,29 @@ const ITEMS: Array<{ q: string; a: string }> = [
 
 export default function Faq() {
   return (
-    <section id="faq">
-      <div className="container">
-        <Reveal className="section-head">
-          <span className="kicker">FAQ</span>
-          <h2>Questions, answered</h2>
+    <section className="band" id="faq" aria-labelledby="faq-title">
+      <div className="container faq-grid">
+        <Reveal>
+          <h2 id="faq-title" className="section-title">
+            Questions,
+            <br />
+            answered
+          </h2>
         </Reveal>
 
         <div className="faq-list">
-          {ITEMS.map((item, i) => (
-            <Reveal key={item.q} delay={i * 50}>
-              <details className="faq-item">
-                <summary>
-                  {item.q}
-                  <ChevronDownIcon />
-                </summary>
-                <div className="faq-body">
-                  <div>
-                    <p>{item.a}</p>
-                  </div>
+          {ITEMS.map((item) => (
+            <details className="faq-item" key={item.q}>
+              <summary>
+                {item.q}
+                <PlusIcon size={14} strokeWidth={1.6} />
+              </summary>
+              <div className="faq-body">
+                <div>
+                  <p>{item.a}</p>
                 </div>
-              </details>
-            </Reveal>
+              </div>
+            </details>
           ))}
         </div>
       </div>

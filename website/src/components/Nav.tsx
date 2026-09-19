@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
+import { REPO_URL } from "../lib/latestRelease";
 import { GitHubIcon, LogoMark } from "./icons";
-
-// The public releases repo - the source repo is private.
-const REPO_URL = "https://github.com/ThembaTman0/apex-download-manager-releases";
 
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
@@ -18,25 +16,26 @@ export default function Nav() {
     <header className={`nav ${scrolled ? "scrolled" : ""}`.trim()}>
       <div className="container nav-inner">
         <a className="brand" href="#top" aria-label="Apex Download Manager, back to top">
-          <LogoMark />
+          <LogoMark size={18} />
           Apex
         </a>
         <nav className="nav-links" aria-label="Main">
-          <a href="#features">Features</a>
+          <a href="#engine">Engine</a>
           <a href="#capture">Capture</a>
+          <a href="#video">Video</a>
           <a href="#safety">Safety</a>
           <a href="#faq">FAQ</a>
-          <a href="#support">Support</a>
+          <span className="nav-sep" aria-hidden="true" />
           <a
+            className="nav-icon"
             href={REPO_URL}
             target="_blank"
             rel="noreferrer"
             aria-label="Apex on GitHub"
-            style={{ display: "inline-flex" }}
           >
-            <GitHubIcon size={17} />
+            <GitHubIcon size={16} />
           </a>
-          <a className="btn btn-primary btn-sm" href="#download">
+          <a className="btn btn-pill" href="#download">
             Download
           </a>
         </nav>
