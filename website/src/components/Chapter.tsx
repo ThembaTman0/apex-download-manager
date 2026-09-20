@@ -7,6 +7,8 @@ export interface ChapterProps {
   title: [string, string];
   body: ReactNode;
   link?: { href: string; label: string; external?: boolean };
+  /** Extra links shown beside `link`, e.g. the three extension stores. */
+  links?: Array<{ href: string; label: string; external?: boolean }>;
   visual: ReactNode;
   features: string[];
 }
@@ -15,7 +17,7 @@ export interface ChapterProps {
  * One feature chapter, Linear-style: two-line heading left, paragraph right,
  * a full-width product visual, then a compact features list.
  */
-export default function Chapter({ id, title, body, link, visual, features }: ChapterProps) {
+export default function Chapter({ id, title, body, link, links, visual, features }: ChapterProps) {
   const half = Math.ceil(features.length / 2);
   return (
     <section className="band chapter" id={id} aria-labelledby={`${id}-title`}>
@@ -28,16 +30,17 @@ export default function Chapter({ id, title, body, link, visual, features }: Cha
           </h2>
           <div className="chapter-copy">
             <p>{body}</p>
-            {link && (
+            {[...(link ? [link] : []), ...(links ?? [])].map((l) => (
               <a
+                key={l.href + l.label}
                 className="text-link"
-                href={link.href}
-                {...(link.external ? { target: "_blank", rel: "noreferrer" } : {})}
+                href={l.href}
+                {...(l.external ? { target: "_blank", rel: "noreferrer" } : {})}
               >
-                {link.label}
+                {l.label}
                 <ArrowRight size={13} />
               </a>
-            )}
+            ))}
           </div>
         </Reveal>
 

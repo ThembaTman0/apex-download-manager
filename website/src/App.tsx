@@ -1,3 +1,8 @@
+import {
+  CHROME_EXT_URL,
+  EDGE_EXT_URL,
+  FIREFOX_ADDON_URL,
+} from "./lib/latestRelease";
 import Nav from "./components/Nav";
 import Hero from "./components/Hero";
 import WorksWith from "./components/WorksWith";
@@ -41,6 +46,11 @@ export default function App() {
           id="capture"
           title={["From your browser", "to Apex"]}
           body="Click a download like you always do. The extension hands it to Apex before any Save As dialog, and if Apex isn't running, the browser simply downloads it as usual."
+          links={[
+            { href: CHROME_EXT_URL, label: "Chrome and Brave", external: true },
+            { href: EDGE_EXT_URL, label: "Edge", external: true },
+            { href: FIREFOX_ADDON_URL, label: "Firefox", external: true },
+          ]}
           visual={<CaptureFlow />}
           features={[
             "Chrome, Edge, Brave and Firefox",

@@ -1,4 +1,6 @@
 import {
+  CHROME_EXT_URL,
+  EDGE_EXT_URL,
   FIREFOX_ADDON_URL,
   ISSUES_URL,
   RELEASES_URL,
@@ -23,6 +25,8 @@ const COLUMNS: Array<{ title: string; links: L[] }> = [
     title: "Resources",
     links: [
       { label: "Releases", href: RELEASES_URL, external: true },
+      { label: "Chrome extension", href: CHROME_EXT_URL, external: true },
+      { label: "Edge add-on", href: EDGE_EXT_URL, external: true },
       { label: "Firefox add-on", href: FIREFOX_ADDON_URL, external: true },
       { label: "Changelog", href: "#changelog" },
       { label: "Issues", href: ISSUES_URL, external: true },

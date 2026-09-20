@@ -12,7 +12,7 @@ const ITEMS: Array<{ q: string; a: string }> = [
   },
   {
     q: "Which browsers does the extension support?",
-    a: "Chrome, Edge, Brave and Firefox. The Firefox add-on is on addons.mozilla.org; on the Chromium browsers you load it from the extension folder until the store listings are approved. Even without the extension, you can paste a link, use the clipboard watcher, or drag a URL into the window.",
+    a: "Chrome, Edge, Brave and Firefox. The extension is published in the Chrome Web Store, Microsoft Edge Add-ons and on addons.mozilla.org; Brave installs the Chrome listing. Even without the extension, you can paste a link, use the clipboard watcher, or drag a URL into the window.",
   },
   {
     q: "What does Apex send over the network?",

@@ -34,6 +34,11 @@ export const ISSUES_URL =
   "https://github.com/ThembaTman0/apex-download-manager-releases/issues";
 export const REPO_URL =
   "https://github.com/ThembaTman0/apex-download-manager-releases";
+/** Published extension listings. Brave installs the Chrome one. */
+export const CHROME_EXT_URL =
+  "https://chromewebstore.google.com/detail/apex-download-manager/gopdilekdjnfekbmhedjidlmaahnnhco";
+export const EDGE_EXT_URL =
+  "https://microsoftedge.microsoft.com/addons/detail/apex-download-manager/bjpggfmgbhafacbcmhpncjaapdknohjg";
 export const FIREFOX_ADDON_URL =
   "https://addons.mozilla.org/en-US/firefox/addon/apex-download-manager/";
 
