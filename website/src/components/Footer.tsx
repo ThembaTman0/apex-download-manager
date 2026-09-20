@@ -15,6 +15,7 @@ const COLUMNS: Array<{ title: string; links: L[] }> = [
     title: "Product",
     links: [
       { label: "Engine", href: "#engine" },
+      { label: "Speed test", href: "#benchmark" },
       { label: "Browser capture", href: "#capture" },
       { label: "Video grabber", href: "#video" },
       { label: "Safety", href: "#safety" },

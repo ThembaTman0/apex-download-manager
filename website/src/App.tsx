@@ -9,6 +9,7 @@ import WorksWith from "./components/WorksWith";
 import Principles from "./components/Principles";
 import Chapter from "./components/Chapter";
 import EngineViz from "./components/EngineViz";
+import BenchmarkViz from "./components/BenchmarkViz";
 import CaptureFlow from "./components/CaptureFlow";
 import VideoGrab from "./components/VideoGrab";
 import SafetyViz from "./components/SafetyViz";
@@ -40,6 +41,20 @@ export default function App() {
             "ETag and If-Range resume checks",
             "Queue with a concurrency limit",
             "Speed limits and scheduling",
+          ]}
+        />
+        <Chapter
+          id="benchmark"
+          title={["Measured,", "not claimed"]}
+          body="One 756 MB file, downloaded twice on the same idle line: once over a single connection, the way a browser does it, then once with Apex. The Apex timing is read from the app's own database."
+          visual={<BenchmarkViz />}
+          features={[
+            "1.36x faster on a throttled mirror",
+            "49 seconds saved on 756 MB",
+            "80 ranges after re-splitting",
+            "No gain when your line is the limit",
+            "Single run per arm, back to back",
+            "Re-runnable: the method is published",
           ]}
         />
         <Chapter

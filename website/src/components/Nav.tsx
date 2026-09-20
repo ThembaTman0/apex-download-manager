@@ -21,6 +21,7 @@ export default function Nav() {
         </a>
         <nav className="nav-links" aria-label="Main">
           <a href="#engine">Engine</a>
+          <a href="#benchmark">Speed</a>
           <a href="#capture">Capture</a>
           <a href="#video">Video</a>
           <a href="#safety">Safety</a>
