@@ -14,16 +14,48 @@
       content="A download manager that uses your whole connection. Free for Windows, no account, no telemetry."
     />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="/og.png" />
+    <meta property="og:url" content="https://apex-download-manager.vercel.app/" />
+    <meta property="og:site_name" content="Apex Download Manager" />
+    <!-- Absolute: several crawlers, Facebook among them, do not resolve relative image paths. -->
+    <meta property="og:image" content="https://apex-download-manager.vercel.app/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Apex Download Manager: a download manager that uses your whole connection" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Apex Download Manager" />
     <meta name="twitter:description" content="A download manager that uses your whole connection. Free for Windows, no account, no telemetry." />
-    <meta name="twitter:image" content="/og.png" />
+    <meta name="twitter:image" content="https://apex-download-manager.vercel.app/og.png" />
     <meta name="theme-color" content="#08090a" />
+    <link rel="canonical" href="https://apex-download-manager.vercel.app/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Apex Download Manager",
+        "url": "https://apex-download-manager.vercel.app/",
+        "downloadUrl": "https://apex-download-manager.vercel.app/dl",
+        "applicationCategory": "UtilitiesApplication",
+        "applicationSubCategory": "Download manager",
+        "operatingSystem": "Windows 10, Windows 11",
+        "processorRequirements": "x64",
+        "softwareVersion": "1.0.9",
+        "fileSize": "4 MB",
+        "description": "A download manager for Windows that splits each file across up to 32 connections, resumes from the exact byte, and verifies SHA-256 checksums. No account, no ads, no telemetry.",
+        "featureList": [
+          "Up to 32 connections per file with dynamic range re-splitting",
+          "Resume from the exact byte after a reboot or dropped connection",
+          "Browser capture for Chrome, Edge, Brave and Firefox",
+          "Video and subtitle downloads via yt-dlp",
+          "SHA-256 checksum verification and Mark of the Web"
+        ],
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

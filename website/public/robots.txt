@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://apex-download-manager.vercel.app/sitemap.xml

@@ -166,7 +166,12 @@ export default function EngineViz() {
 
         <div className="viz-axis mono">
           {[0, 0.25, 0.5, 0.75, 1].map((f) => (
-            <span key={f} className={f === 1 ? "end" : undefined} style={{ left: `${f * 100}%` }}>
+            <span
+              key={f}
+              // q1 and q3 drop out under 700px, where five labels collide.
+              className={f === 1 ? "end" : f === 0.25 ? "q1" : f === 0.75 ? "q3" : undefined}
+              style={{ left: `${f * 100}%` }}
+            >
               {f === 0 ? "0 GB" : `${gb(f)} GB`}
             </span>
           ))}

@@ -1,29 +1,22 @@
 import { Reveal } from "../lib/reveal";
 
-const ITEMS: Array<{ name: string; via: string }> = [
-  { name: "Chrome", via: "Extension" },
-  { name: "Edge", via: "Extension" },
-  { name: "Brave", via: "Extension" },
-  { name: "Firefox", via: "Extension" },
-  { name: "YouTube", via: "Video grabber" },
-];
-
-/** Where Linear shows customer logos: the places Apex plugs into. */
+/**
+ * Where Linear shows customer logos. Apex has no customer logos to show and
+ * faked browser wordmarks read as a placeholder, so this states the fact
+ * plainly instead: one mono line, the same treatment as the FIG labels.
+ */
 export default function WorksWith() {
   return (
-    <section className="works" aria-label="Works with">
+    <section className="works" aria-label="Compatibility">
       <div className="container">
         <Reveal>
-          <ul className="works-list">
-            {ITEMS.map((it) => (
-              <li key={it.name}>
-                <span className="works-name">{it.name}</span>
-                <span className="works-via mono">{it.via}</span>
-              </li>
-            ))}
-          </ul>
+          <p className="works-line">
+            Works with <strong>Chrome</strong>, <strong>Edge</strong>,{" "}
+            <strong>Brave</strong> and <strong>Firefox</strong>, and with{" "}
+            <strong>YouTube</strong> and the other sites yt-dlp supports.
+          </p>
           <p className="works-caption mono">
-            Works with the browser you already use, and the sites you watch
+            One extension · no page content is ever read
           </p>
         </Reveal>
       </div>

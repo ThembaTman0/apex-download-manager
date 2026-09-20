@@ -448,32 +448,19 @@ ol {
   padding: 88px 0 120px;
 }
 
-.works-list {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 24px;
-}
-
-.works-list li {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.works-name {
-  font-size: 26px;
-  font-weight: 510;
+.works-line {
+  max-width: 24ch;
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 1.25;
   letter-spacing: -0.022em;
-  line-height: 1;
-  color: var(--text-2);
+  color: var(--text-mute);
+  text-wrap: balance;
 }
 
-.works-via {
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-3);
+.works-line strong {
+  font-weight: 400;
+  color: var(--text);
 }
 
 .works-caption {
@@ -2512,7 +2499,9 @@ ol {
 
 /* Reveal animation ------------------------------------------------------------------------ */
 
-.reveal {
+/* Hidden only when scripting is on: without JS the prerendered HTML shows
+   as-is instead of staying invisible at opacity 0. */
+.js .reveal {
   opacity: 0;
   transform: translateY(16px);
   transition:
@@ -2521,7 +2510,7 @@ ol {
   transition-delay: var(--reveal-delay, 0ms);
 }
 
-.reveal.is-visible {
+.js .reveal.is-visible {
   opacity: 1;
   transform: none;
 }
@@ -2632,17 +2621,19 @@ ol {
     height: 560px;
   }
 
+  /* Below this width the floating popup would cover the Speed, ETA and
+     Status columns entirely, which is the data the hero exists to show.
+     Stack it under the window instead. */
   .hero-capture {
-    bottom: 40px;
-    right: 12px;
-    width: 312px;
+    position: static;
+    width: min(360px, 100%);
+    margin: 16px auto 0;
+    filter: none;
   }
 
-  .works-list {
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    column-gap: 40px;
-    row-gap: 28px;
+  .works-line {
+    font-size: 26px;
+    max-width: 30ch;
   }
 
   .principles {
@@ -2865,8 +2856,9 @@ ol {
     line-height: 1.1;
   }
 
-  .works-name {
+  .works-line {
     font-size: 22px;
+    max-width: none;
   }
 
   .chapter-copy p {
@@ -2881,12 +2873,6 @@ ol {
   .chapter-features ul + ul {
     border-left: 0;
     padding-left: 0;
-  }
-
-  .works-list {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    column-gap: 16px;
   }
 
   .text-link {
@@ -2955,5 +2941,70 @@ ol {
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+}
+
+/* Small-screen corrections -------------------------------------------------- */
+
+@media (max-width: 860px) {
+  /* Touch targets: Apple asks for 44px, Material for 48dp. */
+  .btn {
+    height: 44px;
+    padding: 0 18px;
+  }
+
+  .nav-links .btn-pill {
+    height: 44px;
+  }
+
+  /* Remaining tap targets: the release link, the footer mark and the
+     skip link all sit under 44px at their default sizes. */
+  .hero-new,
+  .footer-logo,
+  .skip-link {
+    min-height: 44px;
+  }
+
+  .hero-new {
+    align-items: center;
+  }
+
+  .footer-logo {
+    display: inline-flex;
+    align-items: center;
+    min-width: 44px;
+  }
+}
+
+@media (max-width: 700px) {
+  /* The log's four columns leave each cell too narrow to read, so the
+     byte range moves under the message and the time column shrinks. */
+  .viz-log li {
+    grid-template-columns: 58px minmax(0, 1fr);
+    row-gap: 2px;
+  }
+
+  .viz-log .msg,
+  .viz-log .note {
+    grid-column: 2 / -1;
+  }
+
+  .viz-log .range {
+    grid-column: 2 / -1;
+    color: var(--mk-ink-muted);
+  }
+
+  .viz-log li > span {
+    padding-right: 0;
+  }
+
+  .viz-log {
+    min-height: 0;
+  }
+
+  /* Four axis labels collide at this width; keep the ends and the middle. */
+  .viz-axis span.q1,
+  .viz-axis span.q3 {
+    display: none;
   }
 }
