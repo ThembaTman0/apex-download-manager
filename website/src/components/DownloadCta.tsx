@@ -6,6 +6,7 @@ import {
   RELEASES_URL,
   useLatestRelease,
 } from "../lib/latestRelease";
+import Checksum from "./Checksum";
 import { ArrowRight, DownloadIcon } from "./icons";
 
 // Below this, a counter reads as an absence of users rather than proof.
@@ -36,6 +37,7 @@ export default function DownloadCta() {
               Pair the browser extension from Apex Settings, then downloads you
               click are caught automatically.
             </p>
+            <Checksum />
             {showCount && (
               <p className="cta-count mono">
                 {total.toLocaleString("en-US")} downloads counted. That is all we know.

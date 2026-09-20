@@ -5,6 +5,10 @@ export interface LatestRelease {
   version?: string;
   sizeMb?: number;
   total?: number;
+  /** Installer asset name, e.g. Apex.Download.Manager_1.0.9_x64-setup.exe. */
+  fileName?: string;
+  /** SHA-256 of that installer, straight from the release asset's digest. */
+  sha256?: string;
 }
 
 /** One entry of /api/changelog. */
@@ -30,6 +34,8 @@ export const ISSUES_URL =
   "https://github.com/ThembaTman0/apex-download-manager-releases/issues";
 export const REPO_URL =
   "https://github.com/ThembaTman0/apex-download-manager-releases";
+export const FIREFOX_ADDON_URL =
+  "https://addons.mozilla.org/en-US/firefox/addon/apex-download-manager/";
 
 function once<T>(url: string, fallback: T): () => Promise<T> {
   let pending: Promise<T> | null = null;

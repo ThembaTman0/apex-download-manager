@@ -12,7 +12,7 @@ const ITEMS: Array<{ q: string; a: string }> = [
   },
   {
     q: "Which browsers does the extension support?",
-    a: "Chrome, Edge, and Brave today, with Firefox support in testing. Even without the extension, you can paste a link, use the clipboard watcher, or drag a URL into the window.",
+    a: "Chrome, Edge, Brave and Firefox. The Firefox add-on is on addons.mozilla.org; on the Chromium browsers you load it from the extension folder until the store listings are approved. Even without the extension, you can paste a link, use the clipboard watcher, or drag a URL into the window.",
   },
   {
     q: "What does Apex send over the network?",
@@ -24,7 +24,7 @@ const ITEMS: Array<{ q: string; a: string }> = [
   },
   {
     q: "Why does Windows warn me about the installer?",
-    a: "Apex isn't code-signed yet, so SmartScreen shows its “not commonly downloaded” notice with an unknown publisher. That reflects reputation, not a scan result: the file comes straight from GitHub's release servers, and the warning fades as downloads accumulate. Choose Keep, then “Show more” → “Keep anyway” to continue. A signed installer is planned as the project grows.",
+    a: "Apex isn't code-signed yet, so SmartScreen shows its “not commonly downloaded” notice with an unknown publisher. That reflects reputation, not a scan result: the file comes straight from GitHub's release servers, and the warning fades as downloads accumulate. Choose Keep, then “Show more” and “Keep anyway” to continue. The installer's SHA-256 is published next to the download button, so you can confirm the file is the one that was built. A signed installer is planned as the project grows.",
   },
 ];
 

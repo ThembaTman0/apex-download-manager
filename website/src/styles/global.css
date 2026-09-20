@@ -3008,3 +3008,77 @@ ol {
     display: none;
   }
 }
+
+/* Published installer checksum ----------------------------------------------- */
+
+.checksum {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.checksum-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.checksum-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.checksum-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-6);
+  background: transparent;
+  color: var(--text-mute);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    color 0.15s var(--ease),
+    border-color 0.15s var(--ease);
+}
+
+.checksum-copy:hover {
+  color: var(--text);
+  border-color: var(--line-2);
+}
+
+.checksum-hash {
+  display: block;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.checksum-note {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-3);
+}
+
+.checksum-note .mono {
+  font-size: 12px;
+  color: var(--text-mute);
+}
+
+@media (max-width: 860px) {
+  .checksum-copy {
+    min-height: 44px;
+    padding: 0 14px;
+  }
+}

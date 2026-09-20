@@ -1,5 +1,6 @@
-// GET /api/stats: anonymous totals plus the latest release's version and
-// installer size, { total, updated, version?, sizeMb? }.
+// GET /api/stats: anonymous totals plus the latest release's version,
+// installer size, file name and SHA-256,
+// { total, updated, version?, sizeMb?, fileName?, sha256? }.
 // Nothing per-user or per-region is stored, so nothing more can be served.
 // Returns { total: 0 } until a KV database is connected; the site hides
 // the counter when the total is 0. version/sizeMb are omitted when the
@@ -10,7 +11,7 @@ const RELEASE_CACHE_TTL_MS = 5 * 60 * 1000;
 
 // Warm-lambda cache; unauthenticated GitHub rate limits are shared across
 // Vercel's egress IPs, so don't ask on every stats poll.
-let releaseCache = { at: 0, version: null, sizeMb: null };
+let releaseCache = { at: 0, version: null, sizeMb: null, fileName: null, sha256: null };
 
 async function latestRelease() {
   if (releaseCache.version && Date.now() - releaseCache.at < RELEASE_CACHE_TTL_MS) {
@@ -35,6 +36,13 @@ async function latestRelease() {
     at: Date.now(),
     version: (release.tag_name || "").replace(/^v/, "") || null,
     sizeMb: installer ? Math.max(1, Math.round(installer.size / 1048576)) : null,
+    fileName: installer ? installer.name : null,
+    // GitHub publishes each asset's digest as "sha256:<hex>". Serving it
+    // here means the hash on the page always matches the file /dl hands out.
+    sha256:
+      installer && typeof installer.digest === "string"
+        ? installer.digest.replace(/^sha256:/, "")
+        : null,
   };
   return releaseCache;
 }
@@ -60,8 +68,10 @@ export default async function handler(req, res) {
 
   let version = null;
   let sizeMb = null;
+  let fileName = null;
+  let sha256 = null;
   try {
-    ({ version, sizeMb } = await latestRelease());
+    ({ version, sizeMb, fileName, sha256 } = await latestRelease());
   } catch {
     // Omitted from the response; the site keeps its static fallback.
   }
@@ -72,5 +82,7 @@ export default async function handler(req, res) {
     updated: new Date().toISOString(),
     ...(version && { version }),
     ...(sizeMb && { sizeMb }),
+    ...(fileName && { fileName }),
+    ...(sha256 && { sha256 }),
   });
 }

@@ -1,4 +1,9 @@
-import { ISSUES_URL, RELEASES_URL, REPO_URL } from "../lib/latestRelease";
+import {
+  FIREFOX_ADDON_URL,
+  ISSUES_URL,
+  RELEASES_URL,
+  REPO_URL,
+} from "../lib/latestRelease";
 import { LogoMark } from "./icons";
 
 type L = { label: string; href: string; external?: boolean };
@@ -18,6 +23,7 @@ const COLUMNS: Array<{ title: string; links: L[] }> = [
     title: "Resources",
     links: [
       { label: "Releases", href: RELEASES_URL, external: true },
+      { label: "Firefox add-on", href: FIREFOX_ADDON_URL, external: true },
       { label: "Changelog", href: "#changelog" },
       { label: "Issues", href: ISSUES_URL, external: true },
       { label: "GitHub", href: REPO_URL, external: true },

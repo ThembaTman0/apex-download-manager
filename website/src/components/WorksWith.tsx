@@ -1,3 +1,4 @@
+import { FIREFOX_ADDON_URL } from "../lib/latestRelease";
 import { Reveal } from "../lib/reveal";
 
 /**
@@ -12,7 +13,11 @@ export default function WorksWith() {
         <Reveal>
           <p className="works-line">
             Works with <strong>Chrome</strong>, <strong>Edge</strong>,{" "}
-            <strong>Brave</strong> and <strong>Firefox</strong>, and with{" "}
+            <strong>Brave</strong> and{" "}
+            <a href={FIREFOX_ADDON_URL} target="_blank" rel="noreferrer">
+              <strong>Firefox</strong>
+            </a>
+            , and with{" "}
             <strong>YouTube</strong> and the other sites yt-dlp supports.
           </p>
           <p className="works-caption mono">
