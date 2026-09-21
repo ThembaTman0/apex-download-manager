@@ -3,6 +3,7 @@ name = "apex-download-manager"
 version = "1.0.10"
 description = "Apex Download Manager - Download Faster. Smarter. Better."
 authors = ["Apex"]
+license = "GPL-3.0-or-later"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

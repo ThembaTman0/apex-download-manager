@@ -95,10 +95,18 @@ npm run tauri build    # produces MSI / NSIS installers
 - [x] Auto-updates (GitHub Releases)
 - [x] Dynamic segment re-splitting (finished connections take over the tail of slow ones)
 - [ ] Code signing
-- [ ] Extension store publishing (Chrome Web Store / AMO)
+- [x] Extension store publishing (Chrome Web Store / Edge Add-ons / AMO)
 - [x] Bandwidth scheduler (off-peak speed profiles)
 
 ## License
 
-Copyright © 2026. All rights reserved.
-Source is provided for reference; redistribution requires permission.
+Copyright © 2026 ThembaTman0.
+
+Apex Download Manager is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version. See [LICENSE](LICENSE) for the full text.
+
+It is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.

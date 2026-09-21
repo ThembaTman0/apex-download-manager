@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Apex Download Manager - a Windows download manager. Three deliverables in one repo:
+Apex Download Manager - a Windows download manager, licensed GPL-3.0-or-later (`LICENSE`). Three deliverables in one repo:
 
 - `desktop-ui/` - the app: Tauri v2 shell, React 19 + TypeScript + Tailwind v4 frontend, native Rust download engine (`src-tauri/`). No Electron/JVM.
 - `browser-extension/` - Chrome MV3 + Firefox capture extension. Plain JS, no bundler (load unpacked from the folder); store zips come from `build-zips.ps1`.

@@ -123,9 +123,10 @@ bullet from Q2.
 
 ### Q4. License
 
-Keep whatever was chosen on the first submission so it does not change
-between versions. (Open-source licensing of the wider project is still an
-open decision; that decision does not need to move for a version upload.)
+The project is licensed **GPL-3.0-or-later** (decided 2026-09-21, see
+`LICENSE` at the repo root). Pick "GNU General Public License v3.0" on the
+first upload after the source repo goes public; until then, keep whatever
+was chosen on the first submission.
 
 ### Q5. "Data collection" / privacy disclosure
 
