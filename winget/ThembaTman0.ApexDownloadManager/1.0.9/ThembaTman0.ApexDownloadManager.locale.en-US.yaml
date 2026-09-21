@@ -3,10 +3,9 @@
 PackageIdentifier: ThembaTman0.ApexDownloadManager
 PackageVersion: 1.0.9
 PackageLocale: en-US
-# Must match the Publisher the installer writes to Apps & Features (Tauri
-# derives "apex" from the bundle identifier), or winget cannot correlate the
-# installed app with this package for `winget upgrade`.
-Publisher: apex
+# Matches bundle.publisher in tauri.conf.json. The 1.0.9 installer itself
+# still writes "apex"; the installer manifest maps that for correlation.
+Publisher: Apex Download Manager
 PublisherUrl: https://apex-download-manager.vercel.app/
 PublisherSupportUrl: https://github.com/ThembaTman0/apex-download-manager-releases/issues
 Author: ThembaTman0

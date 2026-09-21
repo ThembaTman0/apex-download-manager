@@ -38,6 +38,7 @@
   },
   "bundle": {
     "active": true,
+    "publisher": "Apex Download Manager",
     "targets": "all",
     "createUpdaterArtifacts": true,
     "windows": {
