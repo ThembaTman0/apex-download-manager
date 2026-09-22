@@ -203,40 +203,54 @@ the installer's result on VirusTotal yourself so there are no surprises
 
 ## OpenAlternative
 
-<https://openalternative.co/submit>. A directory of open-source replacements
-for commercial software, which is exactly Apex's frame: the free, open source
-alternative to Internet Download Manager. Apex qualifies, since the source is
-public and GPL-3.0.
+<https://openalternative.co/submit>. **Blocked for now.** The frame fits, but
+the submission guidelines (read 2026-09-22) rule Apex out on two counts:
 
-**How it works** (read off the site on 2026-09-22): you sign in first, which
-also gives you a dashboard for the listing. A free submission waits in a
-review queue; a paid upgrade skips it and publishes within 24 hours, and a
-further upgrade makes the listing "featured". Free is the right choice unless
-a launch date depends on it.
+1. **"Must be a public, actively maintained repository with at least 10
+   stars."** The repo has 0.
+2. **"Custom Domain. No temporary subdomains (vercel.app, netlify.app,
+   etc.)."** The site is on `apex-download-manager.vercel.app`.
 
-The form is rendered in the browser, so the exact field list could not be
-read from outside. Expect name, website, repository URL, a description,
-categories or tags, the tools it is an alternative to, and your email. Have
-these ready:
+The other four rules pass: public GitHub repo, a real desktop application
+(not a CLI or library), available now, and a clear alternative to proprietary
+software.
+
+So this listing needs a custom domain and 10 stars first. Stars come from the
+launch posts, and the domain is a purchase; do not ask anyone for stars, since
+that is exactly what these directories penalise.
+
+When both are true, the submission itself is short. Sign in first, which also
+gives a dashboard for the listing. A free submission waits in a review queue;
+a paid upgrade skips it and publishes within 24 hours. Fields seen on the
+form: name, website, repository URL, "which well-known tool is this an
+alternative to", and optional discount code fields to leave empty.
 
 | Field | Value |
 |---|---|
 | Name | `Apex Download Manager` |
-| Website | `https://apex-download-manager.vercel.app/` |
+| Website | the custom domain, once it exists |
 | Repository | `https://github.com/ThembaTman0/apex-download-manager` |
-| License | GPL-3.0 |
-| Alternative to | Internet Download Manager, Free Download Manager, JDownloader, Xtreme Download Manager |
-| Tech stack, if asked | Rust, Tauri, React, TypeScript, SQLite |
-| Tags, if asked | download-manager, download-accelerator, windows, privacy, no-telemetry |
+| Alternative to | Internet Download Manager |
+| Discount code | leave empty |
 
-**Description** (same facts as the AlternativeTo entry, trimmed to one
-paragraph in case the field is short)
+**Description**
 
     Apex Download Manager splits each file across up to 32 parallel connections, so a download uses the whole connection instead of one stream. When one connection finishes early it takes over part of a slower one, so transfers do not stall at the end. Downloads resume from the exact byte after restarts and network drops, and resumes are checked against the server so a changed file is never stitched together. A browser extension for Chrome, Edge, Brave and Firefox hands downloads over and gives them back if Apex is not running. No account, no ads, no telemetry, and the source is GPL v3.
 
-**After it is published:** add the listing URL to the README and to
-`marketing/DIRECTORY_LISTINGS.md`, and check that the categories it landed in
-mention download managers rather than only developer tools.
+### Custom domain
+
+Checked 2026-09-22 with RDAP: `apexdm.app` (already the Firefox add-on's
+id suffix), `apexdownloadmanager.com` and `apexdownload.app` were all
+unregistered; `getapex.app` is taken. A `.app` domain forces HTTPS, which
+suits a download tool.
+
+A domain is worth more than this one listing: it is also the trust signal on
+an unsigned installer, the address other directories and store listings show,
+and it means the site can move off Vercel later without losing links. After
+buying it, add it in the Vercel project's Domains tab, set it as the primary
+domain so `vercel.app` redirects, then update `website/index.html` (canonical,
+og:url, og:image, twitter:image and the JSON-LD urls), `public/robots.txt`,
+`public/sitemap.xml`, the store listings and this file.
 
 ## GitHub discoverability
 
