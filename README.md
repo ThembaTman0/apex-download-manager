@@ -8,6 +8,25 @@ restarts, and network drops - wrapped in a clean, minimal desktop UI.
 
 > ⚡ Single native binary (Tauri v2 + Rust). No Electron, no JVM, no bloat.
 
+**[Download for Windows](https://apex-download-manager.vercel.app/dl)** · also on
+[Chrome](https://chromewebstore.google.com/detail/apex-download-manager/gopdilekdjnfekbmhedjidlmaahnnhco),
+[Edge](https://microsoftedge.microsoft.com/addons/detail/apex-download-manager/bjpggfmgbhafacbcmhpncjaapdknohjg) and
+[Firefox](https://addons.mozilla.org/en-US/firefox/addon/apex-download-manager/) for browser capture ·
+[Website](https://apex-download-manager.vercel.app/)
+
+![Apex downloads list: two files downloading over parallel connections, with per-segment progress, queue positions and a paused download](docs/screenshots/downloads.png)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/dashboard.png" alt="Dashboard with live combined download speed chart, totals and recent downloads"></td>
+    <td width="50%"><img src="marketing/store-screenshots/edge-capture-prompt-1280x800.png" alt="Approval prompt for a download handed over from the browser, showing source site, file name and save folder"></td>
+  </tr>
+  <tr>
+    <td align="center">Live speed and totals</td>
+    <td align="center">Downloads from your browser, approved in one click</td>
+  </tr>
+</table>
+
 ---
 
 ## Features

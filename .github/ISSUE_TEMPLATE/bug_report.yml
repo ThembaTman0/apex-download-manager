@@ -1,0 +1,90 @@
+name: Bug report
+description: Something in Apex doesn't work the way it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Security problems don't belong here: see the
+        "Report a security vulnerability" link on the previous page.
+
+  - type: input
+    id: version
+    attributes:
+      label: Apex version
+      description: Shown in the status bar at the bottom of the app, and in Settings.
+      placeholder: "1.0.10"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Downloading (speed, pause/resume, failures)
+        - Browser extension / capture
+        - Video grabber
+        - Queue, scheduler or speed limits
+        - Settings or interface
+        - Installing or updating
+        - Something else
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Include any error message exactly as Apex showed it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Copy this link: ...
+        2. Paste it into Apex
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect instead?
+
+  - type: input
+    id: url
+    attributes:
+      label: A download link that shows the problem (optional)
+      description: >-
+        Only if it is public. Don't paste links that contain a sign-in token,
+        session ID or anything private.
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: "Windows 11 24H2"
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and extension version (for capture problems)
+      description: >-
+        The extension version is listed on your browser's extensions page
+        (chrome://extensions, edge://extensions or about:addons).
+      placeholder: "Chrome 140, extension 1.3.3"
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues and this hasn't been reported yet.
+          required: true
+        - label: I'm on the latest version of Apex, or I can't update to it.
+          required: true
