@@ -29,6 +29,21 @@ restarts, and network drops - wrapped in a clean, minimal desktop UI.
 
 ---
 
+## Install
+
+- **Installer:** [download for Windows 10/11 (x64)](https://apex-download-manager.vercel.app/dl).
+  Apex updates itself from then on.
+- **Scoop:**
+  ```powershell
+  scoop bucket add apex https://github.com/ThembaTman0/apex-download-manager
+  scoop install apex/apex-download-manager
+  ```
+- **winget:** `winget install ThembaTman0.ApexDownloadManager`
+- **Chocolatey:** `choco install apex-download-manager`
+
+The winget package is waiting for approval and the Chocolatey package is not
+published yet; until they are, those two commands won't find Apex.
+
 ## Features
 
 **Engine**
@@ -116,6 +131,8 @@ npm run tauri build    # produces MSI / NSIS installers
 - [ ] Code signing
 - [x] Extension store publishing (Chrome Web Store / Edge Add-ons / AMO)
 - [x] Bandwidth scheduler (off-peak speed profiles)
+- [ ] Package managers: Scoop (own bucket, available now), winget (submitted, awaiting approval), Chocolatey (package ready, not yet published)
+- [ ] Linux build (considering; 👍 [#1](https://github.com/ThembaTman0/apex-download-manager/issues/1) if you want it)
 
 ## License
 

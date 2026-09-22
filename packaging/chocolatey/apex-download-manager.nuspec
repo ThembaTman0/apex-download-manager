@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chocolatey community package. The release workflow rewrites <version>
+     and releaseNotes here, and the URL + checksum in tools/chocolateyinstall.ps1,
+     then packs and pushes. The values committed here are the last version
+     submitted by hand. -->
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>apex-download-manager</id>
+    <version>1.0.9</version>
+    <title>Apex Download Manager</title>
+    <authors>ThembaTman0</authors>
+    <owners>ThembaTman0</owners>
+    <projectUrl>https://apex-download-manager.vercel.app/</projectUrl>
+    <iconUrl>https://cdn.jsdelivr.net/gh/ThembaTman0/apex-download-manager@main/desktop-ui/src-tauri/icons/128x128.png</iconUrl>
+    <licenseUrl>https://github.com/ThembaTman0/apex-download-manager/blob/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectSourceUrl>https://github.com/ThembaTman0/apex-download-manager</projectSourceUrl>
+    <packageSourceUrl>https://github.com/ThembaTman0/apex-download-manager/tree/main/packaging/chocolatey</packageSourceUrl>
+    <bugTrackerUrl>https://github.com/ThembaTman0/apex-download-manager/issues</bugTrackerUrl>
+    <tags>download-manager downloader accelerator resume browser-extension foss</tags>
+    <summary>Fast, open-source download manager with parallel connections, resumable downloads and browser capture.</summary>
+    <description><![CDATA[Apex Download Manager speeds up downloads by splitting each file across up to 32 parallel connections. When one connection finishes early it takes over part of a slower one, so a download does not stall on its last few megabytes. Downloads pause and resume across restarts and network drops, and resumes are checked against the server so a changed file is not silently stitched together.
+
+A browser extension for Chrome, Edge and Firefox (installed separately from each browser's store) hands downloads over to Apex, including ones behind a sign-in, and gives them back to the browser if Apex is not running.
+
+Also included: a download queue, global and per-download speed limits, an off-peak bandwidth scheduler, proxy support, a clipboard watcher, SHA-256 checksum verification and a video grabber built on yt-dlp. Finished files keep the Windows Mark of the Web, so SmartScreen and Defender still scan them.
+
+No account, no ads, no telemetry. Free and open source under the GPL v3.
+
+## Notes
+
+- This package installs the official x64 MSI for all users.
+- Apex can also update itself from inside the app. Updating through Chocolatey (`choco upgrade apex-download-manager`) keeps the package version in step.
+]]></description>
+    <releaseNotes>https://github.com/ThembaTman0/apex-download-manager-releases/releases/tag/v1.0.9</releaseNotes>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

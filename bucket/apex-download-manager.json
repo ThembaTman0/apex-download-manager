@@ -1,0 +1,33 @@
+{
+    "version": "1.0.9",
+    "description": "Fast, open-source download manager with parallel connections, resumable downloads and browser capture.",
+    "homepage": "https://apex-download-manager.vercel.app/",
+    "license": "GPL-3.0-or-later",
+    "notes": [
+        "Update Apex with 'scoop update apex-download-manager' instead of the in-app update prompt:",
+        "the prompt installs a separate copy outside Scoop. Settings live in %APPDATA%\\com.apex.download-manager."
+    ],
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/ThembaTman0/apex-download-manager-releases/releases/download/v1.0.9/Apex.Download.Manager_1.0.9_x64_en-US.msi",
+            "hash": "b31face3bbd9774cfed03e6f0d4719f9b27d3a9af1c9041713b9942ebba8f71d"
+        }
+    },
+    "extract_dir": "PFiles\\Apex Download Manager",
+    "shortcuts": [
+        [
+            "apex-download-manager.exe",
+            "Apex Download Manager"
+        ]
+    ],
+    "checkver": {
+        "github": "https://github.com/ThembaTman0/apex-download-manager-releases"
+    },
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/ThembaTman0/apex-download-manager-releases/releases/download/v$version/Apex.Download.Manager_$version_x64_en-US.msi"
+            }
+        }
+    }
+}

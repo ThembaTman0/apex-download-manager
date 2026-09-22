@@ -26,6 +26,11 @@
 #   WINGET_TOKEN - CLASSIC PAT with the public_repo scope, for the winget
 #   step (komac forks microsoft/winget-pkgs and opens the PR from that fork;
 #   fine-grained tokens cannot open that PR). Unset = step is skipped.
+#   CHOCO_API_KEY - API key from community.chocolatey.org (Account > API
+#   Keys), for the Chocolatey push. Unset = step is skipped.
+#
+# The Scoop bump needs no secret: it commits to this repo's main branch
+# with the workflow's own token (the job has contents: write).
 name: Release
 
 on:
@@ -125,6 +130,78 @@ jobs:
           releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           prerelease: false
+
+      # Bumps bucket/apex-download-manager.json on main so `scoop update`
+      # sees the new version. Runs before anything edits tracked files: the
+      # build leaves the tree clean, which lets it switch to main. Text
+      # replacements, not a JSON round-trip, to keep the file's formatting.
+      - name: Bump the Scoop manifest
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag -replace '^v', ''
+          $msi = Get-ChildItem desktop-ui/src-tauri/target/release/bundle/msi -Filter "*_${version}_x64_en-US.msi" | Select-Object -First 1
+          if (-not $msi) { throw "Built MSI for $version not found." }
+          $hash = (Get-FileHash $msi.FullName -Algorithm SHA256).Hash.ToLower()
+          $url = "https://github.com/ThembaTman0/apex-download-manager-releases/releases/download/$tag/Apex.Download.Manager_${version}_x64_en-US.msi"
+
+          git fetch --depth 1 origin main:refs/remotes/origin/main
+          git switch -c scoop-bump origin/main
+          $f = "bucket/apex-download-manager.json"
+          $text = Get-Content $f -Raw
+          $text = $text -replace '(?m)^(    "version": ")[^"]+"', "`${1}$version`""
+          $text = $text -replace '"url": "https://[^"]+/download/v\d[^"]*"', "`"url`": `"$url`""
+          $text = $text -replace '"hash": "[0-9a-f]{64}"', "`"hash`": `"$hash`""
+          Set-Content $f $text -NoNewline
+          if (-not (git status --porcelain $f)) { "Scoop manifest already at $version."; exit 0 }
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(scoop): bump apex-download-manager to $version" -- $f
+          git push origin HEAD:main
+          if ($LASTEXITCODE -ne 0) { throw "Could not push the Scoop bump to main." }
+
+      # Packs and pushes this version to the Chocolatey community repository,
+      # from packaging/chocolatey with the version, URL and checksum filled in
+      # (the edits stay in this runner; the repo keeps the hand-submitted
+      # values). Chocolatey refuses a push while an earlier version is still
+      # in moderation, so the first hand-submitted package must be approved
+      # first. Skipped while CHOCO_API_KEY is unset; never fails the release.
+      - name: Push the new version to Chocolatey
+        continue-on-error: true
+        shell: pwsh
+        env:
+          CHOCO_API_KEY: ${{ secrets.CHOCO_API_KEY }}
+        run: |
+          if (-not $env:CHOCO_API_KEY) {
+            "::notice::CHOCO_API_KEY is not set, skipping the Chocolatey push."
+            exit 0
+          }
+          $tag = "${{ github.ref_name }}"
+          $version = $tag -replace '^v', ''
+          $msi = Get-ChildItem desktop-ui/src-tauri/target/release/bundle/msi -Filter "*_${version}_x64_en-US.msi" | Select-Object -First 1
+          if (-not $msi) { throw "Built MSI for $version not found." }
+          $hash = (Get-FileHash $msi.FullName -Algorithm SHA256).Hash.ToLower()
+          $url = "https://github.com/ThembaTman0/apex-download-manager-releases/releases/download/$tag/Apex.Download.Manager_${version}_x64_en-US.msi"
+
+          $nuspec = "packaging/chocolatey/apex-download-manager.nuspec"
+          $install = "packaging/chocolatey/tools/chocolateyinstall.ps1"
+          $n = Get-Content $nuspec -Raw
+          $n = $n -replace '<version>[^<]+</version>', "<version>$version</version>"
+          $n = $n -replace '(releases/tag/)v[^<]+', "`${1}$tag"
+          Set-Content $nuspec $n -NoNewline
+          $i = Get-Content $install -Raw
+          $i = $i -replace "(url64bit\s*=\s*)'[^']+'", "`${1}'$url'"
+          $i = $i -replace "(checksum64\s*=\s*)'[^']+'", "`${1}'$hash'"
+          Set-Content $install $i -NoNewline
+
+          choco pack $nuspec --outputdirectory $env:RUNNER_TEMP
+          if ($LASTEXITCODE -ne 0) { throw "choco pack failed." }
+          choco push "$env:RUNNER_TEMP/apex-download-manager.$version.nupkg" --source https://push.chocolatey.org/ --api-key $env:CHOCO_API_KEY
+          if ($LASTEXITCODE -ne 0) {
+            throw "choco push failed. If an earlier version is still in moderation, push this one by hand once it is approved."
+          }
 
       # Opens a PR to microsoft/winget-pkgs adding this version, generated by
       # komac from the previous version's manifest there. `komac update` only
