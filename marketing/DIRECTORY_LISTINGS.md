@@ -203,15 +203,40 @@ the installer's result on VirusTotal yourself so there are no surprises
 
 ## OpenAlternative
 
-<https://openalternative.co/submit>. A directory of open-source alternatives
-to commercial software, which is exactly the frame Apex fits: the free, open
-source alternative to Internet Download Manager. It accepts submissions;
-I could not read the form's fields or whether there is a paid fast-track, so
-check both when you open it.
+<https://openalternative.co/submit>. A directory of open-source replacements
+for commercial software, which is exactly Apex's frame: the free, open source
+alternative to Internet Download Manager. Apex qualifies, since the source is
+public and GPL-3.0.
 
-Use the AlternativeTo short description, the GitHub URL as the repository,
-`apex-download-manager.vercel.app` as the website, and name Internet Download
-Manager and Free Download Manager as the proprietary tools it replaces.
+**How it works** (read off the site on 2026-09-22): you sign in first, which
+also gives you a dashboard for the listing. A free submission waits in a
+review queue; a paid upgrade skips it and publishes within 24 hours, and a
+further upgrade makes the listing "featured". Free is the right choice unless
+a launch date depends on it.
+
+The form is rendered in the browser, so the exact field list could not be
+read from outside. Expect name, website, repository URL, a description,
+categories or tags, the tools it is an alternative to, and your email. Have
+these ready:
+
+| Field | Value |
+|---|---|
+| Name | `Apex Download Manager` |
+| Website | `https://apex-download-manager.vercel.app/` |
+| Repository | `https://github.com/ThembaTman0/apex-download-manager` |
+| License | GPL-3.0 |
+| Alternative to | Internet Download Manager, Free Download Manager, JDownloader, Xtreme Download Manager |
+| Tech stack, if asked | Rust, Tauri, React, TypeScript, SQLite |
+| Tags, if asked | download-manager, download-accelerator, windows, privacy, no-telemetry |
+
+**Description** (same facts as the AlternativeTo entry, trimmed to one
+paragraph in case the field is short)
+
+    Apex Download Manager splits each file across up to 32 parallel connections, so a download uses the whole connection instead of one stream. When one connection finishes early it takes over part of a slower one, so transfers do not stall at the end. Downloads resume from the exact byte after restarts and network drops, and resumes are checked against the server so a changed file is never stitched together. A browser extension for Chrome, Edge, Brave and Firefox hands downloads over and gives them back if Apex is not running. No account, no ads, no telemetry, and the source is GPL v3.
+
+**After it is published:** add the listing URL to the README and to
+`marketing/DIRECTORY_LISTINGS.md`, and check that the categories it landed in
+mention download managers rather than only developer tools.
 
 ## GitHub discoverability
 
