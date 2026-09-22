@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
+# /dl bumps the anonymous download counter before redirecting to the
+# installer, so crawlers following it would inflate the count.
+Disallow: /dl
 
 Sitemap: https://apex-download-manager.vercel.app/sitemap.xml
