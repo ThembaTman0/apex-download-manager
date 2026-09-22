@@ -12,3 +12,4 @@ Downloads now show their progress on the taskbar, the queue can be reordered, an
 
 - Retrying failed downloads is a single step. The "Retry" button next to the failed count now retries them all in one go instead of one at a time, and it still leaves downloads you paused on purpose alone.
 - Changing a download's address does not carry your session to a different site. Cookies and the referring page captured from your browser stay with the site they came from; a new address on a different site starts clean.
+- New installs no longer start with Windows on their own. Turn on "Start with Windows" in Settings if you want Apex waiting in the tray when you sign in. If you already have Apex installed, your current setting is kept.
