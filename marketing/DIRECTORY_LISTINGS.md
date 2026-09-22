@@ -6,23 +6,33 @@ it here before the next submission.
 
 ## AlternativeTo
 
-Submit at <https://alternativeto.net> (sign in, then "Add application").
-Listing it as an alternative to the apps below is what puts Apex on their
-pages, so that list matters most.
+**Status:** submitted 2026-09-22. Track it under **My submissions** in the
+AlternativeTo profile menu.
 
-**Name**
+Submit at <https://alternativeto.net>: sign in, verify your email, then the
+user icon (top right) > **Suggest new application**. Free submissions wait in
+a backlog for months; an optional one-time $5 "priority" fee gets a review in
+1-2 business days (it buys a review, not approval).
+
+The fields below follow the form's order as it was in September 2026.
+
+### Main info
+
+**App Name**
 
     Apex Download Manager
+
+**Import data from external source:** skip; it can overwrite the text below.
 
 **Website**
 
     https://apex-download-manager.vercel.app/
 
-**Short description** (one or two sentences)
+**Short Description** (one or two sentences)
 
     A fast, open-source download manager for Windows. It splits downloads across many parallel connections, resumes after restarts, and takes over downloads from Chrome, Edge and Firefox.
 
-**Description**
+**Full Description** (no links; the FAQ discourages them)
 
     Apex Download Manager speeds up downloads by splitting each file across up to 32 parallel connections. When one connection finishes early it takes over part of a slower one, so a download does not stall on its last few megabytes. Downloads pause and resume across restarts and network drops, and resumes are checked against the server so a changed file is not silently stitched together.
 
@@ -32,63 +42,88 @@ pages, so that list matters most.
 
     No account, no ads, no telemetry. Free and open source under the GPL v3.
 
-**License / pricing:** Free, Open Source (GPL-3.0)
+**Supported Languages:** English
 
-**Platforms:** Windows, Google Chrome, Microsoft Edge, Mozilla Firefox,
-Brave (the Chrome Web Store listing installs in Brave)
+**Pricing:** Free. **Source code:** Open source. **License:** GNU General
+Public License v3.0 (GPL-3.0).
 
-**Categories:** File Sharing (Download Managers). Add Video & Movies only if
-the form asks for a second category.
+**Source URL**
 
-**Alternative to** (add each one)
+    https://github.com/ThembaTman0/apex-download-manager
 
-- Internet Download Manager
-- Free Download Manager
-- AB Download Manager
-- Xtreme Download Manager
-- JDownloader
-- Motrix
-- Gopeed
+### Tags
 
-**Features** (pick the existing tag when the form suggests one; these match
-tags already used on similar apps)
+    download-manager, download-accelerator, open-source, windows, ad-free,
+    night-mode, no-tracking, lightweight, no-registration, privacy-focused
 
-- Ad-free
-- No Tracking
-- No registration required
-- Resume interrupted downloads
-- Download Scheduling
-- Proxy support
-- Video Download
-- Dark Mode
-- Browser integration
-- Download accelerator
-- Bandwidth limiting
-- Lightweight
+These place it in **File Sharing**.
 
-Do not claim: Portable, Works Offline, Multiple languages, Mac/Linux. Apex has
-none of these yet.
+### Features
 
-**Links**
+The form shows a fixed checklist for the app type, not free-form tags.
 
-| Label | URL |
+- Tick: No registration required, No Tracking, Privacy focused, Lightweight,
+  Ad-free, Dark Mode.
+- Leave unticked: MP3 Downloader (the grabber's audio-only option saves M4A),
+  SoundCloud Downloader, Portable (only the Scoop build runs portably),
+  Support for 4K (means playback/rendering), Command line interface, Works
+  Offline, Extensible by Plugins/Extensions (Apex has an extension; it doesn't
+  take plugins).
+
+### Platforms
+
+- **Windows.** Add Google Chrome, Microsoft Edge, Mozilla Firefox and Brave
+  too if the box offers them (the extension runs there).
+- **Platform Links:** leave Microsoft Store empty. Store links, if the
+  browser platforms add fields for them:
+
+| Platform | URL |
 |---|---|
-| Source code | https://github.com/ThembaTman0/apex-download-manager |
-| Chrome Web Store | https://chromewebstore.google.com/detail/apex-download-manager/gopdilekdjnfekbmhedjidlmaahnnhco |
-| Edge Add-ons | https://microsoftedge.microsoft.com/addons/detail/apex-download-manager/bjpggfmgbhafacbcmhpncjaapdknohjg |
-| Firefox Add-ons | https://addons.mozilla.org/en-US/firefox/addon/apex-download-manager/ |
+| Chrome / Brave | https://chromewebstore.google.com/detail/apex-download-manager/gopdilekdjnfekbmhedjidlmaahnnhco |
+| Edge | https://microsoftedge.microsoft.com/addons/detail/apex-download-manager/bjpggfmgbhafacbcmhpncjaapdknohjg |
+| Firefox | https://addons.mozilla.org/en-US/firefox/addon/apex-download-manager/ |
 
-**Images**
+- **Windows Note**
 
-- Icon: `desktop-ui/src-tauri/icons/icon.png` (512 x 512)
+      Windows 10 and 11, 64-bit only.
+
+### Author / Social Media
+
+- **Company / Author:** Themba Ngobeni. **Country of origin:** South Africa.
+- **Company / Author Website URL:** `https://github.com/ThembaTman0` (the
+  app's own site goes in Website above).
+- **Social media:** none. The form wants profiles the app itself has.
+
+### Icon & Screenshots
+
+Upload by URL (each screenshot must be under 3 MB; these are ~150 KB).
+
+- Icon (512 x 512, transparent background):
+  `https://raw.githubusercontent.com/ThembaTman0/apex-download-manager/main/desktop-ui/src-tauri/icons/icon.png`
 - Screenshots, in this order:
-  1. `docs/screenshots/downloads.png` (downloads list with parallel segments)
-  2. `docs/screenshots/dashboard.png` (live speed chart)
-  3. `marketing/store-screenshots/edge-capture-prompt-1280x800.png` (browser capture prompt)
+  1. `https://raw.githubusercontent.com/ThembaTman0/apex-download-manager/main/docs/screenshots/downloads.png`
+  2. `https://raw.githubusercontent.com/ThembaTman0/apex-download-manager/main/docs/screenshots/dashboard.png`
+  3. `https://raw.githubusercontent.com/ThembaTman0/apex-download-manager/main/marketing/store-screenshots/edge-capture-prompt-1280x800.png`
+- Videos: none.
 
-**After it is live:** like it from your own account, and ask early users who
-are happy with Apex to like it too. Likes decide where it ranks on the
-Internet Download Manager alternatives page.
+### Meta
+
+**Note about your changes.** The form has no "alternative to" field, so the
+apps Apex replaces are named here:
+
+    Submitted by the developer. Apex is a free, open-source alternative to Internet Download Manager, Free Download Manager, AB Download Manager, Xtreme Download Manager, JDownloader, Motrix and Gopeed. The browser extension is published on the Chrome Web Store, Edge Add-ons and Firefox Add-ons (links under Platforms).
+
+### After it is approved
+
+1. **Link the alternatives.** On the Apex page, use "suggest alternative" to
+   connect it to: Internet Download Manager, Free Download Manager, AB
+   Download Manager, Xtreme Download Manager, JDownloader, Motrix, Gopeed.
+   This is what puts Apex on their pages.
+2. **Add the listing URL** to the README and website.
+3. **Don't ask anyone to like it.** Likes decide the ranking, but
+   AlternativeTo penalises coordinated upvoting. Let users who find it useful
+   like it on their own.
+4. Name and website can't be changed afterwards without an admin.
 
 ## Softpedia
 
