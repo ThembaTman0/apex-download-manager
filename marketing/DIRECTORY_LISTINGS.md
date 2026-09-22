@@ -200,3 +200,46 @@ the installer's result on VirusTotal yourself so there are no surprises
 
     Thanks for your time,
     ThembaTman0
+
+## OpenAlternative
+
+<https://openalternative.co/submit>. A directory of open-source alternatives
+to commercial software, which is exactly the frame Apex fits: the free, open
+source alternative to Internet Download Manager. It accepts submissions;
+I could not read the form's fields or whether there is a paid fast-track, so
+check both when you open it.
+
+Use the AlternativeTo short description, the GitHub URL as the repository,
+`apex-download-manager.vercel.app` as the website, and name Internet Download
+Manager and Free Download Manager as the proprietary tools it replaces.
+
+## GitHub discoverability
+
+The repo is now public, so GitHub search and topic pages are a free channel.
+None of this needs anyone's approval:
+
+- **Topics.** Without them the repo does not appear on topic pages:
+
+      gh repo edit ThembaTman0/apex-download-manager --add-topic download-manager,download-accelerator,windows,rust,tauri,react,open-source,no-telemetry,idm-alternative
+
+- **About box.** Set the website field to the site, so every visitor to the
+  repo can reach the landing page.
+- **README.** Link the site, the three extension listings, and the speed-test
+  section. People who arrive from a listicle check the README before the site.
+
+## Closed or risky channels, so nobody wastes time
+
+- **awesome-tauri**: its contributing guidelines now say, in bold,
+  "Application submissions are not accepted anymore". Do not open a PR.
+- **Wikipedia, "Comparison of download managers"**: a real referral source,
+  but adding your own software is a conflict of interest under their rules and
+  gets reverted. It needs independent coverage first, added by someone else.
+- **Softonic, Uptodown and similar**: they wrap installers in their own
+  downloaders, which contradicts the no-bundled-extras promise. Skip them.
+
+## Already shipped, and worth counting as distribution
+
+winget (`ThembaTman0.ApexDownloadManager`), Scoop (own bucket) and Chocolatey
+all resolve by search inside their own ecosystems, and the three extension
+stores each carry a listing that links back to the site. These are live
+channels, not pending work.

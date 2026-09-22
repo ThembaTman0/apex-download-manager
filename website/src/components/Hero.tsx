@@ -20,12 +20,13 @@ export default function Hero() {
     <section className="hero" id="top" aria-labelledby="hero-title">
       <div className="container">
         <Reveal>
-          <h1 id="hero-title">A download manager that uses your whole connection</h1>
+          <h1 id="hero-title">A free, open source download manager for Windows</h1>
         </Reveal>
         <Reveal delay={60}>
           <p className="hero-sub">
-            Up to 32 connections per file, resume from the exact byte, and
-            SHA-256 verification. Free for Windows.
+            It uses your whole connection: up to 32 connections per file,
+            resume from the exact byte, and SHA-256 verification. No ads, no
+            account, no telemetry, and every line is yours to read.
           </p>
         </Reveal>
         <Reveal delay={120}>
@@ -35,7 +36,7 @@ export default function Hero() {
               Download for Windows
             </a>
             <span className="hero-meta mono">
-              v{shownVersion} · {sizeMb ?? FALLBACK_SIZE_MB} MB · Windows 10/11 x64
+              v{shownVersion} · {sizeMb ?? FALLBACK_SIZE_MB} MB · Windows 10/11 x64 · GPL v3
             </span>
             <a
               className="hero-new"

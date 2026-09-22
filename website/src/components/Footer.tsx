@@ -44,7 +44,15 @@ const COLUMNS: Array<{ title: string; links: L[] }> = [
   },
   {
     title: "Legal",
-    links: [{ label: "Privacy policy", href: "/privacy.html" }],
+    links: [
+      { label: "Privacy policy", href: "/privacy.html" },
+      {
+        label: "License (GPL v3)",
+        href: `${REPO_URL}/blob/main/LICENSE`,
+        external: true,
+      },
+      { label: "Source code", href: REPO_URL, external: true },
+    ],
   },
 ];
 
@@ -57,6 +65,8 @@ export default function Footer() {
             <LogoMark size={18} />
           </a>
           <p className="footer-stance">
+            Free and open source, GPL v3.
+            <br />
             The app: no account, no telemetry.
             <br />
             This site: a download total and cookieless page views.

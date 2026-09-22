@@ -327,13 +327,15 @@ ol {
 }
 
 .hero h1 {
-  max-width: 880px;
+  /* Wide enough for the headline to set in two lines, which keeps the
+     product mockup inside the first screen. */
+  max-width: 1080px;
   font-size: 64px;
   font-weight: 510;
   line-height: 1.06;
   letter-spacing: -0.022em;
   color: var(--text);
-  text-wrap: balance;
+  text-wrap: pretty;
 }
 
 .hero-sub {
