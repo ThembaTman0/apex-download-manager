@@ -40,17 +40,17 @@ Chromium-only APIs the code feature-detects; safe to ignore).
 **Name:** Apex Download Manager
 
 **Summary (AMO limit 250 chars):**
-Sends downloads to the Apex Download Manager desktop app: multi-connection
-speed, pause/resume that survives restarts, scheduling, and checksum
-verification. Falls back to the normal browser download whenever Apex
-isn't running, so nothing is ever lost.
+Hands your downloads to the free, open source Apex Download Manager app for
+Windows: up to 32 connections, resume that survives restarts, and checksum
+verification. If Apex isn't running the download restarts in the browser, so
+nothing is lost.
 
 **Description:**
-Apex Download Manager is a free, native Windows download manager. This
-extension hands your browser's downloads to the Apex app, which splits each
-file across up to 32 connections, resumes interrupted transfers from the
-exact byte they stopped at, and can verify checksums before you run what
-you downloaded.
+Apex Download Manager is a free, open source download manager for Windows,
+licensed GPL v3. This extension hands your browser's downloads to the Apex
+app, which splits each file across up to 32 connections, resumes interrupted
+transfers from the exact byte they stopped at, and can verify checksums
+before you run what you downloaded.
 
 - Automatic capture: click a download link, approve it in Apex, done
 - Right-click any link or media: "Download with Apex"
@@ -62,6 +62,9 @@ you downloaded.
 
 Requires the free Apex Download Manager app for Windows:
 https://apexdownloadmanager.com
+
+Source code (GPL v3):
+https://github.com/ThembaTman0/apex-download-manager
 
 **Category:** AMO: "Download Management" · CWS: "Workflow & Planning" (or
 "Tools")
