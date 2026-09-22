@@ -4,6 +4,7 @@ import {
   FALLBACK_VERSION,
   ISSUES_URL,
   RELEASES_URL,
+  REPO_URL,
   useLatestRelease,
 } from "../lib/latestRelease";
 import Checksum from "./Checksum";
@@ -36,6 +37,19 @@ export default function DownloadCta() {
             <p className="cta-note">
               Pair the browser extension from Apex Settings, then downloads you
               click are caught automatically.
+            </p>
+            <p className="cta-note">
+              Windows builds will be code-signed through the SignPath Foundation
+              (free code signing provided by SignPath.io, certificate by SignPath
+              Foundation).{" "}
+              <a
+                className="text-link"
+                href={`${REPO_URL}/blob/main/CODE_SIGNING_POLICY.md`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Code signing policy
+              </a>
             </p>
             <Checksum />
             {showCount && (

@@ -161,6 +161,10 @@ pub struct Settings {
     pub capture_allowed_hosts: Vec<String>,
     /// Launch Apex (hidden, in the tray) when the user signs in, so the
     /// browser extension can reach it before any download is clicked.
+    /// Off for new installs: registering a startup entry is a system change
+    /// the user opts into. Settings saved before this field existed were
+    /// running with it on, so a missing value keeps it on for them.
+    #[serde(default = "legacy_launch_at_startup")]
     pub launch_at_startup: bool,
     /// Bandwidth scheduler: inside the off-peak window downloads run at the
     /// normal global limit; outside it `peak_limit_kbps` caps them instead.
@@ -194,7 +198,7 @@ impl Default for Settings {
             capture_port: 43666,
             capture_token: String::new(),
             capture_allowed_hosts: Vec::new(),
-            launch_at_startup: true,
+            launch_at_startup: false,
             scheduler_enabled: false,
             offpeak_start_min: 23 * 60,
             offpeak_end_min: 7 * 60,
@@ -264,6 +268,10 @@ impl Settings {
             None => base.join(&category).to_string_lossy().to_string(),
         }
     }
+}
+
+fn legacy_launch_at_startup() -> bool {
+    true
 }
 
 fn dirs_download_dir() -> String {
@@ -432,5 +440,24 @@ mod tests {
         let mut s = settings();
         s.category_rules = vec![rule("Music", "", &["MP4"]), rule("Video", "", &["MP4"])];
         assert_eq!(s.category_for("MP4"), "Music");
+    }
+
+    #[test]
+    fn a_new_install_does_not_start_with_windows() {
+        assert!(!Settings::default().launch_at_startup);
+    }
+
+    #[test]
+    fn settings_saved_before_the_option_existed_keep_starting_with_windows() {
+        let s: Settings = serde_json::from_str(r#"{"maxConcurrent":3}"#).unwrap();
+        assert!(s.launch_at_startup);
+    }
+
+    #[test]
+    fn a_saved_choice_is_kept() {
+        let off: Settings = serde_json::from_str(r#"{"launchAtStartup":false}"#).unwrap();
+        let on: Settings = serde_json::from_str(r#"{"launchAtStartup":true}"#).unwrap();
+        assert!(!off.launch_at_startup);
+        assert!(on.launch_at_startup);
     }
 }

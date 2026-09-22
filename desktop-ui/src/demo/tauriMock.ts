@@ -192,7 +192,7 @@ const demoSettings = {
   capturePort: 43666,
   captureToken: "demo",
   captureAllowedHosts: [],
-  launchAtStartup: true,
+  launchAtStartup: false,
   schedulerEnabled: false,
   offpeakStartMin: 23 * 60,
   offpeakEndMin: 7 * 60,
