@@ -6,11 +6,11 @@ PackageLocale: en-US
 # Matches bundle.publisher in tauri.conf.json. The 1.0.9 installer itself
 # still writes "apex"; the installer manifest maps that for correlation.
 Publisher: Apex Download Manager
-PublisherUrl: https://apex-download-manager.vercel.app/
+PublisherUrl: https://apexdownloadmanager.com/
 PublisherSupportUrl: https://github.com/ThembaTman0/apex-download-manager-releases/issues
 Author: ThembaTman0
 PackageName: Apex Download Manager
-PackageUrl: https://apex-download-manager.vercel.app/
+PackageUrl: https://apexdownloadmanager.com/
 License: Freeware
 ShortDescription: Fast, lightweight download manager with multi-connection downloads and browser capture.
 Description: |-

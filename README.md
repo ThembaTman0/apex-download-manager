@@ -8,11 +8,11 @@ restarts, and network drops - wrapped in a clean, minimal desktop UI.
 
 > ⚡ Single native binary (Tauri v2 + Rust). No Electron, no JVM, no bloat.
 
-**[Download for Windows](https://apex-download-manager.vercel.app/dl)** · also on
+**[Download for Windows](https://apexdownloadmanager.com/dl)** · also on
 [Chrome](https://chromewebstore.google.com/detail/apex-download-manager/gopdilekdjnfekbmhedjidlmaahnnhco),
 [Edge](https://microsoftedge.microsoft.com/addons/detail/apex-download-manager/bjpggfmgbhafacbcmhpncjaapdknohjg) and
 [Firefox](https://addons.mozilla.org/en-US/firefox/addon/apex-download-manager/) for browser capture ·
-[Website](https://apex-download-manager.vercel.app/)
+[Website](https://apexdownloadmanager.com/)
 
 ![Apex downloads list: two files downloading over parallel connections, with per-segment progress, queue positions and a paused download](docs/screenshots/downloads.png)
 
@@ -31,7 +31,7 @@ restarts, and network drops - wrapped in a clean, minimal desktop UI.
 
 ## Install
 
-- **Installer:** [download for Windows 10/11 (x64)](https://apex-download-manager.vercel.app/dl).
+- **Installer:** [download for Windows 10/11 (x64)](https://apexdownloadmanager.com/dl).
   Apex updates itself from then on.
 - **Scoop:**
   ```powershell

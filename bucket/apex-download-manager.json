@@ -1,7 +1,7 @@
 {
     "version": "1.0.9",
     "description": "Fast, open-source download manager with parallel connections, resumable downloads and browser capture.",
-    "homepage": "https://apex-download-manager.vercel.app/",
+    "homepage": "https://apexdownloadmanager.com/",
     "license": "GPL-3.0-or-later",
     "notes": [
         "Update Apex with 'scoop update apex-download-manager' instead of the in-app update prompt:",

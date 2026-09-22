@@ -108,7 +108,7 @@ normally. The popup shows a red dot and "Apex isn't running". The grab
 button reports that it could not reach Apex. Nothing hangs or is lost.
 
 To test the full path, the free Windows app is at
-https://apex-download-manager.vercel.app. Install it, open the extension
+https://apexdownloadmanager.com. Install it, open the extension
 popup, click "Pair with Apex app", and approve the prompt that appears in
 the app. After that, downloads are captured by the app and the grab
 button opens the video grabber.
@@ -133,7 +133,7 @@ was chosen on the first submission.
 **Answer: none.** The manifest already declares
 `browser_specific_settings.gecko.data_collection_permissions.required =
 ["none"]`. Privacy policy text is in `STORE_LISTING.md`, hosted at
-https://apex-download-manager.vercel.app/privacy.html.
+https://apexdownloadmanager.com/privacy.html.
 
 ---
 
@@ -158,7 +158,7 @@ which is what Microsoft's docs ask for.
 | Privacy | "Permission justification" (one box per manifest permission) | See the per-permission answers below. |
 | Privacy | "Are you using remote code?" | No. MV3 forbids it and the extension loads none. |
 | Privacy | "Data usage" | Nothing is collected. Leave every checkbox unticked, then tick the certification disclosures. |
-| Privacy | "Privacy Policy URL" | https://apex-download-manager.vercel.app/privacy.html |
+| Privacy | "Privacy Policy URL" | https://apexdownloadmanager.com/privacy.html |
 | Properties | Category / Website / Support | Keep whatever the listing already has. |
 
 Certification takes up to seven business days. Only one submission may be
@@ -199,7 +199,7 @@ Standing notes
 
 Testing without the app: with Apex absent, a download is handed back to the browser and completes normally, the popup shows a red dot and "Apex isn't running", and the grab button reports it could not reach Apex. Nothing is lost.
 
-Full path: install the free Windows app from https://apex-download-manager.vercel.app, open the popup, click "Pair with Apex app", approve the prompt in the app. The sign-in retry needs Apex 1.0.9 or newer.
+Full path: install the free Windows app from https://apexdownloadmanager.com, open the popup, click "Pair with Apex app", approve the prompt in the app. The sign-in retry needs Apex 1.0.9 or newer.
 ```
 
 ### Per-permission justifications (Edge asks for one per permission)
@@ -426,7 +426,7 @@ in the review-facing fields.
 | Privacy practices | Host permission justification | Use the host-permission answer in the Edge section. |
 | Privacy practices | "Are you using remote code?" | No. MV3 forbids it and none is loaded. |
 | Privacy practices | Data usage disclosures | Nothing is collected. Tick none of the data types, then tick all three certification statements. |
-| Privacy practices | Privacy policy URL | https://apex-download-manager.vercel.app/privacy.html |
+| Privacy practices | Privacy policy URL | https://apexdownloadmanager.com/privacy.html |
 | Store listing | Description, screenshots | Reuse the listing copy in `STORE_LISTING.md`. Screenshots are 1280x800, same assets as Edge. |
 | Distribution | Visibility, regions | Public, all regions. |
 
@@ -545,7 +545,7 @@ Expect this to be the one combination a reviewer might question: the
 collection.
 The answer, if asked, is that nothing leaves the user's machine.
 
-**Privacy policy URL:** https://apex-download-manager.vercel.app/privacy.html
+**Privacy policy URL:** https://apexdownloadmanager.com/privacy.html
 (verified live 2026-07-27, and its text matches these declarations).
 
 ### Test instructions (500 char limit, Username and Password left empty)
@@ -559,7 +559,7 @@ edited.
 ```
 No account or credentials needed.
 
-Windows only. Install the free app: https://apex-download-manager.vercel.app
+Windows only. Install the free app: https://apexdownloadmanager.com
 
 Click the extension icon, choose "Pair with Apex app", and approve the prompt that opens in the app. Then download any file: Apex takes over and the browser's own download is cancelled. Right-click a link for "Download with Apex".
 

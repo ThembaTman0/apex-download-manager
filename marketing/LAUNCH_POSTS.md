@@ -192,7 +192,7 @@ lot of these.
 
     I enjoyed your video on [a specific video of theirs]. I'm the developer of Apex, a free, open-source download manager for Windows. It speeds up downloads using parallel connections, resumes after restarts, and takes over downloads from Chrome, Edge and Firefox, with no ads, account or telemetry.
 
-    If it fits your channel, it might work as a free alternative in a download-manager comparison. Download: https://apex-download-manager.vercel.app/ and screenshots: https://github.com/ThembaTman0/apex-download-manager
+    If it fits your channel, it might work as a free alternative in a download-manager comparison. Download: https://apexdownloadmanager.com/ and screenshots: https://github.com/ThembaTman0/apex-download-manager
 
     Happy to answer questions. No need to reply if it's not a fit.
 

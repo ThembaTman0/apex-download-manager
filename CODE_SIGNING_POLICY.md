@@ -43,4 +43,4 @@ or your downloads to the project or to anyone else. Its network traffic is:
   [yt-dlp](https://github.com/yt-dlp/yt-dlp) project's GitHub releases.
 
 The full privacy policy is at
-<https://apex-download-manager.vercel.app/privacy.html>.
+<https://apexdownloadmanager.com/privacy.html>.

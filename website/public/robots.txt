@@ -4,4 +4,4 @@ Allow: /
 # installer, so crawlers following it would inflate the count.
 Disallow: /dl
 
-Sitemap: https://apex-download-manager.vercel.app/sitemap.xml
+Sitemap: https://apexdownloadmanager.com/sitemap.xml

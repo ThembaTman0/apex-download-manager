@@ -26,7 +26,7 @@ The fields below follow the form's order as it was in September 2026.
 
 **Website**
 
-    https://apex-download-manager.vercel.app/
+    https://apexdownloadmanager.com/
 
 **Short Description** (one or two sentences)
 
@@ -139,7 +139,7 @@ below. The values here are for **1.0.9**; swap them when 1.0.10 ships.
 | Field | Value |
 |---|---|
 | Developer name | `ThembaTman0` |
-| Developer site | `https://apex-download-manager.vercel.app/` |
+| Developer site | `https://apexdownloadmanager.com/` |
 | Developer email | your email |
 | Program name | `Apex Download Manager` |
 | Program version | `1.0.9` |
@@ -151,7 +151,7 @@ below. The values here are for **1.0.9**; swap them when 1.0.10 ships.
 | 32x32 Icon URL | `https://raw.githubusercontent.com/ThembaTman0/apex-download-manager/main/desktop-ui/src-tauri/icons/32x32.png` |
 | Screenshot URL | `https://raw.githubusercontent.com/ThembaTman0/apex-download-manager/main/docs/screenshots/downloads.png` |
 | Download link 1 | `https://github.com/ThembaTman0/apex-download-manager-releases/releases/download/v1.0.9/Apex.Download.Manager_1.0.9_x64-setup.exe` |
-| Download link 2 | `https://apex-download-manager.vercel.app/dl` (always the latest installer) |
+| Download link 2 | `https://apexdownloadmanager.com/dl` (always the latest installer) |
 | Limitations | leave empty |
 | Product IDs, buy link, unlock code | leave empty |
 
@@ -191,8 +191,8 @@ the installer's result on VirusTotal yourself so there are no surprises
 
     It splits each download across up to 32 parallel connections, resumes downloads after restarts and network drops, and has a browser extension for Chrome, Edge and Firefox that hands downloads over to the app. There are no ads, no bundled software, no account and no telemetry.
 
-    Homepage: https://apex-download-manager.vercel.app/
-    Direct download (latest x64 installer): https://apex-download-manager.vercel.app/dl
+    Homepage: https://apexdownloadmanager.com/
+    Direct download (latest x64 installer): https://apexdownloadmanager.com/dl
     Source code: https://github.com/ThembaTman0/apex-download-manager
     Screenshots: https://github.com/ThembaTman0/apex-download-manager#readme
 
@@ -203,21 +203,21 @@ the installer's result on VirusTotal yourself so there are no surprises
 
 ## OpenAlternative
 
-<https://openalternative.co/submit>. **Blocked for now.** The frame fits, but
-the submission guidelines (read 2026-09-22) rule Apex out on two counts:
+<https://openalternative.co/submit>. **One blocker left.** The frame fits, and
+of the two rules that ruled Apex out when the guidelines were read on
+2026-09-22, one is now cleared:
 
 1. **"Must be a public, actively maintained repository with at least 10
-   stars."** The repo has 0.
+   stars."** The repo has 0. Still blocking.
 2. **"Custom Domain. No temporary subdomains (vercel.app, netlify.app,
-   etc.)."** The site is on `apex-download-manager.vercel.app`.
+   etc.)."** Cleared: the site serves from `apexdownloadmanager.com`.
 
 The other four rules pass: public GitHub repo, a real desktop application
 (not a CLI or library), available now, and a clear alternative to proprietary
 software.
 
-So this listing needs a custom domain and 10 stars first. Stars come from the
-launch posts, and the domain is a purchase; do not ask anyone for stars, since
-that is exactly what these directories penalise.
+So this listing waits on 10 stars. Stars come from the launch posts; do not ask
+anyone for stars, since that is exactly what these directories penalise.
 
 When both are true, the submission itself is short. Sign in first, which also
 gives a dashboard for the listing. A free submission waits in a review queue;
@@ -228,7 +228,7 @@ alternative to", and optional discount code fields to leave empty.
 | Field | Value |
 |---|---|
 | Name | `Apex Download Manager` |
-| Website | the custom domain, once it exists |
+| Website | `https://apexdownloadmanager.com` |
 | Repository | `https://github.com/ThembaTman0/apex-download-manager` |
 | Alternative to | Internet Download Manager |
 | Discount code | leave empty |
@@ -239,18 +239,39 @@ alternative to", and optional discount code fields to leave empty.
 
 ### Custom domain
 
-Checked 2026-09-22 with RDAP: `apexdm.app` (already the Firefox add-on's
-id suffix), `apexdownloadmanager.com` and `apexdownload.app` were all
-unregistered; `getapex.app` is taken. A `.app` domain forces HTTPS, which
-suits a download tool.
+**Done 2026-09-22.** `apexdownloadmanager.com` is registered through Vercel
+and serves the site. Candidates checked with RDAP beforehand: `apexdm.app`
+(already the Firefox add-on's id suffix) and `apexdownload.app` were also free;
+`getapex.app` was taken. The exact-match `.com` won because it is what people
+type and search.
 
 A domain is worth more than this one listing: it is also the trust signal on
 an unsigned installer, the address other directories and store listings show,
-and it means the site can move off Vercel later without losing links. After
-buying it, add it in the Vercel project's Domains tab, set it as the primary
-domain so `vercel.app` redirects, then update `website/index.html` (canonical,
-og:url, og:image, twitter:image and the JSON-LD urls), `public/robots.txt`,
-`public/sitemap.xml`, the store listings and this file.
+and it means the site can move off Vercel later without losing links.
+
+How it is set up in the Vercel project's Domains tab:
+
+| Domain | Behaviour |
+|---|---|
+| `apexdownloadmanager.com` | serves Production |
+| `www.apexdownloadmanager.com` | 308 permanent redirect to the bare domain |
+| `apex-download-manager.vercel.app` | 308 permanent redirect to the bare domain |
+
+The bare domain is primary rather than `www` because the name is already long,
+and it is repeated in every store listing and launch post. The redirects are
+308 (permanent) so search engines consolidate onto one address instead of
+indexing three copies of the same page.
+
+The code side is done: `website/index.html` (canonical, og:url, og:image,
+twitter:image and the JSON-LD urls), `public/robots.txt`, `public/sitemap.xml`,
+the README, the Scoop, winget and Chocolatey manifests, the extension store
+copy and this file all point at the new domain.
+
+**Still to do by hand, outside this repo:** the website field in the Chrome,
+Edge and Firefox store listings, the AlternativeTo submission, the GitHub
+About box, and the live winget manifest (komac generates the next version from
+the copy in winget-pkgs, not from `winget/` here, so its PublisherUrl and
+PackageUrl carry the old domain until that PR lands).
 
 ## GitHub discoverability
 

@@ -61,12 +61,12 @@ you downloaded.
   Apex app on your own machine (127.0.0.1)
 
 Requires the free Apex Download Manager app for Windows:
-https://apex-download-manager.vercel.app
+https://apexdownloadmanager.com
 
 **Category:** AMO: "Download Management" · CWS: "Workflow & Planning" (or
 "Tools")
 
-**Homepage / Support URL:** https://apex-download-manager.vercel.app
+**Homepage / Support URL:** https://apexdownloadmanager.com
 
 ---
 
