@@ -4,7 +4,7 @@ import { PlusIcon } from "./icons";
 const ITEMS: Array<{ q: string; a: string }> = [
   {
     q: "Is Apex free?",
-    a: "Yes, free for personal use. There is no account to create, no ads, and nothing bundled into the installer.",
+    a: "Yes. Apex is free and open source under the GPL v3, so anyone can read, build and audit the code. There is no account to create, no ads, and nothing bundled into the installer.",
   },
   {
     q: "Is it safe to replace my browser's downloader?",

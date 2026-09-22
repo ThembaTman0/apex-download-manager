@@ -2,9 +2,10 @@
 # Release whenever a v* tag is pushed. The release includes latest.json,
 # which the in-app updater polls.
 #
-# This source repo is PRIVATE, so releases are published to the separate
-# PUBLIC repo apex-download-manager-releases - the website's /dl redirect
-# and the in-app updater both need anonymous access to the assets.
+# Releases are published to the separate repo apex-download-manager-releases,
+# not this one. That split dates from when this repo was private, and it
+# stays: every installed copy polls that repo's latest.json for updates, and
+# the website's /dl redirect, stats and changelog read from it too.
 #
 # Pushing the tag is the whole release procedure. This workflow creates the
 # release in the public repo itself, so there is no manual pre-create step

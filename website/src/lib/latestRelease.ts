@@ -30,10 +30,9 @@ export const FALLBACK_SIZE_MB = 4;
 
 export const RELEASES_URL =
   "https://github.com/ThembaTman0/apex-download-manager-releases/releases";
-export const ISSUES_URL =
-  "https://github.com/ThembaTman0/apex-download-manager-releases/issues";
-export const REPO_URL =
-  "https://github.com/ThembaTman0/apex-download-manager-releases";
+/** Source repo (GPL-3.0-or-later). Installers live in the releases repo above. */
+export const REPO_URL = "https://github.com/ThembaTman0/apex-download-manager";
+export const ISSUES_URL = `${REPO_URL}/issues`;
 /** Published extension listings. Brave installs the Chrome one. */
 export const CHROME_EXT_URL =
   "https://chromewebstore.google.com/detail/apex-download-manager/gopdilekdjnfekbmhedjidlmaahnnhco";

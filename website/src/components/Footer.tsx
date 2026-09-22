@@ -31,7 +31,7 @@ const COLUMNS: Array<{ title: string; links: L[] }> = [
       { label: "Firefox add-on", href: FIREFOX_ADDON_URL, external: true },
       { label: "Changelog", href: "#changelog" },
       { label: "Issues", href: ISSUES_URL, external: true },
-      { label: "GitHub", href: REPO_URL, external: true },
+      { label: "Source code", href: REPO_URL, external: true },
     ],
   },
   {
