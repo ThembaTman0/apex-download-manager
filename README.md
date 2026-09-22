@@ -1,10 +1,11 @@
 # Apex Download Manager
 
-**Download faster. Smarter. Safer.**
+**A free, open source download manager for Windows.**
 
-Apex is a lightweight, modern download manager for Windows. A native Rust engine
-splits every download across up to 32 parallel connections, survives pauses,
-restarts, and network drops - wrapped in a clean, minimal desktop UI.
+A native Rust engine splits every download across up to 32 parallel connections
+and resumes from the exact byte after pauses, restarts and network drops, so a
+transfer uses the whole connection instead of one stream. No account, no ads, no
+telemetry, and every line is yours to read. GPL v3.
 
 > ⚡ Single native binary (Tauri v2 + Rust). No Electron, no JVM, no bloat.
 
