@@ -89,3 +89,79 @@ none of these yet.
 **After it is live:** like it from your own account, and ask early users who
 are happy with Apex to like it too. Likes decide where it ranks on the
 Internet Download Manager alternatives page.
+
+## Softpedia
+
+Submit at <https://www.softpedia.com/user/submit.shtml>, "Windows Software",
+then the **Regular submission form** (not the PAD form). No account needed.
+Softpedia says the queue takes up to 30 days and not every submission is
+published. Softpedia commonly marks listings it has scanned as "100% Clean";
+if Apex gets that badge, it is worth linking from the website.
+
+Submit after a release is out, and use that release's number and notes
+below. The values here are for **1.0.9**; swap them when 1.0.10 ships.
+
+| Field | Value |
+|---|---|
+| Developer name | `ThembaTman0` |
+| Developer site | `https://apex-download-manager.vercel.app/` |
+| Developer email | your email |
+| Program name | `Apex Download Manager` |
+| Program version | `1.0.9` |
+| Category | Internet > **Download Managers** |
+| File size | `4` MB |
+| Price for 1 license | leave empty (it is free) |
+| Supported operating systems | tick **Windows 10 64 bit** and **Windows 11** only (the installer is x64) |
+| License | **GPLv3** |
+| 32x32 Icon URL | `https://raw.githubusercontent.com/ThembaTman0/apex-download-manager/main/desktop-ui/src-tauri/icons/32x32.png` |
+| Screenshot URL | `https://raw.githubusercontent.com/ThembaTman0/apex-download-manager/main/docs/screenshots/downloads.png` |
+| Download link 1 | `https://github.com/ThembaTman0/apex-download-manager-releases/releases/download/v1.0.9/Apex.Download.Manager_1.0.9_x64-setup.exe` |
+| Download link 2 | `https://apex-download-manager.vercel.app/dl` (always the latest installer) |
+| Limitations | leave empty |
+| Product IDs, buy link, unlock code | leave empty |
+
+**Short description** (128 characters max; this is 119)
+
+    Open-source Windows download manager: parallel connections, resumable downloads, capture from Chrome, Edge and Firefox.
+
+**Long description**: use the AlternativeTo description above, unchanged.
+
+**Special requirements**
+
+    Windows 10 or 11, 64-bit. Uses the Microsoft Edge WebView2 Runtime, which Windows 11 and current Windows 10 already include; the installer downloads it if it is missing. The optional browser extension is free on the Chrome Web Store, Edge Add-ons and Firefox Add-ons.
+
+**Changes**: paste the release notes of the version you submit, from
+`RELEASE_NOTES.md` or the release page. For 1.0.9 that is the v1.0.9
+release body on the releases repo.
+
+## MajorGeeks
+
+MajorGeeks has no form: submissions go by email to **mgnews at
+majorgeeks.com** (their contact page spells it out that way). Their editors
+Google the software and its developer, scan the installer with VirusTotal,
+then test it in a virtual machine and write their own description, so the
+email only needs to point them at the right things. Before sending, check
+the installer's result on VirusTotal yourself so there are no surprises
+(search the SHA-256 from the website's download section).
+
+**Subject**
+
+    Software submission: Apex Download Manager (free, open source)
+
+**Body**
+
+    Hi,
+
+    I'd like to submit Apex Download Manager for review. It is a free, open-source (GPL v3) download manager for Windows 10 and 11.
+
+    It splits each download across up to 32 parallel connections, resumes downloads after restarts and network drops, and has a browser extension for Chrome, Edge and Firefox that hands downloads over to the app. There are no ads, no bundled software, no account and no telemetry.
+
+    Homepage: https://apex-download-manager.vercel.app/
+    Direct download (latest x64 installer): https://apex-download-manager.vercel.app/dl
+    Source code: https://github.com/ThembaTman0/apex-download-manager
+    Screenshots: https://github.com/ThembaTman0/apex-download-manager#readme
+
+    The installer is not code-signed yet (I have applied to the SignPath Foundation for open-source signing), so SmartScreen may show an "unrecognized app" prompt. The SHA-256 of every installer is published on the homepage.
+
+    Thanks for your time,
+    ThembaTman0
