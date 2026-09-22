@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/react";
 import {
   CHROME_EXT_URL,
   EDGE_EXT_URL,
@@ -110,6 +111,7 @@ export default function App() {
         <DownloadCta />
       </main>
       <Footer />
+      <Analytics />
     </>
   );
 }

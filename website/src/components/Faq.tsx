@@ -16,7 +16,7 @@ const ITEMS: Array<{ q: string; a: string }> = [
   },
   {
     q: "What does Apex send over the network?",
-    a: "Only your downloads. The app has no telemetry, and the update check talks directly to GitHub Releases. This website counts one anonymous number, total downloads, and nothing else.",
+    a: "Only your downloads. The app has no telemetry, and the update check talks directly to GitHub Releases. This website is different: it counts total downloads and uses Vercel Web Analytics for aggregated page views, with no cookies and nothing tied to you. The privacy policy lists exactly what that records.",
   },
   {
     q: "How do updates work?",

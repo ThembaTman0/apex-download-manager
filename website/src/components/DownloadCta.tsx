@@ -54,7 +54,7 @@ export default function DownloadCta() {
             <Checksum />
             {showCount && (
               <p className="cta-count mono">
-                {total.toLocaleString("en-US")} downloads counted. That is all we know.
+                {total.toLocaleString("en-US")} downloads counted, and nothing about who.
               </p>
             )}
           </div>

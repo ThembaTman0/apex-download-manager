@@ -57,9 +57,9 @@ export default function Footer() {
             <LogoMark size={18} />
           </a>
           <p className="footer-stance">
-            No account. No telemetry.
+            The app: no account, no telemetry.
             <br />
-            One anonymous download total.
+            This site: a download total and cookieless page views.
           </p>
           <p className="footer-copy mono">© 2026 Apex Download Manager</p>
         </div>
