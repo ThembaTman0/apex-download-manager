@@ -2466,6 +2466,24 @@ ol {
   color: var(--text-mute);
 }
 
+.footer-badge {
+  display: inline-block;
+  margin-top: 20px;
+  border-radius: 12px;
+  opacity: 0.85;
+  transition: opacity 160ms var(--ease);
+}
+
+.footer-badge:hover {
+  opacity: 1;
+}
+
+.footer-badge img {
+  display: block;
+  width: 183px;
+  height: auto;
+}
+
 .footer-copy {
   margin-top: 20px;
   font-size: 11px;

@@ -71,6 +71,21 @@ export default function Footer() {
             <br />
             This site: a download total and cookieless page views.
           </p>
+          {/* Self-hosted copy of the badge: hotlinking theirs would hand every
+              visitor's IP to a third party, which the privacy page rules out. */}
+          <a
+            className="footer-badge"
+            href="https://alternativeto.net/software/apex-download-manager/about/?utm_source=badge&utm_medium=referral"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <img
+              src="/alternativeto-badge.svg"
+              alt="Apex Download Manager on AlternativeTo"
+              width={183}
+              height={62}
+            />
+          </a>
           <p className="footer-copy mono">© 2026 Apex Download Manager</p>
         </div>
         {COLUMNS.map((col) => (

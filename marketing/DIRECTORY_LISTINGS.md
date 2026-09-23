@@ -6,8 +6,33 @@ it here before the next submission.
 
 ## AlternativeTo
 
-**Status:** submitted 2026-09-22. Track it under **My submissions** in the
-AlternativeTo profile menu.
+**Status:** live since 2026-09-23, one day after submission.
+
+    https://alternativeto.net/software/apex-download-manager/about/
+
+**Three corrections the live listing still needs** (Contribute > edit; edits
+are reviewed before they show):
+
+1. **Official Website** still reads `apex-download-manager.vercel.app/`,
+   because it was submitted the day before the domain moved. The 308 redirect
+   makes it work, but that string is what the page displays. Change it to
+   `https://apexdownloadmanager.com`.
+2. **"Written in" says TypeScript.** The download engine is Rust; TypeScript is
+   the UI layer only. It is a filterable field, and Rust is what separates Apex
+   from JDownloader (Java) and the Electron entries, so this is the single most
+   valuable field on the page to get right.
+3. **OpenSanctions.org is listed as software Apex is an alternative to**, which
+   looks like a misclick during the 52-alternative pass. Irrelevant links are
+   what moderators strip, so remove it.
+
+The rest of the page came through intact: Free, Open Source (GPL-3.0), the
+Windows and four-browser platform list, and the Privacy focused, No Tracking,
+Ad-free and No registration required flags.
+
+**Alternatives are the traffic.** Almost nobody browses AlternativeTo
+directly; they arrive looking for a replacement for something they already
+use. 52 alternatives are linked, which is why the listing already surfaces
+next to JDownloader, AB Download Manager and DownThemAll.
 
 Submit at <https://alternativeto.net>: sign in, verify your email, then the
 user icon (top right) > **Suggest new application**. Free submissions wait in
@@ -124,6 +149,26 @@ apps Apex replaces are named here:
    AlternativeTo penalises coordinated upvoting. Let users who find it useful
    like it on their own.
 4. Name and website can't be changed afterwards without an admin.
+
+### Badge
+
+AlternativeTo offers an embeddable badge at
+<https://alternativeto.net/badges/?app=apex-download-manager>. Their snippet
+hotlinks the SVG from their servers, which would hand every homepage visitor's
+IP to a third party. That contradicts `public/privacy.html`, which lists
+exactly what the site sends outward, and it is the same reason the fonts are
+self-hosted rather than pulled from Google.
+
+Their badge page explicitly allows self-hosting, so the compact dark SVG is
+saved at `website/public/alternativeto-badge.svg` and served from our own
+origin. The file was checked before committing: no `<script>`, no `<image>`,
+no external references, only the SVG namespace declaration. The link still
+points at the listing with their utm parameters intact, so they keep the
+referral attribution.
+
+Re-download it if they redesign the badge:
+
+    curl -o website/public/alternativeto-badge.svg https://alternativeto.net/static/badges/badge-compact-dark.svg
 
 ## Softpedia
 
