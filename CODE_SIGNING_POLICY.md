@@ -1,35 +1,39 @@
-# Code signing policy
+# Code signing and how to verify a download
 
-Free code signing provided by [SignPath.io](https://about.signpath.io),
-certificate by [SignPath Foundation](https://signpath.org).
+**Apex installers are not code-signed yet.** Windows will show a "Windows
+protected your PC" prompt the first time you run one: click **More info**,
+then **Run anyway**, or verify the file first as described below.
 
-**Status:** the project has applied to the SignPath Foundation. Signing
-begins with the first release after the application is approved; releases
-before that are unsigned.
+Certificates that Windows trusts cost money or require a sponsor. Apex
+applied to the SignPath Foundation's free programme for open-source projects
+in September 2026 and was declined for now: the programme asks for a level of
+public visibility the project has not reached yet. Reapplying is planned. In
+the meantime, everything needed to check a download yourself is published.
 
-## What is signed
+## How to check that a download is genuine
 
-The Windows installers (NSIS `setup.exe` and `.msi`) and the application
-executable inside them, as published on the
-[releases page](https://github.com/ThembaTman0/apex-download-manager-releases/releases).
-Every signed file is built by GitHub Actions
-([`release.yml`](.github/workflows/release.yml)) from a tagged commit in this
-repository, and each signing request is approved by hand.
+1. Download the installer only from <https://apexdownloadmanager.com/> or from
+   the [releases page](https://github.com/ThembaTman0/apex-download-manager-releases/releases).
+2. Compare its SHA-256 with the one shown on the website's download section
+   (it is read live from the published release):
 
-Not signed by this certificate: the browser extension (signed by the Chrome,
-Edge and Firefox stores) and the optional yt-dlp and FFmpeg tools, which the
-app downloads from the yt-dlp project's GitHub releases only when you ask it
-to.
+   ```powershell
+   Get-FileHash .\Apex.Download.Manager_1.0.9_x64-setup.exe -Algorithm SHA256
+   ```
 
-## Team roles
+3. Every installer is built by GitHub Actions
+   ([`release.yml`](.github/workflows/release.yml)) from a tagged commit in
+   this repository, so the build is reproducible from public source.
 
-| Role | Members |
-|---|---|
-| Committers and reviewers | [ThembaTman0](https://github.com/ThembaTman0) |
-| Approvers | [ThembaTman0](https://github.com/ThembaTman0) |
+Updates inside the app are separately signed with the project's own updater
+key: the app refuses any update whose signature does not match the public key
+built into it. That protects updates even though the installer is unsigned.
 
-Changes from anyone outside this list are reviewed by a committer before they
-are merged.
+## What is published
+
+- The full source, under GPL-3.0-or-later.
+- The SHA-256 of each installer, on the website and in the release assets.
+- The build workflow that produced them.
 
 ## Privacy
 
@@ -42,5 +46,4 @@ or your downloads to the project or to anyone else. Its network traffic is:
 - the optional video tools, downloaded on request from the
   [yt-dlp](https://github.com/yt-dlp/yt-dlp) project's GitHub releases.
 
-The full privacy policy is at
-<https://apexdownloadmanager.com/privacy.html>.
+The full privacy policy is at <https://apexdownloadmanager.com/privacy.html>.

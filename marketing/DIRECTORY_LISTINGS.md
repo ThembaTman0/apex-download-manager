@@ -241,7 +241,7 @@ the installer's result on VirusTotal yourself so there are no surprises
     Source code: https://github.com/ThembaTman0/apex-download-manager
     Screenshots: https://github.com/ThembaTman0/apex-download-manager#readme
 
-    The installer is not code-signed yet (I have applied to the SignPath Foundation for open-source signing), so SmartScreen may show an "unrecognized app" prompt. The SHA-256 of every installer is published on the homepage.
+    The installer is not code-signed yet, so SmartScreen may show an "unrecognized app" prompt. The SHA-256 of every installer is published on the homepage.
 
     Thanks for your time,
     ThembaTman0

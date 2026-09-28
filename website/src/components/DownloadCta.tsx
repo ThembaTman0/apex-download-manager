@@ -39,16 +39,16 @@ export default function DownloadCta() {
               click are caught automatically.
             </p>
             <p className="cta-note">
-              Windows builds will be code-signed through the SignPath Foundation
-              (free code signing provided by SignPath.io, certificate by SignPath
-              Foundation).{" "}
+              The installer is not code-signed yet, so Windows shows a
+              SmartScreen prompt on first run. Check the SHA-256 below against
+              your download, or build from source.{" "}
               <a
                 className="text-link"
                 href={`${REPO_URL}/blob/main/CODE_SIGNING_POLICY.md`}
                 target="_blank"
                 rel="noreferrer"
               >
-                Code signing policy
+                How to verify
               </a>
             </p>
             <Checksum />

@@ -1,8 +1,10 @@
 # Launch posts
 
-Drafts for the launch, meant to go out **after the installer is signed**
-(SignPath) **and 1.0.10 is released** (several features below, such as the
-reorderable queue and replacing an expired link, ship in 1.0.10). House
+Drafts for the launch, meant to go out **once 1.0.10 is released** (several
+features below, such as the reorderable queue and replacing an expired link,
+ship in 1.0.10). The installer stays unsigned for now: SignPath's free
+programme declined the project in September 2026 as too small, and the plan
+is to reapply after the launch brings visibility. House
 style: no em dashes. Everything in `[square brackets]` is for you to fill in
 or delete: especially the personal parts. Readers can tell when a "why I
 built this" story is generic, so write those lines yourself.
@@ -203,10 +205,13 @@ lot of these.
 
 ## Answers for the comments
 
-- **"It's unsigned / SmartScreen warns me."** Before signing: "Yes, it's not
-  signed yet. I've applied to the SignPath Foundation's free signing for open
-  source. Every installer's SHA-256 is on the website, and the source is on
-  GitHub." After signing, this goes away.
+- **"It's unsigned / SmartScreen warns me."** "Yes, and I'd rather say so than
+  hide it. A certificate Windows trusts costs money or needs a sponsor; the
+  free programme for open-source projects turned Apex down for now because it
+  is too small and new. Every installer's SHA-256 is published on the site,
+  the build is a public GitHub Actions run from a tagged commit, and updates
+  inside the app are signature-checked against a key built into it." Don't
+  apologise for it repeatedly; say it once and move on.
 - **"Why not aria2 / wget / curl?"** "They're great, and the engine does the
   same kind of parallel range download. Apex adds the browser handoff,
   resume across restarts, the queue and a UI."
