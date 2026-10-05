@@ -355,6 +355,71 @@ fn write_cookie_file(url: &str, cookies: &[GrabCookie]) -> Result<TempCookieFile
 }
 
 // ---------------------------------------------------------------------------
+// Sniffed streams
+// ---------------------------------------------------------------------------
+
+/// A stream manifest the extension saw the page's player fetch, with the
+/// headers it went out with. Script-built players never put this URL in the
+/// page, and the stream host commonly 403s without the player's Referer.
+#[derive(Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GrabStream {
+    pub url: String,
+    #[serde(default)]
+    pub referer: String,
+    #[serde(default)]
+    pub user_agent: String,
+}
+
+/// Recent sniffed streams, memory only, so the probe of a stream URL from
+/// the Grab Video dialog can send the headers it needs. add_video copies
+/// them onto the download row, where they survive restarts like any
+/// captured download's headers.
+#[derive(Default)]
+pub struct StreamHints(std::sync::Mutex<Vec<GrabStream>>);
+
+const MAX_STREAM_HINTS: usize = 20;
+
+impl StreamHints {
+    pub fn store(&self, s: GrabStream) {
+        let mut v = self.0.lock().unwrap();
+        v.retain(|x| x.url != s.url);
+        v.push(s);
+        if v.len() > MAX_STREAM_HINTS {
+            v.remove(0);
+        }
+    }
+
+    /// Headers for exactly this URL, as stored on a download row.
+    pub fn headers_for(&self, url: &str) -> Vec<(String, String)> {
+        let v = self.0.lock().unwrap();
+        let Some(s) = v.iter().rev().find(|s| s.url == url) else {
+            return Vec::new();
+        };
+        let mut out = Vec::new();
+        for (k, val) in [("referer", &s.referer), ("user-agent", &s.user_agent)] {
+            let val = val.replace(['\r', '\n'], "");
+            if !val.trim().is_empty() {
+                out.push((k.to_string(), val));
+            }
+        }
+        out
+    }
+}
+
+/// --referer / --user-agent for a yt-dlp run. Only these two: cookies have
+/// their own opt-in path, and nothing else from the browser is trusted here.
+fn push_header_args(cmd: &mut tokio::process::Command, headers: &[(String, String)]) {
+    for (k, v) in headers {
+        if k.eq_ignore_ascii_case("referer") {
+            cmd.arg("--referer").arg(v);
+        } else if k.eq_ignore_ascii_case("user-agent") {
+            cmd.arg("--user-agent").arg(v);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Probing
 // ---------------------------------------------------------------------------
 
@@ -443,6 +508,9 @@ pub async fn probe(
     }
     if let Some(f) = &cookie_file {
         cmd.arg("--cookies").arg(&f.0);
+    }
+    if let Some(hints) = app.try_state::<StreamHints>() {
+        push_header_args(&mut cmd, &hints.headers_for(url));
     }
     cmd.arg("--").arg(url);
     let output = tokio::time::timeout(Duration::from_secs(90), cmd.output())
@@ -852,6 +920,7 @@ pub(crate) async fn drive_video(ctx: &TaskCtx, d: &mut Download) -> Result<bool,
     if let Some(f) = &cookie_guard {
         cmd.arg("--cookies").arg(&f.0);
     }
+    push_header_args(&mut cmd, &d.request_headers);
     cmd.arg("--").arg(&d.url);
     cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
     cmd.kill_on_drop(true);
@@ -1104,5 +1173,46 @@ mod tests {
         let j = json!({ "subtitles": { "pt-BR": [{ "ext": "vtt" }] } });
         let t = subtitle_tracks(&j);
         assert_eq!(t[0].label, "pt-BR");
+    }
+
+    fn stream(url: &str, referer: &str) -> GrabStream {
+        GrabStream { url: url.into(), referer: referer.into(), user_agent: "UA".into() }
+    }
+
+    #[test]
+    fn stream_hints_match_exact_url_only() {
+        let h = StreamHints::default();
+        h.store(stream("https://cdn.example/a.m3u8?t=1", "https://site.example/watch/1"));
+        assert_eq!(
+            h.headers_for("https://cdn.example/a.m3u8?t=1"),
+            vec![
+                ("referer".to_string(), "https://site.example/watch/1".to_string()),
+                ("user-agent".to_string(), "UA".to_string()),
+            ]
+        );
+        assert!(h.headers_for("https://cdn.example/a.m3u8?t=2").is_empty());
+    }
+
+    #[test]
+    fn stream_hints_strip_newlines_and_skip_empty() {
+        let h = StreamHints::default();
+        h.store(stream("https://cdn.example/a.m3u8", "https://x/\r\nX-Evil: 1"));
+        h.store(GrabStream { user_agent: String::new(), ..stream("https://cdn.example/b.m3u8", "") });
+        assert_eq!(h.headers_for("https://cdn.example/a.m3u8")[0].1, "https://x/X-Evil: 1");
+        assert!(h.headers_for("https://cdn.example/b.m3u8").is_empty());
+    }
+
+    #[test]
+    fn stream_hints_are_capped_and_refreshed() {
+        let h = StreamHints::default();
+        for i in 0..MAX_STREAM_HINTS + 5 {
+            h.store(stream(&format!("https://cdn.example/{i}.m3u8"), "r"));
+        }
+        assert!(h.headers_for("https://cdn.example/0.m3u8").is_empty());
+        assert!(!h.headers_for(&format!("https://cdn.example/{}.m3u8", MAX_STREAM_HINTS + 4)).is_empty());
+        // re-storing replaces rather than duplicates
+        h.store(stream("https://cdn.example/24.m3u8", "new"));
+        assert_eq!(h.0.lock().unwrap().len(), MAX_STREAM_HINTS);
+        assert_eq!(h.headers_for("https://cdn.example/24.m3u8")[0].1, "new");
     }
 }

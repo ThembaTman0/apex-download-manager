@@ -167,6 +167,8 @@ pub fn run() {
             app.manage(manager);
             // Memory-only jar for browser cookies handed over with /grab.
             app.manage(ytdlp::GrabCookieJar::default());
+            // Memory-only headers for streams the extension sniffed.
+            app.manage(ytdlp::StreamHints::default());
 
             // Browser-extension capture endpoint (127.0.0.1 only).
             capture::start(app.handle().clone());

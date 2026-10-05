@@ -302,6 +302,7 @@ impl DownloadManager {
         selector: String,
         save_dir: Option<String>,
         subtitle_lang: Option<String>,
+        request_headers: Vec<(String, String)>,
     ) -> Result<Download, String> {
         let url = url.trim().to_string();
         if !url.starts_with("http://") && !url.starts_with("https://") {
@@ -341,7 +342,7 @@ impl DownloadManager {
             etag: None,
             last_modified: None,
             segment_states: Vec::new(),
-            request_headers: Vec::new(),
+            request_headers,
             queue_order: None,
         };
         self.db.lock().unwrap().upsert_download(&d)?;

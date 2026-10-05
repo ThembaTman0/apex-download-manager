@@ -3,7 +3,7 @@
   "name": "Apex Download Manager",
   "version": "1.3.3",
   "description": "Send downloads to Apex Download Manager: multi-connection speed, pause/resume, scheduling.",
-  "permissions": ["downloads", "downloads.ui", "cookies", "contextMenus", "storage", "notifications", "activeTab"],
+  "permissions": ["downloads", "downloads.ui", "cookies", "contextMenus", "storage", "notifications", "activeTab", "webRequest"],
   "host_permissions": ["http://*/*", "https://*/*"],
   "background": {
     "service_worker": "bg.js",

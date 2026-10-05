@@ -196,6 +196,7 @@ pub async fn probe_video(
 #[tauri::command]
 pub async fn add_video(
     mgr: State<'_, DownloadManager>,
+    hints: State<'_, crate::ytdlp::StreamHints>,
     url: String,
     title: String,
     ext: String,
@@ -203,7 +204,8 @@ pub async fn add_video(
     save_dir: Option<String>,
     subtitle_lang: Option<String>,
 ) -> Result<Download, String> {
-    mgr.add_video(url, title, ext, selector, save_dir, subtitle_lang)
+    let headers = hints.headers_for(url.trim());
+    mgr.add_video(url, title, ext, selector, save_dir, subtitle_lang, headers)
 }
 
 #[tauri::command]

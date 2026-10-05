@@ -402,6 +402,11 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
                 /// memory-only jar; never persisted.
                 #[serde(default)]
                 cookies: Vec<crate::ytdlp::GrabCookie>,
+                /// A manifest the page's player fetched, when the extension
+                /// saw one. Analyzed instead of the page URL, which fails on
+                /// script-built players.
+                #[serde(default)]
+                stream: Option<crate::ytdlp::GrabStream>,
             }
             let req: GrabRequest = match serde_json::from_slice(&body) {
                 Ok(r) => r,
@@ -428,10 +433,22 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
             app.state::<crate::ytdlp::GrabCookieJar>()
                 .store(host, req.cookies);
 
+            let url = match req
+                .stream
+                .filter(|s| s.url.starts_with("http://") || s.url.starts_with("https://"))
+            {
+                Some(s) => {
+                    let url = s.url.clone();
+                    app.state::<crate::ytdlp::StreamHints>().store(s);
+                    url
+                }
+                None => req.url,
+            };
+
             crate::show_main_window(&app);
             let _ = app.emit(
                 "grab:video",
-                serde_json::json!({ "url": req.url, "hasCookies": has_cookies }),
+                serde_json::json!({ "url": url, "hasCookies": has_cookies }),
             );
             respond(&mut stream, 200, r#"{"ok":true}"#, cors).await
         }

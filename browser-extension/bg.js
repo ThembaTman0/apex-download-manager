@@ -375,15 +375,105 @@ async function collectGrabCookies(url) {
   }
 }
 
+// Stream sniffing. Many players build the stream URL in script and play it
+// through MSE, so neither the page HTML nor video.src (a blob:) holds it,
+// and the stream host often 403s without the player's Referer. Watching the
+// tab's own requests is the only reliable way to see the manifest and the
+// headers it was fetched with. Observe-only: nothing is blocked or changed,
+// and nothing leaves the browser until the user picks "Grab video".
+const MANIFEST_RE = /\.(m3u8|mpd)$/i;
+const MAX_TAB_STREAMS = 10;
+// tabId -> [{ url, referer }], oldest first. Mirrored to storage.session so
+// a service worker restart between playback and the click doesn't lose it.
+const tabStreams = new Map();
+const streamsReady = chrome.storage.session
+  .get("tabStreams")
+  .then(({ tabStreams: saved }) => {
+    for (const [id, list] of Object.entries(saved || {})) tabStreams.set(Number(id), list);
+  })
+  .catch(() => {});
+
+function saveStreams() {
+  chrome.storage.session
+    .set({ tabStreams: Object.fromEntries(tabStreams) })
+    .catch(() => {});
+}
+
+function headerValue(headers, name) {
+  const h = (headers || []).find((x) => x.name.toLowerCase() === name);
+  return h ? h.value : "";
+}
+
+async function onStreamRequest(details) {
+  if (details.tabId < 0) return;
+  let path;
+  try {
+    path = new URL(details.url).pathname;
+  } catch {
+    return;
+  }
+  if (!MANIFEST_RE.test(path)) return;
+  await streamsReady;
+  // The header itself when the browser shows it; otherwise the document that
+  // made the request, which is what the browser sends as Referer by default.
+  const referer =
+    headerValue(details.requestHeaders, "referer") ||
+    details.documentUrl ||
+    details.initiator ||
+    "";
+  const list = (tabStreams.get(details.tabId) || []).filter((s) => s.url !== details.url);
+  list.push({ url: details.url, referer });
+  tabStreams.set(details.tabId, list.slice(-MAX_TAB_STREAMS));
+  saveStreams();
+}
+
+{
+  const filter = { urls: ["http://*/*", "https://*/*"], types: ["xmlhttprequest", "media", "other"] };
+  try {
+    // Chromium hides Referer from webRequest unless "extraHeaders" is asked for.
+    chrome.webRequest.onSendHeaders.addListener(onStreamRequest, filter, ["requestHeaders", "extraHeaders"]);
+  } catch {
+    // Firefox has no "extraHeaders" and shows Referer without it
+    chrome.webRequest.onSendHeaders.addListener(onStreamRequest, filter, ["requestHeaders"]);
+  }
+}
+
+// A new page in the tab means its old streams are stale.
+chrome.tabs.onUpdated.addListener(async (tabId, change) => {
+  if (!change.url) return;
+  await streamsReady;
+  if (tabStreams.delete(tabId)) saveStreams();
+});
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  await streamsReady;
+  if (tabStreams.delete(tabId)) saveStreams();
+});
+
+// The stream to grab: an HLS master or DASH manifest is requested before
+// its variant playlists, so the earliest one seen carries every quality.
+async function streamForTab(tabId) {
+  await streamsReady;
+  const list = tabStreams.get(tabId);
+  return list && list.length ? list[0] : null;
+}
+
 // Page-level grab: hand the page URL to Apex's yt-dlp grabber. The app opens
-// its Grab Video dialog pre-filled; the user picks a quality there.
-async function grabPage(url) {
+// its Grab Video dialog pre-filled; the user picks a quality there. When the
+// tab has played a stream, that stream and the Referer it was fetched with
+// go along, since the page URL alone fails on script-built players.
+async function grabPage(url, tabId) {
   if (!url || !/^https?:\/\//i.test(url)) return;
   await configReady;
+  const sniffed = tabId >= 0 ? await streamForTab(tabId) : null;
+  const stream = sniffed && {
+    url: sniffed.url,
+    referer: sniffed.referer || url,
+    userAgent: navigator.userAgent,
+  };
   try {
     const res = await apexFetch("/grab", {
       method: "POST",
-      body: JSON.stringify({ url, cookies: await collectGrabCookies(url) }),
+      body: JSON.stringify({ url, cookies: await collectGrabCookies(url), stream }),
     });
     if (res.status === 401) {
       notifyBadToken();
@@ -410,10 +500,15 @@ async function grabPage(url) {
 }
 // #grab-end
 
-chrome.contextMenus.onClicked.addListener(async (info) => {
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   // #grab-begin
-  if (info.menuItemId === "apex-grab-page") {
-    grabPage(info.pageUrl);
+  // A blob: video is an MSE player: the URL only exists inside this tab, so
+  // grab the page (and its sniffed stream) instead of failing on the blob.
+  if (
+    info.menuItemId === "apex-grab-page" ||
+    (info.menuItemId === "apex-media" && /^blob:/i.test(info.srcUrl || ""))
+  ) {
+    grabPage(info.pageUrl, tab ? tab.id : -1);
     return;
   }
   // #grab-end

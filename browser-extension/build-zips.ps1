@@ -10,7 +10,7 @@
 #                                  rejects background.scripts in MV3).
 #   browser-extension-chrome.zip   Chrome Web Store. Same as the Edge flavor,
 #                                  plus the video-grab feature stripped and
-#                                  activeTab dropped. CWS forbids extensions
+#                                  activeTab + webRequest dropped. CWS forbids extensions
 #                                  that facilitate downloading streaming media,
 #                                  and enforces it against YouTube grabbers.
 #
@@ -88,6 +88,7 @@ function Get-Manifest($flavor) {
 
     if ($flavor -eq "chrome") {
         $m = $m -replace ',\s*"activeTab"', ''
+        $m = $m -replace ',\s*"webRequest"', ''
     }
     return $m
 }
@@ -156,6 +157,7 @@ foreach ($name in @("browser-extension.zip", "browser-extension-chromium.zip", "
 
         $flags = @()
         if ($manifest -match '"activeTab"') { $flags += "activeTab" }
+        if ($manifest -match '"webRequest"') { $flags += "webRequest" }
         if ($manifest -match "browser_specific_settings") { $flags += "gecko" }
         if ($manifest -match '"scripts"') { $flags += "background.scripts" }
         if ($bg -match "apex-grab-page") { $flags += "grab" }
@@ -163,4 +165,4 @@ foreach ($name in @("browser-extension.zip", "browser-extension-chromium.zip", "
         Write-Host ("  {0,-32} ok, {1} entries [{2}]" -f $name, $names.Count, ($(if ($flags) { $flags -join ", " } else { "none" })))
     } finally { $archive.Dispose() }
 }
-Write-Host "`nExpected flags: firefox [gecko, background.scripts, activeTab, grab], chromium [activeTab, grab], chrome [none]"
+Write-Host "`nExpected flags: firefox [gecko, background.scripts, activeTab, webRequest, grab], chromium [activeTab, webRequest, grab], chrome [none]"
