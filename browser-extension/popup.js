@@ -78,13 +78,25 @@ $("grabVideo").addEventListener("click", async () => {
   } catch {
     // cookies unavailable: the grab still works without the retry option
   }
+  // A stream the background worker saw this tab's player fetch (see
+  // onStreamRequest in bg.js); the earliest is the master playlist.
+  let stream = null;
+  try {
+    const { tabStreams } = await chrome.storage.session.get("tabStreams");
+    const first = tabStreams && tabStreams[tab.id] && tabStreams[tab.id][0];
+    if (first) {
+      stream = { url: first.url, referer: first.referer || url, userAgent: navigator.userAgent };
+    }
+  } catch {
+    // no session storage: grab the page URL as before
+  }
   try {
     const ctrl = new AbortController();
     setTimeout(() => ctrl.abort(), 3000);
     const res = await fetch(`http://127.0.0.1:${cfg.port}/grab`, {
       method: "POST",
       headers: { "content-type": "application/json", "x-apex-token": cfg.token },
-      body: JSON.stringify({ url, cookies }),
+      body: JSON.stringify({ url, cookies, stream }),
       signal: ctrl.signal,
     });
     if (res.status === 404) {

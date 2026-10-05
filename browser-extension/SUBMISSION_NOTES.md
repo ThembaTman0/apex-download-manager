@@ -19,11 +19,20 @@ What users see. Write for a user, not a reviewer: what is new, what is
 fixed, and anything that needs a matching app version. Keep it to a
 handful of bullets.
 
-**v1.3.3 (paste this):**
+**v1.3.4 (paste this).** 1.3.3 was never submitted, so this covers both:
 
 ```
-New in 1.3.3
+New in 1.3.4
 
+- Grab videos from modern players. Many sites build their video player in
+  script and stream the video in pieces, so the page address alone gives
+  Apex nothing to download. The extension now notices the stream a page's
+  player loads while you watch, and "Grab video from this page" hands that
+  stream to Apex instead, along with the page address the site expects to
+  see. It only looks at addresses, never at page content, and nothing is
+  sent anywhere until you click Grab. Right-clicking such a video and
+  choosing "Download media with Apex" now grabs it too, where it used to
+  fail. Requires Apex 1.0.10 or newer.
 - Videos that need you to be signed in. Some sites refuse a video unless
   the request comes from a signed-in account. When that happens, Apex can
   now offer to retry using your browser sign-in. Using "Grab video from
@@ -39,6 +48,9 @@ As always, if Apex is not running the download simply continues in the
 browser, so nothing is lost.
 ```
 
+**v1.3.3 (never submitted; folded into 1.3.4):** signed-in video retry,
+narrower host permissions.
+
 **v1.3.2 (published, kept for reference):** grab video from a page, clearer
 stale-pairing messages, tidied popup wording.
 
@@ -48,12 +60,34 @@ Reviewers want: what changed since the last reviewed version, why any new
 permission is there, whether a build step is involved, and how to test
 without an account. Lead with the changes, then the standing answers.
 
-**v1.3.3 (paste this):**
+**v1.3.4 (paste this):**
 
 ```
-What changed since 1.3.2
+What changed since 1.3.2 (1.3.3 was never submitted, so both are here)
 
-1. The "grab video from this page" hand-off now includes that page's
+1. New permission: webRequest (observe-only). Many video players build
+   their stream URL in script and play it through Media Source
+   Extensions, so neither the page HTML nor video.src (a blob: URL)
+   contains anything the desktop app can download, and the stream host
+   often refuses requests without the player's Referer. The background
+   script registers webRequest.onSendHeaders for http(s) requests of
+   type xmlhttprequest, media and other, and keeps only requests whose
+   path ends in .m3u8 or .mpd (HLS/DASH manifests). For each it stores
+   the URL and the Referer header, per tab, at most 10 per tab, in
+   memory and chrome.storage.session. Entries are dropped when the tab
+   navigates or closes. No request is blocked or modified (no blocking
+   listener, no webRequestBlocking), no response body is read, and no
+   other header is kept.
+
+   Nothing leaves the browser until the user picks "Grab video from
+   this page" (popup button or page context menu). That POST to
+   http://127.0.0.1:43666/grab then also carries the tab's first
+   recorded manifest URL, its Referer and the browser user agent, so
+   the local app can fetch the stream the way the player did. A
+   right-click on a video whose src is a blob: URL now takes the same
+   path instead of sending an unusable blob: URL.
+
+2. The "grab video from this page" hand-off now includes that page's
    cookies. Both entry points (the popup button and the page context-menu
    item) call chrome.cookies.getAll for the page URL and include the
    result, as structured name/value/domain/path/secure/expiry objects, in
@@ -75,14 +109,14 @@ What changed since 1.3.2
    pairing token the user approved in a native prompt in the app. Nothing
    is sent to any remote server.
 
-2. Host permissions narrowed from <all_urls> to
+3. Host permissions narrowed from <all_urls> to
    ["http://*/*", "https://*/*"]. This is a reduction, not a new
    permission: it drops file://, ftp:// and other schemes the extension
    never handled. Cookies and captured downloads are HTTP(S) only, and the
    local app is reached over http://127.0.0.1.
 
-No new permissions are requested in this version. The cookies permission
-was already present and already used for the download path.
+webRequest is the only new permission. The cookies permission was
+already present and already used for the download path.
 
 Standing notes
 
@@ -177,29 +211,28 @@ the last *published* version, not the last one you uploaded. If a version
 was cancelled before review, its changes were never seen, so fold them
 into these notes too.
 
-**v1.3.3 (paste this):**
+**v1.3.4 (paste this):**
 
 ```
-New in 1.3.3
+New since 1.3.2 (1.3.3 was never submitted)
 
-1. "Grab video from this page" now sends that page's cookies with its URL. Both entry points (popup button, page context menu) call chrome.cookies.getAll for the page URL and include the result, as structured name/value/domain/path/secure/expiry objects, in the JSON POST to http://127.0.0.1:43666/grab. No page content is read.
+1. New permission: webRequest, observe-only. Many players build the stream URL in script and play it via MSE, so the page HTML and video.src (blob:) hold nothing the desktop app can fetch, and stream hosts often need the player's Referer. An onSendHeaders listener keeps only http(s) requests whose path ends in .m3u8 or .mpd: the URL and its Referer, per tab, max 10, in memory and storage.session, cleared on navigation or tab close. Nothing is blocked or modified, no response body is read. These are sent only when the user picks "Grab video from this page", added to the POST to http://127.0.0.1:43666/grab. A right-click on a blob: video now takes that path.
 
-Why: sites increasingly refuse video metadata unless the request looks signed in, and the desktop app fetches outside the browser, so it cannot inherit the session. The app analyses without cookies first and only offers a "retry using your browser sign-in" button if that fails. The cookies stay in the app's memory for that one retry, are never written to its database, and are gone when it closes. The extension already forwards a Cookie header for ordinary downloads so files behind a login work; this is the same boundary.
+2. The grab also sends that page's cookies (chrome.cookies.getAll), so the app can offer a "retry using your browser sign-in" if analysis fails. They stay in the app's memory for that retry and are never saved. Downloads already forward a Cookie header; same boundary.
 
-2. Host permissions narrowed from <all_urls> to ["http://*/*","https://*/*"]. A reduction, not a new permission: it drops file:// and ftp://, which the extension never handled.
+3. Host permissions narrowed from <all_urls> to http and https only. A reduction.
 
-No new permissions in this version; cookies was already present and used for the download path.
+webRequest is the only new permission.
 
 Standing notes
-
 - No build step. The zip is the source: plain unminified JavaScript, no bundler, no libraries.
 - No test account needed.
-- No remote network requests. The only destination is http://127.0.0.1, the Apex desktop app on the user's own machine, gated by a pairing token the user approves in the app.
+- No remote requests. The only destination is http://127.0.0.1, the Apex app on the user's machine, gated by a pairing token the user approves in the app.
 - No content scripts, no analytics, no data collection.
 
-Testing without the app: with Apex absent, a download is handed back to the browser and completes normally, the popup shows a red dot and "Apex isn't running", and the grab button reports it could not reach Apex. Nothing is lost.
+Without the app: a download is handed back to the browser and completes, the popup shows "Apex isn't running", and grab reports it could not reach Apex.
 
-Full path: install the free Windows app from https://apexdownloadmanager.com, open the popup, click "Pair with Apex app", approve the prompt in the app. The sign-in retry needs Apex 1.0.9 or newer.
+Full path: install the free Windows app (1.0.10+) from https://apexdownloadmanager.com, click "Pair with Apex app" in the popup, approve in the app.
 ```
 
 ### Per-permission justifications (Edge asks for one per permission)
@@ -222,6 +255,26 @@ page to hand over and the feature cannot work.
 Scope: activeTab is read-only here and is used solely at the moment of
 that click. It is not used to inject scripts or read page content, and the
 extension has no content scripts. No data leaves the user's machine.
+```
+
+**`webRequest`**
+
+```
+Some video players build their stream address in script and play it
+through Media Source Extensions, so the page and its video element hold
+no address the Apex desktop app can download, and the stream server
+often requires the player's Referer. To make "Grab video from this page"
+work on those players, the extension observes request headers
+(webRequest.onSendHeaders) and keeps only requests for HLS or DASH
+manifests (paths ending .m3u8 or .mpd): the address and its Referer, per
+tab, at most 10, dropped when the tab navigates or closes. Without
+webRequest the extension cannot learn the stream address and the grab
+fails on these sites.
+
+Scope: observe-only. No request is blocked, redirected or modified, no
+response body is read, and no other header is kept. Nothing is sent
+until the user clicks Grab, and then only to http://127.0.0.1, the Apex
+app on the user's own machine. No data leaves the device.
 ```
 
 **`downloads`**
@@ -298,7 +351,7 @@ desktop app on the user's own machine.
 
 The pattern is the narrowest one that still covers every site a download
 can come from. It was <all_urls> up to version 1.3.2 and was reduced to
-http and https in 1.3.3, since cookies and captured downloads are HTTP(S)
+http and https in 1.3.4, since cookies and captured downloads are HTTP(S)
 only and the local app is reached over http://127.0.0.1.
 ```
 
@@ -373,20 +426,21 @@ permitted; it is the media-grabbing that draws enforcement.
 
 `build-zips.ps1` implements this. The grab code is delimited in the
 sources by `#grab-begin` / `#grab-end` markers and the Chrome flavor
-strips those regions and drops `activeTab`, so it is a build-time variant
+strips those regions and drops `activeTab` and `webRequest`, so it is a build-time variant
 rather than a code fork. Keep the markers balanced when editing that code;
 the script throws on an unbalanced pair and refuses to emit a zip.
 
-The Chrome package therefore has no `activeTab` permission, no popup grab
+The Chrome package therefore has no `activeTab` or `webRequest` permission, no popup grab
 button, and no page context-menu item. Its permission set is `downloads`,
 `downloads.ui`, `cookies`, `contextMenus`, `storage`, `notifications`,
 plus the `http://*/*` and `https://*/*` host permissions, so skip the
-`activeTab` justification when filling the privacy practices tab.
+`activeTab` and `webRequest` justifications when filling the privacy practices tab.
 
-**What 1.3.3 changes for Chrome:** only the host-permission narrowing. The
-version's headline feature, sending page cookies with a video grab, lives
+**What 1.3.4 changes for Chrome:** only the host-permission narrowing. The
+version's headline features, stream sniffing (`webRequest`) and sending
+page cookies with a video grab, live
 entirely inside the stripped `#grab` regions, so the Chrome package does
-not contain it and its cookie use is still the download path alone. Keep
+not contain them and its cookie use is still the download path alone. Keep
 the Chrome privacy answers below describing that and nothing more.
 
 ### EEA trader / non-trader declaration (account level, asked once)
@@ -434,7 +488,7 @@ in the review-facing fields.
 
 Chrome asks per-permission, in its own boxes, and displays the data-usage
 section publicly. These are tuned to the Chrome package, which has no
-`activeTab`. If the form ever lists `activeTab`, the wrong zip was
+`activeTab` or `webRequest`. If the form ever lists either, the wrong zip was
 uploaded. Written 2026-07-27, all within the limit; re-check the count if
 edited.
 
@@ -522,7 +576,7 @@ keeping straight:
   different host than the page (CDNs, signed URLs), so the origin
   `activeTab` would grant is not the one whose cookies are needed.
 
-**Done in 1.3.3:** `<all_urls>` was replaced with
+**Done in 1.3.4:** `<all_urls>` was replaced with
 `["http://*/*", "https://*/*"]`, batched into a version all three stores
 were getting anyway rather than re-uploaded mid-submission. Cookies and
 captured downloads are HTTP(S) only and the local app is reached over
@@ -619,7 +673,7 @@ Pull from these when a store asks the same thing in different words.
   `cookies.getAll` on whatever URL the user chooses to download, so files
   behind a login download correctly, and so the right-click item works on
   any site. There are no content scripts and no page content is read. It
-  was `<all_urls>` through 1.3.2 and narrowed in 1.3.3.
+  was `<all_urls>` through 1.3.2 and narrowed in 1.3.4.
 - **Why `cookies`?** Cookies are read only for the exact URL being acted
   on, the file being downloaded or the page being grabbed, and are sent
   only to the local app on 127.0.0.1, so a download or a grab behind a
