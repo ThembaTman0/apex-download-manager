@@ -126,7 +126,11 @@ const DEFAULT_UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 ///
 /// rustls rather than the platform TLS: Cloudflare's bot scoring 403s the
 /// schannel ClientHello outright (same request, same headers passes with
-/// rustls). Native roots keep corporate/AV MITM proxies working.
+/// rustls). Native roots keep corporate/AV MITM proxies working; the bundled
+/// Mozilla roots (webpki-roots) cover public roots Windows has not fetched
+/// yet - its store fills lazily, only when schannel first needs a root, so a
+/// site on a newer root (aimp.ru, GlobalSign R46) failed until the browser
+/// happened to pull it in.
 fn build_client(proxy_url: &str) -> Result<reqwest::Client, String> {
     let mut builder = reqwest::Client::builder()
         .user_agent(DEFAULT_UA)
