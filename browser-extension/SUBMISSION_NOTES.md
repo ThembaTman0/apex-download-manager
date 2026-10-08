@@ -60,92 +60,32 @@ Reviewers want: what changed since the last reviewed version, why any new
 permission is there, whether a build step is involved, and how to test
 without an account. Lead with the changes, then the standing answers.
 
-**v1.3.4 (paste this):**
+**v1.3.4 (paste this, 2,695 of AMO's 3,000 characters):**
 
 ```
 What changed since 1.3.2 (1.3.3 was never submitted, so both are here)
 
-1. New permission: webRequest (observe-only). Many video players build
-   their stream URL in script and play it through Media Source
-   Extensions, so neither the page HTML nor video.src (a blob: URL)
-   contains anything the desktop app can download, and the stream host
-   often refuses requests without the player's Referer. The background
-   script registers webRequest.onSendHeaders for http(s) requests of
-   type xmlhttprequest, media and other, and keeps only requests whose
-   path ends in .m3u8 or .mpd (HLS/DASH manifests). For each it stores
-   the URL and the Referer header, per tab, at most 10 per tab, in
-   memory and chrome.storage.session. Entries are dropped when the tab
-   navigates or closes. No request is blocked or modified (no blocking
-   listener, no webRequestBlocking), no response body is read, and no
-   other header is kept.
+1. New permission: webRequest, observe-only. Many players build the stream URL in script and play it through Media Source Extensions, so neither the page HTML nor video.src (a blob: URL) holds anything the desktop app can download, and stream hosts often refuse requests without the player's Referer. A webRequest.onSendHeaders listener (types xmlhttprequest, media, other) keeps only requests whose path ends in .m3u8 or .mpd: the URL and its Referer, per tab, at most 10, in memory and storage.session, dropped when the tab navigates or closes. Nothing is blocked or modified (no webRequestBlocking), no response body is read, no other header is kept.
 
-   Nothing leaves the browser until the user picks "Grab video from
-   this page" (popup button or page context menu). That POST to
-   http://127.0.0.1:43666/grab then also carries the tab's first
-   recorded manifest URL, its Referer and the browser user agent, so
-   the local app can fetch the stream the way the player did. A
-   right-click on a video whose src is a blob: URL now takes the same
-   path instead of sending an unusable blob: URL.
+Nothing leaves the browser until the user picks "Grab video from this page" (popup button or page context menu). That POST to http://127.0.0.1:43666/grab then also carries the tab's first recorded manifest URL, its Referer and the browser user agent. A right-click on a video whose src is a blob: URL now takes the same path.
 
-2. The "grab video from this page" hand-off now includes that page's
-   cookies. Both entry points (the popup button and the page context-menu
-   item) call chrome.cookies.getAll for the page URL and include the
-   result, as structured name/value/domain/path/secure/expiry objects, in
-   the same JSON POST to http://127.0.0.1:43666/grab that already carried
-   the URL. Nothing else is sent and no page content is read.
+2. The grab hand-off now includes that page's cookies (chrome.cookies.getAll for the page URL, as name/value/domain/path/secure/expiry objects) in the same POST. Sites increasingly refuse video unless the request looks signed in, and the app fetches outside the browser. The app analyses without cookies first and only offers "retry using your browser sign-in" if that fails; the cookies stay in its memory for that retry and are never saved. Ordinary downloads already forward a Cookie header the same way.
 
-   Why: sites increasingly refuse video metadata unless the request looks
-   signed in. The desktop app fetches in its own HTTP client, outside the
-   browser, so it cannot inherit the session otherwise. The app analyses
-   the page without cookies first and only offers a "retry using your
-   browser sign-in" button if that fails; the cookies are held in memory
-   for that one retry, are never written to its database, and are gone
-   when the app closes.
+3. Host permissions narrowed from <all_urls> to http://*/* and https://*/*. A reduction: it drops file:// and ftp://, which were never used.
 
-   This is the same trust boundary the extension already crosses for
-   ordinary downloads, where a Cookie header for the download URL is
-   forwarded so files behind a login fetch correctly. The destination is
-   unchanged: http://127.0.0.1 on the user's own machine, gated by a
-   pairing token the user approved in a native prompt in the app. Nothing
-   is sent to any remote server.
-
-3. Host permissions narrowed from <all_urls> to
-   ["http://*/*", "https://*/*"]. This is a reduction, not a new
-   permission: it drops file://, ftp:// and other schemes the extension
-   never handled. Cookies and captured downloads are HTTP(S) only, and the
-   local app is reached over http://127.0.0.1.
-
-webRequest is the only new permission. The cookies permission was
-already present and already used for the download path.
+webRequest is the only new permission; cookies was already present.
 
 Standing notes
 
-- No build step. The submitted zip is the source: plain, unminified
-  JavaScript, no bundler, no transpiler, no minifier, no external
-  libraries. Loading the unzipped folder as a temporary add-on gives a
-  byte-identical extension. No source-code package should be required.
-- No test account or credentials needed.
-- The extension makes no network requests to any remote server. It talks
-  only to http://127.0.0.1:<port>, the local Apex Download Manager desktop
-  app on the user's own machine, and that endpoint is gated by a pairing
-  token the user approves in a native prompt inside the app.
-- No content scripts. No page content is ever read.
-- No analytics, no telemetry, no data collection of any kind. The manifest
-  declares data_collection_permissions: none.
+- No build step. The zip is the source: plain unminified JavaScript, no bundler, minifier or external libraries. No source package is needed.
+- No test account needed.
+- No requests to any remote server. The only destination is http://127.0.0.1:<port>, the Apex desktop app on the user's own machine, gated by a pairing token the user approves in a native prompt in the app.
+- No content scripts; no page content is read.
+- No analytics, telemetry or data collection. The manifest declares data_collection_permissions: none.
 
-How to test without installing the desktop app
+Testing without the app: a download is handed straight back to the browser and completes normally, the popup shows "Apex isn't running", and the grab button reports it could not reach Apex. Nothing is lost.
 
-The extension degrades safely, so the main paths are testable on their
-own. With the Apex app absent, downloading a file shows the extension
-hand the download straight back to the browser, so the file downloads
-normally. The popup shows a red dot and "Apex isn't running". The grab
-button reports that it could not reach Apex. Nothing hangs or is lost.
-
-To test the full path, the free Windows app is at
-https://apexdownloadmanager.com. Install it, open the extension
-popup, click "Pair with Apex app", and approve the prompt that appears in
-the app. After that, downloads are captured by the app and the grab
-button opens the video grabber.
+Full path: install the free Windows app (1.0.10 or newer) from https://apexdownloadmanager.com, click "Pair with Apex app" in the popup, and approve the prompt in the app.
 ```
 
 ### Q3. "Source code submission" (asked during upload)
