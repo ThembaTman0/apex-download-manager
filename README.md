@@ -58,6 +58,11 @@ published yet; until they are, those two commands won't find Apex.
 - Scheduling: start any download at a chosen time, sleep/shut down when the queue finishes
 - Video grabber: yt-dlp integration with quality picker, playlists, and
   one-click tool install (ffmpeg merging for highest resolutions)
+- Stream grab: on Firefox and Edge the extension sniffs the `.m3u8`/`.mpd`
+  manifest and passes the player's referer through, so players that build the
+  stream in script work even though there is no address to copy. The Chrome
+  Web Store build ships without the grab feature, by their policy
+- Download progress on the Windows taskbar
 
 **Capture**
 - Browser extension (Chrome / Edge / Brave / Firefox) that hands downloads to
@@ -67,6 +72,8 @@ published yet; until they are, those two commands won't find Apex.
 - Drag & drop URLs onto the window, batch-add multiple URLs at once
 
 **Safety**
+- Carries its own up-to-date list of trusted certificate authorities alongside
+  the Windows one, so sites with newer certificates work on the first try
 - Every completed file is tagged with Mark-of-the-Web so Windows SmartScreen
   and Defender scan it like a browser download
 - Built-in SHA-256 checksum verification against publisher-provided hashes

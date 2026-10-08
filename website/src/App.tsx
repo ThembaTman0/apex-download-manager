@@ -80,7 +80,7 @@ export default function App() {
         <Chapter
           id="video"
           title={["Videos, with", "their subtitles"]}
-          body="Paste a video page and pick a quality, from the best available down to audio only. Subtitles come along in your language, embedded when FFmpeg is installed."
+          body="Paste a video page and pick a quality, from the best available down to audio only. Subtitles come along in your language, embedded when FFmpeg is installed. On Firefox and Edge the extension also grabs from players that build the stream in script, where there is no address to copy."
           visual={<VideoGrab />}
           features={[
             "YouTube and other sites via yt-dlp",
@@ -89,6 +89,7 @@ export default function App() {
             "Audio-only downloads",
             "One-click yt-dlp and FFmpeg setup",
             "Signed-in retry, only when you ask",
+            "Script-built players, on Firefox and Edge",
           ]}
         />
         <Chapter

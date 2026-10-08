@@ -54,6 +54,8 @@ before you run what you downloaded.
 
 - Automatic capture: click a download link, approve it in Apex, done
 - Right-click any link or media: "Download with Apex"
+- Grab video from players that build the stream in script, where the page
+  holds no address to copy (AMO and Edge builds only, see the note below)
 - Cookie and referer handoff, so downloads behind logins just work
 - Safe fallback: if Apex isn't running or declines, the download restarts
   in the browser. Nothing is ever lost
@@ -65,6 +67,13 @@ https://apexdownloadmanager.com
 
 Source code (GPL v3):
 https://github.com/ThembaTman0/apex-download-manager
+
+**Stream grab is not in the Chrome build.** The Chrome Web Store package
+strips the whole video-grab feature, `webRequest` included, because their
+policy forbids extensions that facilitate downloading streaming media. The
+description above must therefore drop the stream-grab bullet for the Chrome
+listing and keep it for AMO and Edge. Brave users install the Chrome listing,
+so the same limit applies to them.
 
 **Category:** AMO: "Download Management" · CWS: "Workflow & Planning" (or
 "Tools")

@@ -25,7 +25,7 @@ export interface ChangelogEntry {
  * never disagree with itself while the API is slow or unreachable.
  * 4 MB matches the real installer (about 4.0 MiB for 1.0.x).
  */
-export const FALLBACK_VERSION = "1.0.9";
+export const FALLBACK_VERSION = "1.0.11";
 export const FALLBACK_SIZE_MB = 4;
 
 export const RELEASES_URL =
