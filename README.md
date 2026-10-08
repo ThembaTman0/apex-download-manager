@@ -15,7 +15,7 @@ telemetry, and every line is yours to read. GPL v3.
 [Firefox](https://addons.mozilla.org/en-US/firefox/addon/apex-download-manager/) for browser capture ·
 [Website](https://apexdownloadmanager.com/)
 
-![Apex downloads list: two files downloading over parallel connections, with per-segment progress, queue positions and a paused download](docs/screenshots/downloads.png)
+![Apex downloading two files over parallel connections, with live speed, per-segment progress, queue positions and a paused download](docs/screenshots/hero.gif)
 
 <table>
   <tr>
