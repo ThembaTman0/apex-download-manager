@@ -142,6 +142,14 @@ npm run tauri build    # produces MSI / NSIS installers
 - [ ] Package managers: Scoop (own bucket, available now), winget (submitted, awaiting approval), Chocolatey (package ready, not yet published)
 - [ ] Linux build (considering; 👍 [#1](https://github.com/ThembaTman0/apex-download-manager/issues/1) if you want it)
 
+## Support Apex
+
+Apex is free and built by one person. If it saves you time:
+
+- ⭐ **Star this repo** - it is the main way other people find Apex.
+- 💖 **[Sponsor on GitHub](https://github.com/sponsors/ThembaTman0)** - sponsorships go towards a code-signing certificate, so Windows stops warning on install.
+- 🐛 **[Report a bug or request a feature](https://github.com/ThembaTman0/apex-download-manager/issues)**.
+
 ## License
 
 Copyright © 2026 ThembaTman0.
