@@ -1,0 +1,5 @@
+# GitHub language stats: count the app itself, not the landing page,
+# the demo backend used for screenshots, or generated shadcn primitives.
+website/** linguist-documentation
+desktop-ui/src/demo/** linguist-documentation
+desktop-ui/src/components/ui/** linguist-vendored
