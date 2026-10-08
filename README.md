@@ -147,7 +147,7 @@ npm run tauri build    # produces MSI / NSIS installers
 Apex is free and built by one person. If it saves you time:
 
 - ⭐ **Star this repo** - it is the main way other people find Apex.
-- 💖 **[Sponsor on GitHub](https://github.com/sponsors/ThembaTman0)** - sponsorships go towards a code-signing certificate, so Windows stops warning on install.
+- ☕ **[Buy me a coffee on Ko-fi](https://ko-fi.com/thembatman0)** - support goes towards a code-signing certificate, so Windows stops warning on install.
 - 🐛 **[Report a bug or request a feature](https://github.com/ThembaTman0/apex-download-manager/issues)**.
 
 ## License
