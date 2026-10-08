@@ -228,6 +228,10 @@ export function DownloadsTable() {
   const table = useReactTable({
     data: filtered,
     columns,
+    // Stable ids: the default (array index) shifts whenever the list
+    // changes, which re-keys every cell and remounts it - restarting each
+    // progress bar's animation from 0 on every update.
+    getRowId: (d) => d.id,
     state: { sorting },
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),

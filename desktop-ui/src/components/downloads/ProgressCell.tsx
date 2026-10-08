@@ -28,7 +28,10 @@ export function ProgressCell({ progress, status, segments }: Props) {
         <div className="flex-1 h-1.5 bg-white/[0.07] rounded-full overflow-hidden">
           <motion.div
             className={cn("h-full rounded-full", color)}
-            initial={{ width: 0 }}
+            // Mount at the real value: rows remount when they scroll back
+            // into the virtual window, and a regrow from 0 reads as lost
+            // progress. Changes after mount still animate.
+            initial={false}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           />
