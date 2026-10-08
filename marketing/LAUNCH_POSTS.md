@@ -48,7 +48,7 @@ Facts used below, so they can be checked before posting:
 
 **First comment** (post it yourself right after submitting)
 
-    Hi HN, I built Apex, a download manager for Windows. [One or two sentences, in your own words, on why: what annoyed you about the existing options, and what you wanted instead.]
+    Hi HN, I built Apex, a download manager for Windows. I used IDM for years, but it's paid and nags constantly, so I wanted a free one that stays out of the way and whose source anyone can read.
 
     Some technical details that might be interesting:
 
@@ -59,6 +59,10 @@ Facts used below, so they can be checked before posting:
     - It's Tauri v2 with a React UI; the app is a single native binary, 4 MB to download.
 
     On speed: on a Debian ISO over my connection, one connection took 183 s and Apex took 134 s. On a fast server that already fills the line it made no difference (slightly slower, in fact), and the site shows that result too. Splitting helps when the server limits each connection, which many do.
+
+    It can also hand video pages to yt-dlp (optional, installed on first use).
+
+    The installer isn't code-signed yet (SignPath's free programme said the project was too small for now), so SmartScreen will warn on first run. The source and the CI build are public if you'd rather build it yourself.
 
     No accounts, no telemetry. It's GPL-3.0 and Windows-only for now (there's an issue to gauge Linux interest).
 
