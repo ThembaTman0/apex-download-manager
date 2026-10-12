@@ -1,7 +1,9 @@
 // GET /api/stats: anonymous totals plus the latest release's version,
 // installer size, file name and SHA-256,
-// { total, updated, version?, sizeMb?, fileName?, sha256? }.
+// { total, today, thisVersion?, updated, version?, sizeMb?, fileName?, sha256? }.
 // Nothing per-user or per-region is stored, so nothing more can be served.
+// `today` is this UTC day's /dl count and `thisVersion` is the running count
+// for the current release; both are plain integers written by /dl.
 // Returns { total: 0 } until a KV database is connected; the site hides
 // the counter when the total is 0. version/sizeMb are omitted when the
 // GitHub API is unreachable - the site falls back to static text.
@@ -49,23 +51,13 @@ async function latestRelease() {
 
 export default async function handler(req, res) {
   let total = 0;
+  let today = 0;
+  let thisVersion = null;
 
   // Accept both naming schemes: Vercel-KV style and the Upstash
   // marketplace integration's defaults.
   const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (url && token) {
-    try {
-      const r = await fetch(`${url}/get/downloads:total`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await r.json();
-      total = data.result ? parseInt(data.result, 10) : 0;
-    } catch {
-      // Serve 0 rather than an error; the counter is decorative.
-    }
-  }
-
   let version = null;
   let sizeMb = null;
   let fileName = null;
@@ -76,9 +68,31 @@ export default async function handler(req, res) {
     // Omitted from the response; the site keeps its static fallback.
   }
 
+  if (url && token) {
+    try {
+      // MGET in one round trip. Keys that were never written come back null,
+      // which reads as 0: a quiet day simply has no key yet.
+      const day = new Date().toISOString().slice(0, 10);
+      const keys = ["downloads:total", `downloads:day:${day}`];
+      if (version) keys.push(`downloads:version:${version}`);
+      const r = await fetch(`${url}/mget/${keys.join("/")}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await r.json();
+      const vals = Array.isArray(data.result) ? data.result : [];
+      total = vals[0] ? parseInt(vals[0], 10) : 0;
+      today = vals[1] ? parseInt(vals[1], 10) : 0;
+      if (version) thisVersion = vals[2] ? parseInt(vals[2], 10) : 0;
+    } catch {
+      // Serve 0 rather than an error; the counter is decorative.
+    }
+  }
+
   res.setHeader("Cache-Control", "public, max-age=60");
   res.json({
     total,
+    today,
+    ...(thisVersion !== null && { thisVersion }),
     updated: new Date().toISOString(),
     ...(version && { version }),
     ...(sizeMb && { sizeMb }),
