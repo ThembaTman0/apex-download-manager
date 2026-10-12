@@ -3,6 +3,8 @@ mod commands;
 mod db;
 mod engine;
 mod models;
+#[cfg(windows)]
+mod pin_icon;
 mod ytdlp;
 
 use std::time::Duration;
@@ -183,6 +185,11 @@ pub fn run() {
                 app.handle(),
                 app.state::<DownloadManager>().get_settings().launch_at_startup,
             );
+
+            // Old MSI installs left taskbar pins pointing at an icon each
+            // update deletes; point them back at our exe.
+            #[cfg(windows)]
+            pin_icon::repair();
 
             // --- System tray: keep downloads alive with the window closed ---
             let show = MenuItem::with_id(app, "show", "Open Apex", true, None::<&str>)?;

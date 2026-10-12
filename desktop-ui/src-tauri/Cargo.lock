@@ -85,6 +85,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "uuid",
+ "windows",
  "zip 2.4.2",
 ]
 
