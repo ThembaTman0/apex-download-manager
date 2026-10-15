@@ -180,7 +180,8 @@ ol {
   cursor: pointer;
   transition:
     background-color 0.16s var(--ease),
-    color 0.16s var(--ease);
+    color 0.16s var(--ease),
+    transform 0.16s var(--ease);
 }
 
 .btn-primary {
@@ -190,6 +191,20 @@ ol {
 
 .btn-primary:hover {
   background: #ffffff;
+}
+
+/* Feedback belongs on the press, not the release: waiting for the click to
+   land reads as a dead control. Transform only, so it stays on the
+   compositor, and faster coming down than going back up. */
+.btn:active,
+.btn-pill:active {
+  transform: scale(0.97);
+  transition: transform 0.09s var(--ease);
+}
+
+.btn,
+.btn-pill {
+  transform: scale(1);
 }
 
 .btn-pill {
@@ -203,6 +218,11 @@ ol {
 
 .btn-pill:hover {
   background: #ffffff;
+}
+
+.hero-new:active,
+.text-link:active {
+  transform: scale(0.985);
 }
 
 .text-link {
@@ -244,7 +264,29 @@ ol {
   background: rgba(8, 9, 10, 0.8);
   -webkit-backdrop-filter: blur(16px) saturate(1.4);
   backdrop-filter: blur(16px) saturate(1.4);
-  border-bottom-color: var(--line);
+  border-bottom-color: transparent;
+}
+
+/* A soft edge where content passes under the floating chrome, rather than a
+   1px rule drawn across the page. The hairline stays available to the two
+   preference queries above, which need a defined border instead. */
+.nav::after {
+  content: "";
+  position: absolute;
+  inset: 100% 0 auto;
+  height: 24px;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(8, 9, 10, 0.55),
+    rgba(8, 9, 10, 0)
+  );
+  transition: opacity 0.25s var(--ease);
+}
+
+.nav.scrolled::after {
+  opacity: 1;
 }
 
 .nav-inner {
@@ -2956,11 +2998,53 @@ ol {
     transition: none;
   }
 
+  /* Keep the acknowledgement, drop the movement: colour still changes. */
+  .btn:active,
+  .btn-pill:active,
+  .hero-new:active,
+  .text-link:active {
+    transform: none;
+  }
+
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+}
+
+/* The nav is the only translucent surface on the page, so these two
+   preferences have one job each: make it solid, and give it a real edge.
+   prefers-reduced-motion was already handled above; leaving these out was an
+   inconsistency rather than a decision. */
+
+@media (prefers-reduced-transparency: reduce) {
+  .nav.scrolled {
+    background: var(--bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .nav.scrolled::after {
+    opacity: 0;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .nav.scrolled {
+    background: var(--bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-bottom-color: var(--text-mute);
+  }
+
+  .nav.scrolled::after {
+    opacity: 0;
+  }
+
+  .btn {
+    border-color: currentColor;
   }
 }
 
