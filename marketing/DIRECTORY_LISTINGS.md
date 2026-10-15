@@ -248,21 +248,25 @@ the installer's result on VirusTotal yourself so there are no surprises
 
 ## OpenAlternative
 
-<https://openalternative.co/submit>. **One blocker left.** The frame fits, and
-of the two rules that ruled Apex out when the guidelines were read on
-2026-09-22, one is now cleared:
+<https://openalternative.co/submit>. **Blocked on stars until at least
+2027-01-05.** The star rule got stricter after 2026-09-22 (it was 10). As
+read on the submission page on 2026-10-15:
 
-1. **"Must be a public, actively maintained repository with at least 10
-   stars."** The repo has 0. Still blocking.
-2. **"Custom Domain. No temporary subdomains (vercel.app, netlify.app,
-   etc.)."** Cleared: the site serves from `apexdownloadmanager.com`.
+| Rule | Apex on 2026-10-15 |
+|---|---|
+| **50+ stars** on the repository | 21. Blocking |
+| **250+ stars if the repo is less than 6 months old** | Repo created 2026-07-05, so this applies until **2027-01-05**. Blocking |
+| Last commit at most 3 months ago | Passes |
+| Full application people can run (not a CLI, library, extension or plugin) | Passes: desktop app; the extension is a companion |
+| Product's own website on a custom domain | Passes: `apexdownloadmanager.com` |
+| A clear proprietary rival, named in the form | Passes: Internet Download Manager |
+| Original project, full source, usable today, OSI licence | Passes: GPL-3.0 |
 
-The other four rules pass: public GitHub repo, a real desktop application
-(not a CLI or library), available now, and a clear alternative to proprietary
-software.
-
-So this listing waits on 10 stars. Stars come from the launch posts; do not ask
-anyone for stars, since that is exactly what these directories penalise.
+**Submit when either is true:** 250+ stars before 2027-01-05, or 50+ stars
+on or after 2027-01-05. Do not submit early, it only earns a rejection.
+Re-read the guidelines on the page before submitting; they have changed once
+already. Stars come from the launch posts; do not ask anyone for stars, since
+that is exactly what these directories penalise.
 
 When both are true, the submission itself is short. Sign in first, which also
 gives a dashboard for the listing. A free submission waits in a review queue;
