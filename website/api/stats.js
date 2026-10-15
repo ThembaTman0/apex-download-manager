@@ -4,6 +4,11 @@
 // Nothing per-user or per-region is stored, so nothing more can be served.
 // `today` is this UTC day's /dl count and `thisVersion` is the running count
 // for the current release; both are plain integers written by /dl.
+//
+// `days` is the daily series, oldest first, so a campaign can be read against
+// the day it ran. 14 days by default; ?days=N serves 1 to 60. Buckets began on
+// 2026-10-12, and days before that, or with no clicks, are absent from KV and
+// reported as 0.
 // Returns { total: 0 } until a KV database is connected; the site hides
 // the counter when the total is 0. version/sizeMb are omitted when the
 // GitHub API is unreachable - the site falls back to static text.
@@ -53,6 +58,18 @@ export default async function handler(req, res) {
   let total = 0;
   let today = 0;
   let thisVersion = null;
+  let days = [];
+
+  // Bounded so the MGET path cannot be grown without limit by a query string.
+  const requested = parseInt((req.query && req.query.days) || "", 10);
+  const window = Math.min(Math.max(Number.isNaN(requested) ? 14 : requested, 1), 60);
+
+  // UTC throughout, matching the keys /dl writes.
+  const dates = [];
+  for (let i = window - 1; i >= 0; i -= 1) {
+    const d = new Date(Date.now() - i * 86400000);
+    dates.push(d.toISOString().slice(0, 10));
+  }
 
   // Accept both naming schemes: Vercel-KV style and the Upstash
   // marketplace integration's defaults.
@@ -70,19 +87,24 @@ export default async function handler(req, res) {
 
   if (url && token) {
     try {
-      // MGET in one round trip. Keys that were never written come back null,
+      // One MGET for the lot. Keys that were never written come back null,
       // which reads as 0: a quiet day simply has no key yet.
-      const day = new Date().toISOString().slice(0, 10);
-      const keys = ["downloads:total", `downloads:day:${day}`];
+      const keys = ["downloads:total"];
       if (version) keys.push(`downloads:version:${version}`);
+      const firstDay = keys.length;
+      for (const d of dates) keys.push(`downloads:day:${d}`);
+
       const r = await fetch(`${url}/mget/${keys.join("/")}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await r.json();
       const vals = Array.isArray(data.result) ? data.result : [];
-      total = vals[0] ? parseInt(vals[0], 10) : 0;
-      today = vals[1] ? parseInt(vals[1], 10) : 0;
-      if (version) thisVersion = vals[2] ? parseInt(vals[2], 10) : 0;
+      const num = (v) => (v ? parseInt(v, 10) || 0 : 0);
+
+      total = num(vals[0]);
+      if (version) thisVersion = num(vals[1]);
+      days = dates.map((date, i) => ({ date, count: num(vals[firstDay + i]) }));
+      today = days.length ? days[days.length - 1].count : 0;
     } catch {
       // Serve 0 rather than an error; the counter is decorative.
     }
@@ -93,6 +115,7 @@ export default async function handler(req, res) {
     total,
     today,
     ...(thisVersion !== null && { thisVersion }),
+    days,
     updated: new Date().toISOString(),
     ...(version && { version }),
     ...(sizeMb && { sizeMb }),
