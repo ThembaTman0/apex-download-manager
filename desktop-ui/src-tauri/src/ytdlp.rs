@@ -179,16 +179,40 @@ async fn fetch_to_file(app: &AppHandle, url: &str, dest: &Path, tool: &str) -> R
     Ok(())
 }
 
+/// The download finished but the file is gone before we could use it. Some
+/// antivirus products (Kaspersky in particular) quarantine yt-dlp as a "risk
+/// tool" seconds after it lands; Windows then reports a bare "file not found".
+fn removed_after_download(tool: &str, dir: &Path) -> String {
+    format!(
+        "{tool} was downloaded, but the file was removed before it could be installed. \
+         This is usually an antivirus: check its quarantine, or add an exclusion for {}",
+        dir.display()
+    )
+}
+
 pub async fn install_ytdlp(app: &AppHandle) -> Result<ToolsStatus, String> {
     #[cfg(not(windows))]
     return Err("Automatic install is only supported on Windows; install yt-dlp from your package manager".into());
     #[cfg(windows)]
     {
-        let dest = tools_dir(app).join(YTDLP_EXE);
+        let dir = tools_dir(app);
+        let dest = dir.join(YTDLP_EXE);
         let tmp = dest.with_extension("exe.tmp");
         fetch_to_file(app, YTDLP_URL, &tmp, "yt-dlp").await?;
+        if !tmp.exists() {
+            return Err(removed_after_download("yt-dlp", &dir));
+        }
         // Replace atomically so a running yt-dlp.exe never gets half a binary.
-        std::fs::rename(&tmp, &dest).map_err(|e| format!("cannot install yt-dlp: {e}"))?;
+        std::fs::rename(&tmp, &dest).map_err(|e| {
+            if e.kind() == std::io::ErrorKind::NotFound {
+                removed_after_download("yt-dlp", &dir)
+            } else {
+                format!("cannot install yt-dlp: {e}")
+            }
+        })?;
+        if !dest.exists() {
+            return Err(removed_after_download("yt-dlp", &dir));
+        }
         Ok(status(app).await)
     }
 }
@@ -201,6 +225,9 @@ pub async fn install_ffmpeg(app: &AppHandle) -> Result<ToolsStatus, String> {
         let dir = tools_dir(app);
         let zip_path = dir.join("ffmpeg.zip.tmp");
         fetch_to_file(app, FFMPEG_ZIP_URL, &zip_path, "ffmpeg").await?;
+        if !zip_path.exists() {
+            return Err(removed_after_download("ffmpeg", &dir));
+        }
         let dir2 = dir.clone();
         let zip2 = zip_path.clone();
         // Pull just ffmpeg.exe/ffprobe.exe out of the ~180 MB build zip.
@@ -1121,6 +1148,15 @@ pub fn remove_partials(d: &Download) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn removed_after_download_names_the_tool_and_folder() {
+        let msg = removed_after_download("yt-dlp", Path::new(r"C:\Users\x\AppData\Roaming\app\tools"));
+        assert!(msg.starts_with("yt-dlp was downloaded"));
+        assert!(msg.contains("antivirus"));
+        assert!(msg.ends_with(r"C:\Users\x\AppData\Roaming\app\tools"));
+        assert!(!msg.contains('\u{2014}'), "no em dashes in user-facing text");
+    }
     use serde_json::json;
 
     #[test]
