@@ -131,6 +131,33 @@ jobs:
           releaseDraft: false
           prerelease: false
 
+      # Mirrors the installers onto this repo's own Releases page. Visitors
+      # land here (README, Reddit, HN), and with an empty Releases sidebar
+      # they assumed they had to build from source. Installers only:
+      # latest.json and the .sig files stay in the releases repo, which is
+      # what the updater polls. Idempotent; a failure never fails the release.
+      - name: Mirror the installers to this repo's Releases
+        continue-on-error: true
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $dir = Join-Path $env:RUNNER_TEMP "mirror"
+          New-Item -ItemType Directory -Force $dir | Out-Null
+          gh release download $tag --repo ThembaTman0/apex-download-manager-releases `
+            --dir $dir --pattern "*-setup.exe" --pattern "*.msi"
+          if ($LASTEXITCODE -ne 0) { throw "Could not download the $tag installers from the releases repo." }
+          $files = (Get-ChildItem $dir).FullName
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag $files --clobber
+          } else {
+            gh release create $tag $files --verify-tag `
+              --title "Apex Download Manager $tag" --notes-file RELEASE_NOTES.md
+          }
+          if ($LASTEXITCODE -ne 0) { throw "Could not publish $tag on this repo's Releases page." }
+
       # Bumps bucket/apex-download-manager.json on main so `scoop update`
       # sees the new version. Runs before anything edits tracked files: the
       # build leaves the tree clean, which lets it switch to main. Text
