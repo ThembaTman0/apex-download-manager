@@ -1,19 +1,49 @@
 version: 2
+# One grouped PR per ecosystem per week instead of one PR per package.
+# Major versions are skipped: they get upgraded deliberately, one at a time,
+# because several (Tauri plugins, tauri-action) can break the app or the
+# release pipeline. Tauri plugins must also move in lockstep across npm and
+# cargo, which a grouped PR per side still does not guarantee, so check that
+# the @tauri-apps/plugin-* and tauri-plugin-* versions match before merging.
 updates:
   - package-ecosystem: npm
     directory: /desktop-ui
     schedule:
       interval: weekly
+    groups:
+      desktop-ui:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: npm
     directory: /website
     schedule:
       interval: weekly
+    groups:
+      website:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: cargo
     directory: /desktop-ui/src-tauri
     schedule:
       interval: weekly
+    groups:
+      cargo:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   # Keeps the SHA-pinned actions in release.yml current.
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
