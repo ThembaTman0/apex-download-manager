@@ -1,0 +1,19 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /desktop-ui
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /website
+    schedule:
+      interval: weekly
+  - package-ecosystem: cargo
+    directory: /desktop-ui/src-tauri
+    schedule:
+      interval: weekly
+  # Keeps the SHA-pinned actions in release.yml current.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
