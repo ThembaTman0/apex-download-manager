@@ -14,6 +14,7 @@ impl Db {
         let conn = Connection::open(path).map_err(|e| e.to_string())?;
         conn.execute_batch(
             "PRAGMA journal_mode = WAL;
+             PRAGMA secure_delete = ON;
              CREATE TABLE IF NOT EXISTS downloads (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,

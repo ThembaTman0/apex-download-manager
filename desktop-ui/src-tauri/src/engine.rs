@@ -816,7 +816,10 @@ impl DownloadManager {
             } else {
                 let _ = std::fs::remove_file(temp_path(&d));
             }
-            if delete_file {
+            // Only a finished download owns its final path. Before that, a
+            // same-named file there is the user's own (names are deduped at
+            // finalize), so deleting it would destroy an unrelated file.
+            if delete_file && d.status == DownloadStatus::Completed {
                 let _ = std::fs::remove_file(final_path(&d));
             }
             self.db.lock().unwrap().remove_download(id)?;
@@ -833,6 +836,11 @@ impl DownloadManager {
             .unwrap()
             .get_download(id)?
             .ok_or("download not found")?;
+        // Same reasoning as remove(): an unfinished download's final path may
+        // be someone else's file.
+        if d.status != DownloadStatus::Completed {
+            return Err("This download has not finished yet".into());
+        }
         tauri_plugin_opener::open_path(final_path(&d), None::<&str>).map_err(|e| e.to_string())
     }
 

@@ -190,6 +190,7 @@ pub fn run() {
             // update deletes; point them back at our exe.
             #[cfg(windows)]
             pin_icon::repair();
+            ytdlp::sweep_stale_cookie_files();
 
             // --- System tray: keep downloads alive with the window closed ---
             let show = MenuItem::with_id(app, "show", "Open Apex", true, None::<&str>)?;

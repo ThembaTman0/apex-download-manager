@@ -21,17 +21,41 @@ const DEFAULTS = { enabled: true, port: 43666, token: "", hideShelf: true };
 
 // Cached so onCreated can decide without an async storage read on every event.
 let config = { ...DEFAULTS };
-const configReady = new Promise((resolve) =>
-  chrome.storage.sync.get(DEFAULTS, (cfg) => {
-    config = cfg;
-    applyShelf();
-    resolve();
-  })
+const configReady = migrateFromSync().then(
+  () =>
+    new Promise((resolve) =>
+      chrome.storage.local.get(DEFAULTS, (cfg) => {
+        config = cfg;
+        applyShelf();
+        resolve();
+      })
+    )
 );
 
+// Settings used to live in storage.sync, which copies the pairing token to
+// the browser account and every other machine signed into it. Move them to
+// storage.local once, then clear the synced copy.
+async function migrateFromSync() {
+  try {
+    const keys = Object.keys(DEFAULTS);
+    const old = await chrome.storage.sync.get(keys);
+    if (!Object.keys(old).length) return;
+    const local = await chrome.storage.local.get(keys);
+    const carry = {};
+    for (const k of keys) if (k in old && !(k in local)) carry[k] = old[k];
+    await chrome.storage.local.set(carry);
+    await chrome.storage.sync.remove(keys);
+  } catch {
+    // Sync storage unavailable: nothing to migrate.
+  }
+}
+
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== "sync") return;
-  for (const [key, change] of Object.entries(changes)) config[key] = change.newValue;
+  if (area !== "local") return;
+  // storage.local also holds the captured-URL ledger; only settings matter here.
+  for (const [key, change] of Object.entries(changes)) {
+    if (key in DEFAULTS) config[key] = change.newValue;
+  }
   applyShelf();
 });
 

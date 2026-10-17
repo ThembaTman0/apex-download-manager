@@ -3,7 +3,7 @@ const DEFAULTS = { enabled: true, port: 43666, token: "", hideShelf: true };
 const $ = (id) => document.getElementById(id);
 
 function load() {
-  chrome.storage.sync.get(DEFAULTS, (cfg) => {
+  chrome.storage.local.get(DEFAULTS, (cfg) => {
     $("enabled").checked = cfg.enabled;
     $("hideShelf").checked = cfg.hideShelf;
     $("token").value = cfg.token;
@@ -49,7 +49,7 @@ async function ping(port, token) {
 // quality there, so this is just a hand-off, not a capture.
 $("grabVideo").addEventListener("click", async () => {
   const status = $("grabStatus");
-  const cfg = await new Promise((r) => chrome.storage.sync.get(DEFAULTS, r));
+  const cfg = await new Promise((r) => chrome.storage.local.get(DEFAULTS, r));
   if (!cfg.token) {
     status.textContent = "Pair with Apex first";
     return;
@@ -134,7 +134,7 @@ $("pair").addEventListener("click", async () => {
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.ok && data.token) {
       $("token").value = data.token;
-      chrome.storage.sync.set({ token: data.token, port }, () => {
+      chrome.storage.local.set({ token: data.token, port }, () => {
         status.textContent = "Paired ✓";
         setTimeout(() => (status.textContent = ""), 2500);
         ping(port, data.token);
@@ -158,7 +158,7 @@ $("save").addEventListener("click", () => {
     token: $("token").value.trim(),
     port: parseInt($("port").value, 10) || DEFAULTS.port,
   };
-  chrome.storage.sync.set(cfg, () => {
+  chrome.storage.local.set(cfg, () => {
     $("saved").textContent = "Saved ✓";
     setTimeout(() => ($("saved").textContent = ""), 1500);
     ping(cfg.port, cfg.token);

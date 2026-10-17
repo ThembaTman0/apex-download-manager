@@ -264,7 +264,15 @@ impl Settings {
             // An absolute folder points wherever the user said, including
             // another drive; a relative one hangs off the download folder.
             Some(f) if std::path::Path::new(f).is_absolute() => f.to_string(),
-            Some(f) => base.join(f).to_string_lossy().to_string(),
+            // A relative rule may not climb out of the download folder.
+            Some(f)
+                if !std::path::Path::new(f)
+                    .components()
+                    .any(|c| matches!(c, std::path::Component::ParentDir)) =>
+            {
+                base.join(f).to_string_lossy().to_string()
+            }
+            Some(_) => base.join(&category).to_string_lossy().to_string(),
             None => base.join(&category).to_string_lossy().to_string(),
         }
     }
@@ -399,6 +407,13 @@ mod tests {
         let mut s = settings();
         s.category_rules = vec![rule("Video", "Movies", &[])];
         assert_eq!(s.folder_for_file("holiday.mp4"), under_downloads("Movies"));
+    }
+
+    #[test]
+    fn a_relative_rule_folder_cannot_climb_out() {
+        let mut s = settings();
+        s.category_rules = vec![rule("Video", r"..\..\Windows", &[])];
+        assert_eq!(s.folder_for_file("holiday.mp4"), under_downloads("Video"));
     }
 
     #[test]

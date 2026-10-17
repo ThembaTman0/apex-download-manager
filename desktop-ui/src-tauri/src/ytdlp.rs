@@ -18,10 +18,12 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 #[cfg(windows)]
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
-const YTDLP_URL: &str =
-    "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe";
-const FFMPEG_ZIP_URL: &str =
-    "https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-win64-gpl.zip";
+/// yt-dlp is fetched from an explicit release tag so the binary and the
+/// SHA2-256SUMS it is checked against always come from the same release.
+const YTDLP_RELEASE_BASE: &str = "https://github.com/yt-dlp/yt-dlp/releases/download";
+const FFMPEG_ZIP_NAME: &str = "ffmpeg-master-latest-win64-gpl.zip";
+const FFMPEG_RELEASE_BASE: &str =
+    "https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download";
 
 #[cfg(windows)]
 const YTDLP_EXE: &str = "yt-dlp.exe";
@@ -138,7 +140,14 @@ async fn latest_ytdlp_version() -> Option<String> {
 }
 
 /// Stream `url` to `dest`, emitting `tools:progress` so the UI can show a bar.
-async fn fetch_to_file(app: &AppHandle, url: &str, dest: &Path, tool: &str) -> Result<(), String> {
+/// Returns the lowercase hex SHA-256 of what was written.
+async fn fetch_to_file(
+    app: &AppHandle,
+    url: &str,
+    dest: &Path,
+    tool: &str,
+) -> Result<String, String> {
+    use sha2::{Digest, Sha256};
     let client = reqwest::Client::builder()
         .user_agent("ApexDownloadManager/1.0")
         .build()
@@ -158,10 +167,12 @@ async fn fetch_to_file(app: &AppHandle, url: &str, dest: &Path, tool: &str) -> R
         .map_err(|e| format!("cannot create {}: {e}", dest.display()))?;
     let mut stream = resp.bytes_stream();
     let mut downloaded: u64 = 0;
+    let mut hasher = Sha256::new();
     let mut last_emit = Instant::now();
     while let Some(chunk) = stream.next().await {
         let chunk = chunk.map_err(|e| format!("download failed: {e}"))?;
         downloaded += chunk.len() as u64;
+        hasher.update(&chunk);
         file.write_all(&chunk).await.map_err(|e| e.to_string())?;
         if last_emit.elapsed() > Duration::from_millis(300) {
             last_emit = Instant::now();
@@ -176,6 +187,48 @@ async fn fetch_to_file(app: &AppHandle, url: &str, dest: &Path, tool: &str) -> R
         "tools:progress",
         serde_json::json!({ "tool": tool, "downloaded": downloaded, "total": downloaded }),
     );
+    Ok(format!("{:x}", hasher.finalize()))
+}
+
+/// Fetch a small text file (a checksum list).
+async fn fetch_text(url: &str) -> Result<String, String> {
+    reqwest::Client::builder()
+        .user_agent("ApexDownloadManager/1.0")
+        .connect_timeout(Duration::from_secs(30))
+        .build()
+        .map_err(|e| e.to_string())?
+        .get(url)
+        .send()
+        .await
+        .and_then(|r| r.error_for_status())
+        .map_err(|e| format!("cannot download checksums: {e}"))?
+        .text()
+        .await
+        .map_err(|e| format!("cannot download checksums: {e}"))
+}
+
+/// The SHA-256 listed for `file` in a sha256sum-style list
+/// ("<hex>  <name>" or "<hex> *<name>"), lowercased.
+fn expected_sha256(sums: &str, file: &str) -> Option<String> {
+    sums.lines().find_map(|line| {
+        let mut parts = line.split_whitespace();
+        let hash = parts.next()?;
+        let name = parts.next()?.trim_start_matches('*');
+        (name == file && hash.len() == 64 && hash.chars().all(|c| c.is_ascii_hexdigit()))
+            .then(|| hash.to_ascii_lowercase())
+    })
+}
+
+/// Refuse a tool whose bytes do not match its published checksum, and
+/// delete the download so nothing unverified is left to run.
+fn verify_sha256(tool: &str, path: &Path, actual: &str, sums: &str, file: &str) -> Result<(), String> {
+    let ok = expected_sha256(sums, file).is_some_and(|e| e == actual);
+    if !ok {
+        let _ = std::fs::remove_file(path);
+        return Err(format!(
+            "{tool} failed its checksum check and was not installed. Please try again later."
+        ));
+    }
     Ok(())
 }
 
@@ -198,10 +251,17 @@ pub async fn install_ytdlp(app: &AppHandle) -> Result<ToolsStatus, String> {
         let dir = tools_dir(app);
         let dest = dir.join(YTDLP_EXE);
         let tmp = dest.with_extension("exe.tmp");
-        fetch_to_file(app, YTDLP_URL, &tmp, "yt-dlp").await?;
+        let tag = latest_ytdlp_version()
+            .await
+            .ok_or("cannot find the latest yt-dlp release. Check your connection and try again.")?;
+        let sums = fetch_text(&format!("{YTDLP_RELEASE_BASE}/{tag}/SHA2-256SUMS")).await?;
+        let actual =
+            fetch_to_file(app, &format!("{YTDLP_RELEASE_BASE}/{tag}/{YTDLP_EXE}"), &tmp, "yt-dlp")
+                .await?;
         if !tmp.exists() {
             return Err(removed_after_download("yt-dlp", &dir));
         }
+        verify_sha256("yt-dlp", &tmp, &actual, &sums, YTDLP_EXE)?;
         // Replace atomically so a running yt-dlp.exe never gets half a binary.
         std::fs::rename(&tmp, &dest).map_err(|e| {
             if e.kind() == std::io::ErrorKind::NotFound {
@@ -224,10 +284,18 @@ pub async fn install_ffmpeg(app: &AppHandle) -> Result<ToolsStatus, String> {
     {
         let dir = tools_dir(app);
         let zip_path = dir.join("ffmpeg.zip.tmp");
-        fetch_to_file(app, FFMPEG_ZIP_URL, &zip_path, "ffmpeg").await?;
+        let sums = fetch_text(&format!("{FFMPEG_RELEASE_BASE}/checksums.sha256")).await?;
+        let actual = fetch_to_file(
+            app,
+            &format!("{FFMPEG_RELEASE_BASE}/{FFMPEG_ZIP_NAME}"),
+            &zip_path,
+            "ffmpeg",
+        )
+        .await?;
         if !zip_path.exists() {
             return Err(removed_after_download("ffmpeg", &dir));
         }
+        verify_sha256("ffmpeg", &zip_path, &actual, &sums, FFMPEG_ZIP_NAME)?;
         let dir2 = dir.clone();
         let zip2 = zip_path.clone();
         // Pull just ffmpeg.exe/ffprobe.exe out of the ~180 MB build zip.
@@ -339,6 +407,19 @@ fn url_host(url: &str) -> Option<String> {
         .ok()?
         .host_str()
         .map(|h| h.to_ascii_lowercase())
+}
+
+/// Delete cookie files a previous run left behind. The Drop guard below
+/// cannot run if the app is killed or the machine loses power mid-download.
+pub fn sweep_stale_cookie_files() {
+    if let Ok(rd) = std::fs::read_dir(std::env::temp_dir()) {
+        for e in rd.flatten() {
+            let name = e.file_name().to_string_lossy().to_string();
+            if name.starts_with("apex-grab-") && name.ends_with(".txt") {
+                let _ = std::fs::remove_file(e.path());
+            }
+        }
+    }
 }
 
 /// Netscape cookies.txt written for a single yt-dlp run; deleted on drop so
@@ -1148,6 +1229,36 @@ pub fn remove_partials(d: &Download) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const HASH: &str = "3f786850e387550fdab836ed7e6dc881de23001b9b2d3c1c2a0e64c5b4bc2b7a";
+
+    #[test]
+    fn expected_sha256_finds_the_named_file() {
+        let sums = format!("{}  yt-dlp\n{HASH}  yt-dlp.exe\n", "0".repeat(64));
+        assert_eq!(expected_sha256(&sums, "yt-dlp.exe").as_deref(), Some(HASH));
+        let starred = format!("{}  *ffmpeg.zip\n", HASH.to_uppercase());
+        assert_eq!(expected_sha256(&starred, "ffmpeg.zip").as_deref(), Some(HASH));
+    }
+
+    #[test]
+    fn expected_sha256_rejects_missing_or_malformed_entries() {
+        assert_eq!(expected_sha256(&format!("{HASH}  other.exe"), "yt-dlp.exe"), None);
+        assert_eq!(expected_sha256("abc  yt-dlp.exe", "yt-dlp.exe"), None);
+        assert_eq!(expected_sha256("", "yt-dlp.exe"), None);
+    }
+
+    #[test]
+    fn verify_sha256_deletes_a_mismatched_download() {
+        let path = std::env::temp_dir().join(format!("apex-verify-{}.tmp", uuid::Uuid::new_v4()));
+        std::fs::write(&path, b"x").unwrap();
+        let sums = format!("{HASH}  tool.exe");
+        assert!(verify_sha256("tool", &path, &"0".repeat(64), &sums, "tool.exe").is_err());
+        assert!(!path.exists());
+        std::fs::write(&path, b"x").unwrap();
+        assert!(verify_sha256("tool", &path, HASH, &sums, "tool.exe").is_ok());
+        assert!(path.exists());
+        let _ = std::fs::remove_file(&path);
+    }
 
     #[test]
     fn removed_after_download_names_the_tool_and_folder() {
