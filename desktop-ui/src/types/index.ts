@@ -112,6 +112,7 @@ export interface ToolsStatus {
   ytdlpPath: string | null;
   ytdlpVersion: string | null;
   ffmpegPath: string | null;
+  ffmpegVersion: string | null;
 }
 
 export interface ToolsProgress {

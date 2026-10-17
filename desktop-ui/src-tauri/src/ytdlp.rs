@@ -75,6 +75,24 @@ pub struct ToolsStatus {
     pub ytdlp_path: Option<String>,
     pub ytdlp_version: Option<String>,
     pub ffmpeg_path: Option<String>,
+    pub ffmpeg_version: Option<String>,
+}
+
+/// "ffmpeg version 7.1.1-essentials_build-www.gyan.dev Copyright ..." becomes
+/// "7.1.1". Builds named after a date or git commit keep the whole token
+/// minus the build-flavour suffix.
+fn parse_ffmpeg_version(first_line: &str) -> Option<String> {
+    let token = first_line.strip_prefix("ffmpeg version ")?.split_whitespace().next()?;
+    let token = token.split("-full_build").next()?.split("-essentials_build").next()?;
+    // Nightly builds ("N-127588-g0b19c65afe-20261016") read best as their date.
+    if let Some(date) = token
+        .strip_prefix("N-")
+        .and_then(|rest| rest.rsplit('-').next())
+        .filter(|d| d.len() == 8 && d.bytes().all(|b| b.is_ascii_digit()))
+    {
+        return Some(format!("nightly {}-{}-{}", &date[..4], &date[4..6], &date[6..]));
+    }
+    (!token.is_empty()).then(|| token.to_string())
 }
 
 pub async fn status(app: &AppHandle) -> ToolsStatus {
@@ -89,10 +107,25 @@ pub async fn status(app: &AppHandle) -> ToolsStatus {
             .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string()),
         None => None,
     };
+    let ffmpeg = find_ffmpeg(app);
+    let ffmpeg_version = match &ffmpeg {
+        Some(p) => command(p)
+            .arg("-version")
+            .output()
+            .await
+            .ok()
+            .filter(|o| o.status.success())
+            .and_then(|o| {
+                let out = String::from_utf8_lossy(&o.stdout);
+                out.lines().next().and_then(parse_ffmpeg_version)
+            }),
+        None => None,
+    };
     ToolsStatus {
         ytdlp_path: ytdlp.map(|p| p.to_string_lossy().to_string()),
         ytdlp_version: version,
-        ffmpeg_path: find_ffmpeg(app).map(|p| p.to_string_lossy().to_string()),
+        ffmpeg_path: ffmpeg.map(|p| p.to_string_lossy().to_string()),
+        ffmpeg_version,
     }
 }
 
@@ -1258,6 +1291,24 @@ mod tests {
         assert!(verify_sha256("tool", &path, HASH, &sums, "tool.exe").is_ok());
         assert!(path.exists());
         let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn ffmpeg_version_is_read_from_the_banner() {
+        assert_eq!(
+            parse_ffmpeg_version("ffmpeg version 7.1.1-essentials_build-www.gyan.dev Copyright (c) 2000-2025"),
+            Some("7.1.1".into())
+        );
+        assert_eq!(
+            parse_ffmpeg_version("ffmpeg version 2026-10-01-git-abc123-full_build-www.gyan.dev Copyright"),
+            Some("2026-10-01-git-abc123".into())
+        );
+        assert_eq!(parse_ffmpeg_version("ffmpeg version n7.0 Copyright"), Some("n7.0".into()));
+        assert_eq!(
+            parse_ffmpeg_version("ffmpeg version N-127588-g0b19c65afe-20261016 Copyright (c) 2000-2026"),
+            Some("nightly 2026-10-16".into())
+        );
+        assert_eq!(parse_ffmpeg_version("something else"), None);
     }
 
     #[test]

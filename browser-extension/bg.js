@@ -150,7 +150,13 @@ function basename(path) {
   return last || null;
 }
 
+// Downloads we cancelled ourselves. suggest() on one of these is reported
+// through runtime.lastError ("Invalid downloadId"), which no try/catch can
+// silence, so the filename handler skips them instead.
+const cancelledByUs = new Set();
+
 function cancelAndErase(id) {
+  cancelledByUs.add(id);
   chrome.downloads.cancel(id, () => {
     void chrome.runtime.lastError;
     chrome.downloads.erase({ id }, () => void chrome.runtime.lastError);
@@ -331,7 +337,8 @@ if (chrome.downloads.onDeterminingFilename) {
     captureDownload(item)
       .catch(() => {})
       .finally(() => {
-        // No-op for downloads we cancelled; releases the ones we passed on.
+        // Releases the downloads we passed on; ours are already cancelled.
+        if (cancelledByUs.delete(item.id)) return;
         try {
           suggest();
         } catch {

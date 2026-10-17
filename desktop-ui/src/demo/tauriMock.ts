@@ -315,7 +315,7 @@ if (!("__TAURI_INTERNALS__" in window)) {
       label: "C:",
     }),
     list_pending_captures: () => [],
-    ytdlp_status: () => ({ ytdlpPath: null, ytdlpVersion: null, ffmpegPath: null }),
+    ytdlp_status: () => ({ ytdlpPath: null, ytdlpVersion: null, ffmpegPath: null, ffmpegVersion: null }),
     disk_free: () => Math.round(195 * GB),
 
     add_download: (a) => {

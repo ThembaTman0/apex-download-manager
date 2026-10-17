@@ -674,7 +674,11 @@ function VideoGrabberSection() {
       />
       <ToolRow
         name="FFmpeg"
-        status={tools?.ffmpegPath ? "Installed" : "Not installed · best quality limited"}
+        status={
+          tools?.ffmpegPath
+            ? `Installed${tools.ffmpegVersion ? ` · ${/^\d/.test(tools.ffmpegVersion) ? "v" : ""}${tools.ffmpegVersion}` : ""}`
+            : "Not installed · best quality limited"
+        }
         ok={!!tools?.ffmpegPath}
         installing={installing === "ffmpeg"}
         progress={installing === "ffmpeg" ? progress : null}
