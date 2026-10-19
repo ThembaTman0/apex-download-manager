@@ -3,5 +3,8 @@ Allow: /
 # /dl bumps the anonymous download counter before redirecting to the
 # installer, so crawlers following it would inflate the count.
 Disallow: /dl
+# An unlinked page of project totals. Listing it here is the point: it keeps
+# the page out of search results without pretending it is a secret.
+Disallow: /pulse
 
 Sitemap: https://apexdownloadmanager.com/sitemap.xml

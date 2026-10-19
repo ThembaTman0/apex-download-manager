@@ -1,4 +1,3 @@
-import { Analytics } from "@vercel/analytics/react";
 import {
   CHROME_EXT_URL,
   EDGE_EXT_URL,
@@ -18,6 +17,7 @@ import Changelog from "./components/Changelog";
 import Faq from "./components/Faq";
 import DownloadCta from "./components/DownloadCta";
 import Footer from "./components/Footer";
+import SiteAnalytics from "./lib/analytics";
 
 export default function App() {
   return (
@@ -112,7 +112,7 @@ export default function App() {
         <DownloadCta />
       </main>
       <Footer />
-      <Analytics />
+      <SiteAnalytics />
     </>
   );
 }

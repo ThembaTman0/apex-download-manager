@@ -1,0 +1,496 @@
+/* The hidden /pulse page. Every rule is scoped under .pulse so this file can
+   never reach the marketing page, and global.css stays the single source for
+   tokens, resets and the type scale.
+
+   global.css line 5 says amber exists only inside product mockups. This page
+   is the deliberate exception: it is the instrument panel for the product, so
+   it borrows the product's own accent. Nowhere else on the site does. */
+
+.pulse {
+  --accent: var(--mk-amber);
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 56px var(--gutter) 96px;
+}
+
+/* Header ------------------------------------------------------------------ */
+
+.pulse-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 16px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--line);
+}
+
+.pulse-home {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  color: var(--text);
+  transition:
+    color 0.16s var(--ease),
+    transform 0.16s var(--ease);
+}
+
+.pulse-home:hover {
+  color: var(--accent);
+}
+
+.pulse-home:active {
+  transform: scale(0.94);
+}
+
+.pulse-title h1 {
+  font-size: 30px;
+  font-weight: 590;
+  /* Tracking is size specific: tight here, near zero on the body copy below. */
+  letter-spacing: -0.022em;
+  line-height: 1.1;
+}
+
+.pulse-sub {
+  margin-top: 8px;
+  max-width: 56ch;
+  font-size: 14px;
+  line-height: 1.6;
+  letter-spacing: 0;
+  color: var(--text-mute);
+  text-wrap: pretty;
+}
+
+.pulse-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.pulse-live i {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--text-3);
+}
+
+.pulse-live.on {
+  color: var(--text-mute);
+}
+
+.pulse-live.on i {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(230, 180, 80, 0.14);
+}
+
+/* Headline numbers -------------------------------------------------------- */
+
+.pulse-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1px;
+  margin-top: 28px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--r-12);
+  overflow: hidden;
+}
+
+.pulse-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 22px 20px;
+  background: var(--bg);
+}
+
+.pulse-stat-value {
+  font-size: 38px;
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  /* Figures that do not jitter as the counter ticks over. */
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.pulse-stat-label {
+  font-size: 13px;
+  font-weight: 510;
+  letter-spacing: -0.011em;
+  color: var(--text-2);
+}
+
+.pulse-stat-note {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-3);
+}
+
+/* Cards ------------------------------------------------------------------- */
+
+.pulse-card {
+  margin-top: 20px;
+  padding: 22px 20px 18px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-12);
+}
+
+.pulse-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.pulse-card-head h2 {
+  font-size: 15px;
+  font-weight: 510;
+  letter-spacing: -0.012em;
+  color: var(--text);
+}
+
+.pulse-card-note,
+.pulse-foot-note {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.pulse-card-note {
+  font-family: var(--mono);
+}
+
+.pulse-foot-note {
+  margin-top: 14px;
+  line-height: 1.6;
+}
+
+/* Chart ------------------------------------------------------------------- */
+
+.pulse-chart {
+  position: relative;
+}
+
+.pulse-plot {
+  position: relative;
+  /* The reading should start the instant the pointer is over the plot, so the
+     whole band is the target rather than each 4px bar. */
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.pulse-plot svg {
+  display: block;
+}
+
+.pulse-axis {
+  stroke: var(--line-2);
+  stroke-width: 1;
+}
+
+.pulse-bar {
+  fill: var(--text-3);
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: pulse-grow 0.42s var(--ease) both;
+  transition: fill 0.12s var(--ease);
+}
+
+.pulse-bar.on {
+  fill: var(--accent);
+}
+
+.pulse-bar.empty {
+  fill: none;
+}
+
+@keyframes pulse-grow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.pulse-guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  background: rgba(230, 180, 80, 0.3);
+  pointer-events: none;
+}
+
+.pulse-readout {
+  position: absolute;
+  top: -4px;
+  left: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 7px;
+  width: 108px;
+  margin-left: -54px;
+  padding: 5px 9px;
+  background: var(--bg-3);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-6);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.pulse-readout strong {
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.pulse-readout span {
+  font-size: 12px;
+  color: var(--text-mute);
+}
+
+.pulse-chart-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.pulse-peak {
+  color: var(--text-mute);
+}
+
+/* Releases ---------------------------------------------------------------- */
+
+.pulse-releases {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: none;
+}
+
+.pulse-releases li {
+  display: grid;
+  grid-template-columns: 52px 1fr 48px 112px;
+  align-items: center;
+  gap: 12px;
+}
+
+.pulse-rel-v {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.pulse-rel-track {
+  height: 8px;
+  background: var(--bg-3);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+
+.pulse-rel-fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  background: var(--accent);
+  border-radius: var(--r-pill);
+}
+
+.pulse-rel-n {
+  font-size: 12px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.pulse-rel-split {
+  font-size: 11px;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--text-3);
+}
+
+/* Build ------------------------------------------------------------------- */
+
+.pulse-build {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.pulse-build-wide {
+  grid-column: 1 / -1;
+}
+
+.pulse-build dt {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.pulse-build dd {
+  margin-top: 5px;
+  font-size: 13px;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+
+.pulse-sha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 11px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-6);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.16s var(--ease),
+    transform 0.16s var(--ease);
+}
+
+.pulse-sha:hover {
+  border-color: var(--line-2);
+}
+
+/* Acknowledge on the press, not on the release. */
+.pulse-sha:active {
+  transform: scale(0.99);
+  transition: transform 0.09s var(--ease);
+}
+
+.pulse-sha code {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+
+.pulse-sha-action {
+  flex: none;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* Tail -------------------------------------------------------------------- */
+
+.pulse-empty {
+  margin-top: 24px;
+  padding: 16px 18px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-12);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-mute);
+}
+
+.pulse-tail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.pulse-tail p {
+  max-width: 62ch;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-3);
+}
+
+.pulse-tail a {
+  font-size: 13px;
+  color: var(--text-mute);
+  text-decoration: none;
+  transition: color 0.16s var(--ease);
+}
+
+.pulse-tail a:hover {
+  color: var(--text);
+}
+
+/* Narrow screens ---------------------------------------------------------- */
+
+@media (max-width: 720px) {
+  .pulse {
+    padding: 40px 16px 72px;
+  }
+
+  .pulse-head {
+    grid-template-columns: auto 1fr;
+  }
+
+  .pulse-live {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .pulse-stat-value {
+    font-size: 30px;
+  }
+
+  /* The exe and msi split goes first: the total still reads. */
+  .pulse-releases li {
+    grid-template-columns: 46px 1fr 44px;
+  }
+
+  .pulse-rel-split {
+    display: none;
+  }
+
+  .pulse-build {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-bar {
+    animation: none;
+  }
+
+  .pulse-home:active,
+  .pulse-sha:active {
+    transform: none;
+  }
+
+  .pulse-live.on i {
+    box-shadow: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .pulse-bar {
+    fill: var(--text-mute);
+  }
+
+  .pulse-stats,
+  .pulse-card {
+    border-color: var(--text-3);
+  }
+}
