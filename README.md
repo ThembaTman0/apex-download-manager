@@ -58,6 +58,10 @@ published yet; until they are, those two commands won't find Apex.
 - Scheduling: start any download at a chosen time, sleep/shut down when the queue finishes
 - Video grabber: yt-dlp integration with quality picker, playlists, and
   one-click tool install (ffmpeg merging for highest resolutions)
+- Auto-organize: sorts downloads into category folders (Video, Music,
+  Programs, Archives, Documents…). Each category can have its own folder,
+  even on another drive, and you can send extra file types to it
+  (Settings → Auto-organize → "Sort downloads into category folders")
 - Stream grab: on Firefox and Edge the extension sniffs the `.m3u8`/`.mpd`
   manifest and passes the player's referer through, so players that build the
   stream in script work even though there is no address to copy. The Chrome
