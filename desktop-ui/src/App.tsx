@@ -10,6 +10,7 @@ import { GrabVideoDialog } from "@/components/dialogs/GrabVideoDialog";
 import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
 import { ChecksumDialog } from "@/components/dialogs/ChecksumDialog";
 import { ScheduleDialog } from "@/components/dialogs/ScheduleDialog";
+import { WelcomeDialog } from "@/components/dialogs/WelcomeDialog";
 import { ClipboardToast, QueueActionToast } from "@/components/ui/Toasts";
 import { DashboardPage } from "@/pages/Dashboard";
 import { DownloadsPage } from "@/pages/Downloads";
@@ -215,6 +216,7 @@ export default function App() {
       <DeleteDialog />
       <ChecksumDialog />
       <ScheduleDialog />
+      <WelcomeDialog />
       <ClipboardToast />
       <QueueActionToast />
 

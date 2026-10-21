@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, searchForWorkspaceRoot } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
@@ -22,6 +22,11 @@ export default defineConfig(async () => ({
   server: {
     port: 1420,
     strictPort: true,
+    // WelcomeDialog bundles the repo-root RELEASE_NOTES.md (?raw); allow just
+    // that one file outside desktop-ui for the dev server.
+    fs: {
+      allow: [searchForWorkspaceRoot(process.cwd()), path.resolve(__dirname, "../RELEASE_NOTES.md")],
+    },
     host: host || false,
     hmr: host
       ? {
