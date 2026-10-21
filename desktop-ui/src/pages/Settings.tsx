@@ -270,7 +270,7 @@ export function SettingsPage() {
         <Field
           icon={FolderTree}
           label="Auto-organize"
-          hint="Saves into Video, Music, Programs… subfolders. Give a category its own folder, or send extra file types to it, below."
+          hint="Saves into Video, Music, Programs… subfolders. Each category can have its own folder, even on another drive, and take extra file types."
         >
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
             <input
@@ -283,13 +283,23 @@ export function SettingsPage() {
               Sort downloads into category folders
             </span>
           </label>
-          {form.autoOrganize && (
+          {/* Always visible so people can see per-category folders exist (#29);
+              dimmed and inert until sorting is switched on. */}
+          {!form.autoOrganize && (
+            <p className="text-xs text-ink-faint mt-2">
+              Tick the box above to use these folders.
+            </p>
+          )}
+          <div
+            inert={!form.autoOrganize}
+            className={form.autoOrganize ? undefined : "opacity-40 select-none"}
+          >
             <CategoryRules
               rules={form.categoryRules}
               downloadDir={form.downloadDir}
               onChange={(categoryRules) => update({ categoryRules })}
             />
-          )}
+          </div>
         </Field>
 
         <Field
