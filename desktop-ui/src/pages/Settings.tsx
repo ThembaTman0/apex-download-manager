@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { backend } from "@/services/backend";
+import { getShowWhatsNew, setShowWhatsNew } from "@/lib/whatsNew";
 import { useDownloadsStore } from "@/stores/downloadsStore";
 import { formatBytes } from "@/lib/utils";
 import type {
@@ -519,6 +520,7 @@ function AppUpdatesSection() {
   const [available, setAvailable] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showWhatsNew, setShowWhatsNewState] = useState(getShowWhatsNew);
 
   useEffect(() => {
     import("@tauri-apps/api/app")
@@ -610,6 +612,18 @@ function AppUpdatesSection() {
           <span className="text-xs text-warning">Update v{available} available</span>
         )}
       </div>
+      <label className="flex items-center gap-2.5 cursor-pointer select-none mb-5">
+        <input
+          type="checkbox"
+          checked={showWhatsNew}
+          onChange={(e) => {
+            setShowWhatsNew(e.target.checked);
+            setShowWhatsNewState(e.target.checked);
+          }}
+          className="accent-accent w-4 h-4"
+        />
+        <span className="text-sm text-ink-mid">Show what's new after updates</span>
+      </label>
       {error && <p className="text-xs text-error-soft mb-4 break-all">{error}</p>}
     </>
   );

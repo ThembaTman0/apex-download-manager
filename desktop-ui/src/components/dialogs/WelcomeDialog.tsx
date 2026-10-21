@@ -3,6 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "framer-motion";
 import { Clapperboard, FolderTree, Globe, PartyPopper, Sparkles, X } from "lucide-react";
 import { useDownloadsStore } from "@/stores/downloadsStore";
+import { getShowWhatsNew, setShowWhatsNew } from "@/lib/whatsNew";
 // The notes for the version being built, bundled so "What's new" works
 // offline and the app makes no extra network request.
 import releaseNotes from "../../../../RELEASE_NOTES.md?raw";
@@ -139,8 +140,10 @@ export function WelcomeDialog() {
       // No record yet: someone with downloads is updating from a version
       // before this dialog existed; nobody else has used Apex before.
       // (downloads and settings arrive in the same store update.)
-      if (lastSeen === null) setMode(hasDownloads ? "whatsnew" : "welcome");
-      else setMode("whatsnew");
+      const next: Mode = lastSeen === null && !hasDownloads ? "welcome" : "whatsnew";
+      // Someone who opted out of release notes still gets the one-time tour.
+      if (next === "whatsnew" && !getShowWhatsNew()) return;
+      setMode(next);
     })();
     return () => {
       cancelled = true;
@@ -149,8 +152,12 @@ export function WelcomeDialog() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]);
 
+  const [optOut, setOptOut] = useState(false);
   const open = mode !== null;
-  const close = () => setMode(null);
+  const close = () => {
+    if (mode === "whatsnew" && optOut) setShowWhatsNew(false);
+    setMode(null);
+  };
 
   return (
     <Dialog.Root open={open} onOpenChange={(o) => !o && close()}>
@@ -261,7 +268,20 @@ export function WelcomeDialog() {
                   </div>
                 )}
 
-                <div className="flex justify-end mt-5">
+                <div className="flex items-center justify-between gap-4 mt-5">
+                  {mode === "whatsnew" ? (
+                    <label className="flex items-center gap-2 text-xs text-ink-muted cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={optOut}
+                        onChange={(e) => setOptOut(e.target.checked)}
+                        className="accent-accent w-3.5 h-3.5"
+                      />
+                      Don't show this after future updates
+                    </label>
+                  ) : (
+                    <span />
+                  )}
                   <button
                     onClick={close}
                     className="px-4 py-2 rounded-lg bg-accent hover:bg-accent-hover text-on-accent text-sm font-semibold transition-colors"
