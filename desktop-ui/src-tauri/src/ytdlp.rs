@@ -271,7 +271,9 @@ fn verify_sha256(tool: &str, path: &Path, actual: &str, sums: &str, file: &str) 
 fn removed_after_download(tool: &str, dir: &Path) -> String {
     format!(
         "{tool} was downloaded, but the file was removed before it could be installed. \
-         This is usually an antivirus: check its quarantine, or add an exclusion for {}",
+         This is usually an antivirus scanning it: wait a minute and check again, since \
+         the file often comes back. If it doesn't, check the antivirus quarantine, or add \
+         an exclusion for {}",
         dir.display()
     )
 }
