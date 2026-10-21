@@ -86,6 +86,40 @@ export function GrabVideoDialog() {
 
   const ytdlpMissing = tools !== null && !tools.ytdlpPath;
 
+  // Install yt-dlp right here instead of sending people to Settings.
+  const [installing, setInstalling] = useState(false);
+  const [installProgress, setInstallProgress] = useState<{ downloaded: number; total: number } | null>(null);
+  const [installError, setInstallError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setInstallError(null);
+    let unlisten: (() => void) | undefined;
+    backend
+      .onToolsProgress((p) => {
+        if (p.tool === "yt-dlp") setInstallProgress({ downloaded: p.downloaded, total: p.total });
+      })
+      .then((fn) => (unlisten = fn));
+    return () => unlisten?.();
+  }, [open]);
+
+  const installYtdlp = async () => {
+    setInstalling(true);
+    setInstallProgress(null);
+    setInstallError(null);
+    try {
+      const s = await backend.installYtdlp();
+      setTools(s);
+      // A video handed over by the extension can be analyzed straight away.
+      if (s.ytdlpPath && url.trim()) analyze(url);
+    } catch (e) {
+      setInstallError(String(e));
+    } finally {
+      setInstalling(false);
+      setInstallProgress(null);
+    }
+  };
+
   const analyze = async (target?: string, withCookies = false) => {
     const u = (target ?? url).trim();
     if (!/^https?:\/\/\S+$/i.test(u)) {
@@ -217,21 +251,49 @@ export function GrabVideoDialog() {
                     <p className="text-sm text-ink mb-1.5 font-medium">
                       yt-dlp is not installed
                     </p>
-                    <p className="text-xs text-ink-muted leading-relaxed mb-3">
-                      The video grabber uses yt-dlp to fetch video and audio from
-                      YouTube and a thousand other sites. Install it once under
-                      Settings → Video Grabber.
+                    <p className="text-xs text-ink-muted leading-relaxed mb-1.5">
+                      The video grabber uses yt-dlp, a free tool, to fetch video and
+                      audio from YouTube and a thousand other sites. It's about 18 MB
+                      and only needs installing once.
                     </p>
-                    <button
-                      onClick={() => {
-                        setOpen(false);
-                        setActiveNav("settings");
-                      }}
-                      className="px-3.5 py-2 rounded-lg bg-accent hover:bg-accent-hover text-on-accent text-xs font-semibold flex items-center gap-1.5 transition-colors"
-                    >
-                      <SettingsIcon className="w-3.5 h-3.5" />
-                      Open Settings
-                    </button>
+                    <p className="text-xs text-ink-muted leading-relaxed mb-3">
+                      Some antivirus products flag yt-dlp. If the install fails, wait
+                      a minute and try again, or check the antivirus quarantine.
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={installYtdlp}
+                        disabled={installing}
+                        className="px-3.5 py-2 rounded-lg bg-accent hover:bg-accent-hover disabled:opacity-70 text-on-accent text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                      >
+                        {installing ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Download className="w-3.5 h-3.5" />
+                        )}
+                        {installing
+                          ? installProgress?.total
+                            ? `Installing… ${Math.round((installProgress.downloaded / installProgress.total) * 100)}%`
+                            : installProgress
+                              ? `Installing… ${formatBytes(installProgress.downloaded)}`
+                              : "Installing…"
+                          : "Install yt-dlp"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setOpen(false);
+                          setActiveNav("settings");
+                        }}
+                        disabled={installing}
+                        className="text-xs text-ink-muted hover:text-ink flex items-center gap-1 transition-colors disabled:opacity-50"
+                      >
+                        <SettingsIcon className="w-3.5 h-3.5" />
+                        Settings
+                      </button>
+                    </div>
+                    {installError && (
+                      <p className="text-xs text-error-soft mt-3 break-words">{installError}</p>
+                    )}
                   </div>
                 ) : (
                   <>
