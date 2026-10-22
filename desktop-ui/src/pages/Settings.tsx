@@ -324,7 +324,7 @@ export function SettingsPage() {
         <Field
           icon={Power}
           label="When queue finishes"
-          hint="Runs after the last download completes, with a 30s cancellable countdown"
+          hint="Runs once nothing is downloading or waiting in the queue (scheduled downloads count, paused ones don't), with a 30s cancellable countdown"
         >
           <select
             value={form.queueDoneAction}

@@ -49,7 +49,9 @@ published yet; until they are, those two commands won't find Apex.
 
 **Engine**
 - Multi-connection segmented downloads (up to 32 parallel streams per file)
-- Pause / resume that survives app restarts - per-segment progress is persisted
+- Pause / resume that survives app restarts - per-segment progress is persisted.
+  After a restart, unfinished downloads wait paused until you resume them;
+  scheduled downloads keep their time and start on their own
 - Resume integrity: `ETag`/`If-Range` validation prevents silently corrupted files
 - Automatic retry with backoff on stalls and dropped connections
 - Download queue with a concurrency limit and global speed limiting
