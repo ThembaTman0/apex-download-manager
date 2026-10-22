@@ -1,6 +1,6 @@
 [package]
 name = "apex-download-manager"
-version = "1.0.13"
+version = "1.0.14"
 description = "Apex Download Manager - Download Faster. Smarter. Better."
 authors = ["Apex"]
 license = "GPL-3.0-or-later"

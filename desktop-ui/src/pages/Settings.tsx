@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { backend } from "@/services/backend";
+import { getShowWhatsNew, setShowWhatsNew } from "@/lib/whatsNew";
 import { useDownloadsStore } from "@/stores/downloadsStore";
 import { formatBytes } from "@/lib/utils";
 import type {
@@ -270,7 +271,7 @@ export function SettingsPage() {
         <Field
           icon={FolderTree}
           label="Auto-organize"
-          hint="Saves into Video, Music, Programs… subfolders. Give a category its own folder, or send extra file types to it, below."
+          hint="Saves into Video, Music, Programs… subfolders. Each category can have its own folder, even on another drive, and take extra file types."
         >
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
             <input
@@ -283,13 +284,23 @@ export function SettingsPage() {
               Sort downloads into category folders
             </span>
           </label>
-          {form.autoOrganize && (
+          {/* Always visible so people can see per-category folders exist (#29);
+              dimmed and inert until sorting is switched on. */}
+          {!form.autoOrganize && (
+            <p className="text-xs text-ink-faint mt-2">
+              Tick the box above to use these folders.
+            </p>
+          )}
+          <div
+            inert={!form.autoOrganize}
+            className={form.autoOrganize ? undefined : "opacity-40 select-none"}
+          >
             <CategoryRules
               rules={form.categoryRules}
               downloadDir={form.downloadDir}
               onChange={(categoryRules) => update({ categoryRules })}
             />
-          )}
+          </div>
         </Field>
 
         <Field
@@ -313,7 +324,7 @@ export function SettingsPage() {
         <Field
           icon={Power}
           label="When queue finishes"
-          hint="Runs after the last download completes, with a 30s cancellable countdown"
+          hint="Runs once nothing is downloading or waiting in the queue (scheduled downloads count, paused ones don't), with a 30s cancellable countdown"
         >
           <select
             value={form.queueDoneAction}
@@ -509,6 +520,7 @@ function AppUpdatesSection() {
   const [available, setAvailable] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showWhatsNew, setShowWhatsNewState] = useState(getShowWhatsNew);
 
   useEffect(() => {
     import("@tauri-apps/api/app")
@@ -600,6 +612,18 @@ function AppUpdatesSection() {
           <span className="text-xs text-warning">Update v{available} available</span>
         )}
       </div>
+      <label className="flex items-center gap-2.5 cursor-pointer select-none mb-5">
+        <input
+          type="checkbox"
+          checked={showWhatsNew}
+          onChange={(e) => {
+            setShowWhatsNew(e.target.checked);
+            setShowWhatsNewState(e.target.checked);
+          }}
+          className="accent-accent w-4 h-4"
+        />
+        <span className="text-sm text-ink-mid">Show what's new after updates</span>
+      </label>
       {error && <p className="text-xs text-error-soft mb-4 break-all">{error}</p>}
     </>
   );

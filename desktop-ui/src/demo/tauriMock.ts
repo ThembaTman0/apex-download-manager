@@ -214,6 +214,14 @@ if (!("__TAURI_INTERNALS__" in window)) {
   let callbackId = 0;
   const listeners = new Map<string, Set<(e: unknown) => void>>();
 
+  // The demo starts with no video tools, like a fresh install.
+  const demoTools: {
+    ytdlpPath: string | null;
+    ytdlpVersion: string | null;
+    ffmpegPath: string | null;
+    ffmpegVersion: string | null;
+  } = { ytdlpPath: null, ytdlpVersion: null, ffmpegPath: null, ffmpegVersion: null };
+
   const emit = (event: string, payload: unknown) => {
     for (const cb of listeners.get(event) ?? []) {
       cb({ event, id: 0, payload });
@@ -315,7 +323,19 @@ if (!("__TAURI_INTERNALS__" in window)) {
       label: "C:",
     }),
     list_pending_captures: () => [],
-    ytdlp_status: () => ({ ytdlpPath: null, ytdlpVersion: null, ffmpegPath: null, ffmpegVersion: null }),
+    ytdlp_status: () => ({ ...demoTools }),
+    // Fake install so the "Install yt-dlp" buttons work in the demo: ~2s of
+    // progress events, then yt-dlp reports as installed until a page reload.
+    install_ytdlp: async () => {
+      const total = 18 * 1024 * 1024;
+      for (let i = 1; i <= 8; i++) {
+        await new Promise((r) => setTimeout(r, 250));
+        emit("tools:progress", { tool: "yt-dlp", downloaded: Math.round((total * i) / 8), total });
+      }
+      demoTools.ytdlpPath = "C:\\Users\\demo\\AppData\\Roaming\\com.apex.download-manager\\tools\\yt-dlp.exe";
+      demoTools.ytdlpVersion = "2026.10.01";
+      return { ...demoTools };
+    },
     disk_free: () => Math.round(195 * GB),
 
     add_download: (a) => {
