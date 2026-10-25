@@ -201,7 +201,7 @@ export function DownloadsTable() {
               </span>
             );
           }
-          return <StatusBadge status={info.getValue()} />;
+          return <StatusBadge status={info.getValue()} id={info.row.original.id} />;
         },
       }),
       helper.accessor("modifiedAt", {

@@ -829,6 +829,20 @@ impl DownloadManager {
         Ok(())
     }
 
+    /// Completed downloads whose file is no longer there (#33), for a
+    /// "File missing" marker. Only counted when the folder itself still
+    /// exists: an unplugged USB drive or offline network share makes the
+    /// file *unreachable*, not gone, and those entries must not be offered
+    /// for removal. Reads the filesystem only.
+    pub fn missing_files(&self) -> Result<Vec<String>, String> {
+        Ok(self
+            .list()?
+            .into_iter()
+            .filter(|d| d.status == DownloadStatus::Completed && file_is_missing(d))
+            .map(|d| d.id)
+            .collect())
+    }
+
     pub fn open_file(&self, id: &str) -> Result<(), String> {
         let d = self
             .db
@@ -2038,6 +2052,11 @@ impl RateLimiter {
 }
 
 // ---------- path & name helpers ----------
+
+/// The download's folder is reachable but its file is not there.
+fn file_is_missing(d: &Download) -> bool {
+    !d.save_path.trim().is_empty() && Path::new(&d.save_path).is_dir() && !final_path(d).exists()
+}
 
 pub fn final_path(d: &Download) -> PathBuf {
     Path::new(&d.save_path).join(&d.name)

@@ -81,6 +81,7 @@ export const backend = {
   pauseAll: () => invoke<void>("pause_all"),
   resumeAll: () => invoke<void>("resume_all"),
   retryFailed: () => invoke<void>("retry_failed"),
+  missingFiles: () => invoke<string[]>("missing_files"),
   openDownload: (id: string) => invoke<void>("open_download", { id }),
   showInFolder: (id: string) => invoke<void>("show_in_folder", { id }),
 

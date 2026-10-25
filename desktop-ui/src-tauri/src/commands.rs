@@ -272,6 +272,13 @@ pub async fn resume_all(mgr: State<'_, DownloadManager>) -> Result<(), String> {
     Ok(())
 }
 
+/// Ids of completed downloads whose file is gone while its folder still
+/// exists (#33), for the "File missing" marker and "Remove missing".
+#[tauri::command]
+pub async fn missing_files(mgr: State<'_, DownloadManager>) -> Result<Vec<String>, String> {
+    mgr.missing_files()
+}
+
 /// Resume every failed download, and only those. Distinct from `resume_all`:
 /// after a network drop the user wants the casualties retried without
 /// un-pausing the downloads they stopped on purpose.

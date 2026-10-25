@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, Clock, Gauge, RotateCcw, Wifi } from "lucide-react";
+import { Activity, Clock, Gauge, ListX, RotateCcw, Wifi } from "lucide-react";
 import { useDownloadsStore } from "@/stores/downloadsStore";
 import { formatSpeed } from "@/lib/utils";
 
@@ -12,6 +12,11 @@ export function StatusBar() {
   // One call rather than one per failure: after a dropped connection the
   // list can be long, and the engine already knows which rows qualify.
   const retryFailed = useDownloadsStore((s) => s.retryFailed);
+  const missingIds = useDownloadsStore((s) => s.missingIds);
+  const removeDownloads = useDownloadsStore((s) => s.removeDownloads);
+  const refreshMissing = useDownloadsStore((s) => s.refreshMissing);
+  // Only ids still in the list (one may have been removed meanwhile).
+  const missing = missingIds.filter((id) => downloads.some((d) => d.id === id));
 
   const active = downloads.filter((d) => d.status === "downloading");
   const queued = downloads.filter((d) => d.status === "queued");
@@ -63,6 +68,25 @@ export function StatusBar() {
           >
             <RotateCcw className="w-3 h-3" />
             Retry
+          </button>
+        </div>
+      )}
+      {missing.length > 0 && (
+        <div className="flex items-center gap-1.5 text-warning/90">
+          <span>
+            {missing.length} {missing.length === 1 ? "file" : "files"} missing
+          </span>
+          <button
+            onClick={async () => {
+              // List entries only: the files are already gone.
+              await removeDownloads(missing, false);
+              refreshMissing();
+            }}
+            className="flex items-center gap-1 hover:text-warning underline underline-offset-2 transition-colors"
+            title="Remove finished downloads whose file was moved or deleted from the list"
+          >
+            <ListX className="w-3 h-3" />
+            Remove
           </button>
         </div>
       )}

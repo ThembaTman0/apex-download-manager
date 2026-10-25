@@ -415,6 +415,7 @@ if (!("__TAURI_INTERNALS__" in window)) {
         }
       }
     },
+    missing_files: () => [],
     retry_failed: () => {
       for (const d of state.values()) {
         if (d.status === "failed") {

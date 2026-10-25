@@ -88,6 +88,9 @@ interface DownloadsState {
   pauseAll: () => Promise<void>;
   resumeAll: () => Promise<void>;
   retryFailed: () => Promise<void>;
+  /** Completed downloads whose file is gone (#33). */
+  missingIds: string[];
+  refreshMissing: () => Promise<void>;
   openFile: (id: string) => Promise<void>;
   showInFolder: (id: string) => Promise<void>;
   copyUrls: (ids: string[]) => Promise<void>;
@@ -136,6 +139,9 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
         backend.getDiskUsage().catch(() => null),
       ]);
       set({ downloads: sortDownloads(downloads), settings, diskUsage });
+      get().refreshMissing();
+      // Re-check when Apex regains focus, e.g. after deleting files in Explorer.
+      window.addEventListener("focus", () => get().refreshMissing());
     } catch (e) {
       set({ lastError: String(e) });
     }
@@ -346,6 +352,15 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
       await backend.resumeAll();
     } catch (e) {
       set({ lastError: String(e) });
+    }
+  },
+
+  missingIds: [],
+  refreshMissing: async () => {
+    try {
+      set({ missingIds: await backend.missingFiles() });
+    } catch {
+      // best effort: no marker rather than a wrong one
     }
   },
 

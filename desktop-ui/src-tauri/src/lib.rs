@@ -379,6 +379,7 @@ pub fn run() {
             commands::pause_all,
             commands::resume_all,
             commands::retry_failed,
+            commands::missing_files,
             commands::open_download,
             commands::show_in_folder,
             commands::get_settings,
