@@ -61,6 +61,7 @@ export interface Settings {
   proxyUrl: string;
   notifyOnComplete: boolean;
   watchClipboard: boolean;
+  removeCompleted: boolean;
   autoOrganize: boolean;
   queueDoneAction: QueueDoneAction;
   captureEnabled: boolean;

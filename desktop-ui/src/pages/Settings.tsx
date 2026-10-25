@@ -5,6 +5,7 @@ import {
   Check,
   Clapperboard,
   ClipboardCopy,
+  ListX,
   Copy,
   Download,
   FolderOpen,
@@ -246,6 +247,24 @@ export function SettingsPage() {
             />
             <span className="text-sm text-ink-mid">
               Notify when a download completes
+            </span>
+          </label>
+        </Field>
+
+        <Field
+          icon={ListX}
+          label="Finished downloads"
+          hint="Only the list entry is removed, never the file. Removed downloads no longer trigger the warning when you download the same file again."
+        >
+          <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
+            <input
+              type="checkbox"
+              checked={form.removeCompleted}
+              onChange={(e) => update({ removeCompleted: e.target.checked })}
+              className="accent-accent w-4 h-4"
+            />
+            <span className="text-sm text-ink-mid">
+              Remove downloads from the list when they finish
             </span>
           </label>
         </Field>

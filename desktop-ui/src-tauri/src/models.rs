@@ -141,6 +141,10 @@ pub struct Settings {
     /// optional user:pass@ credentials. Also passed to yt-dlp.
     pub proxy_url: String,
     pub notify_on_complete: bool,
+    /// Take finished downloads off the list (never the file) as they
+    /// complete (#33). Off by default: completed entries also power the
+    /// "already downloaded" warning, which removed ones no longer get.
+    pub remove_completed: bool,
     /// Watch the clipboard for downloadable URLs and offer to grab them.
     pub watch_clipboard: bool,
     /// Save into per-category subfolders (Video, Music, Programs, …).
@@ -190,6 +194,7 @@ impl Default for Settings {
             speed_limit_kbps: 0,
             proxy_url: String::new(),
             notify_on_complete: true,
+            remove_completed: false,
             watch_clipboard: true,
             auto_organize: false,
             queue_done_action: "none".into(),

@@ -185,6 +185,7 @@ const demoSettings = {
   proxyUrl: "",
   notifyOnComplete: true,
   watchClipboard: true,
+  removeCompleted: false,
   autoOrganize: true,
   queueDoneAction: "none",
   captureEnabled: true,

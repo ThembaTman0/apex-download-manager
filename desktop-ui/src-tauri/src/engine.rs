@@ -1110,6 +1110,12 @@ async fn run_download(ctx: TaskCtx, mgr: DownloadManager, mut d: Download) {
         d.modified_at = now_millis();
         let _ = ctx.db.lock().unwrap().upsert_download(&d);
         let _ = ctx.app.emit(EVENT_CHANGED, &d);
+        // Optional tidy-up (#33): drop the finished entry, never the file.
+        if d.status == DownloadStatus::Completed && ctx.settings.lock().unwrap().remove_completed {
+            if ctx.db.lock().unwrap().remove_download(&d.id).is_ok() {
+                let _ = ctx.app.emit(EVENT_REMOVED, d.id.clone());
+            }
+        }
     }
 
     // Deregister (remove()/restart() may have already taken the entry).
