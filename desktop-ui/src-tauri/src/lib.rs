@@ -24,6 +24,42 @@ pub(crate) fn show_main_window(app: &tauri::AppHandle) {
     }
 }
 
+/// Decides when a clipboard change is a new download link worth offering
+/// (#37). The old loop treated launch, and any failed read (the clipboard is
+/// briefly locked while a browser closes, or under Remote Desktop), as a
+/// change, so a link copied long ago kept popping up again.
+struct ClipboardWatch {
+    last: String,
+    offered: std::collections::HashSet<String>,
+}
+
+impl ClipboardWatch {
+    /// `initial` is what the clipboard held at launch; it counts as seen.
+    fn new(initial: Option<String>) -> Self {
+        Self {
+            last: initial.unwrap_or_default(),
+            offered: std::collections::HashSet::new(),
+        }
+    }
+
+    /// Feed one clipboard read (`None` when it could not be read). Returns the
+    /// link to offer, at most once per link per session.
+    fn observe(
+        &mut self,
+        read: Option<String>,
+        downloadable: impl Fn(&str) -> bool,
+    ) -> Option<String> {
+        // An unreadable clipboard is not an empty one: keep what we last saw.
+        let text = read?;
+        if text == self.last {
+            return None;
+        }
+        self.last = text;
+        let url = self.last.trim();
+        (downloadable(&self.last) && self.offered.insert(url.to_string())).then(|| url.to_string())
+    }
+}
+
 /// One pass over the download list, feeding both the tray tooltip and the
 /// taskbar progress bar.
 #[derive(Default, PartialEq, Debug)]
@@ -299,22 +335,22 @@ pub fn run() {
             // --- Clipboard watcher: offer to grab copied download URLs ---
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                let mut last = String::new();
+                // Whatever is already on the clipboard at launch was copied
+                // before Apex started; it is not a new copy to offer.
+                let mut watch = ClipboardWatch::new(handle.clipboard().read_text().ok());
                 loop {
                     tokio::time::sleep(Duration::from_millis(1500)).await;
                     let settings = handle.state::<DownloadManager>().get_settings();
                     if !settings.watch_clipboard {
                         continue;
                     }
-                    let text = handle.clipboard().read_text().unwrap_or_default();
-                    if text == last {
-                        continue;
-                    }
-                    last = text.clone();
                     // Settings-aware so a file type the user routed to a
                     // category is offered like any other known type.
-                    if models::is_downloadable_url(&text, &settings) {
-                        let _ = handle.emit("clipboard:url", text.trim().to_string());
+                    let read = handle.clipboard().read_text().ok();
+                    if let Some(url) =
+                        watch.observe(read, |t| models::is_downloadable_url(t, &settings))
+                    {
+                        let _ = handle.emit("clipboard:url", url);
                     }
                 }
             });
@@ -459,6 +495,37 @@ mod tests {
             dl(DownloadStatus::Downloading, 100, 40),
         ];
         assert_eq!(bar(&list), ("normal", Some(40)));
+    }
+
+    fn is_link(t: &str) -> bool {
+        t.trim().starts_with("https://")
+    }
+
+    #[test]
+    fn clipboard_link_present_at_launch_is_not_offered() {
+        let mut w = ClipboardWatch::new(Some("https://x.test/a.iso".into()));
+        assert_eq!(w.observe(Some("https://x.test/a.iso".into()), is_link), None);
+    }
+
+    #[test]
+    fn clipboard_failed_read_does_not_re_offer_the_same_link() {
+        let mut w = ClipboardWatch::new(None);
+        assert_eq!(w.observe(Some("https://x.test/a.iso".into()), is_link), Some("https://x.test/a.iso".into()));
+        // Browser closing: the clipboard is briefly unreadable...
+        assert_eq!(w.observe(None, is_link), None);
+        // ...then readable again with the same link: no second popup.
+        assert_eq!(w.observe(Some("https://x.test/a.iso".into()), is_link), None);
+    }
+
+    #[test]
+    fn clipboard_offers_each_link_once_per_session() {
+        let mut w = ClipboardWatch::new(None);
+        assert!(w.observe(Some("https://x.test/a.iso".into()), is_link).is_some());
+        assert_eq!(w.observe(Some("some text".into()), is_link), None);
+        // Copied again later (or synced back from another device): not re-offered.
+        assert_eq!(w.observe(Some("https://x.test/a.iso".into()), is_link), None);
+        // A genuinely new link still is, trimmed.
+        assert_eq!(w.observe(Some("  https://x.test/b.zip \n".into()), is_link), Some("https://x.test/b.zip".into()));
     }
 
     #[test]
