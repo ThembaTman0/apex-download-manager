@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -52,6 +52,10 @@ export function GrabVideoDialog() {
   const [updateHint, setUpdateHint] = useState(false);
   const [busy, setBusy] = useState(false);
   const [queued, setQueued] = useState(0);
+  // Stopping a playlist mid-queue (#31): the loop checks this between items.
+  const stopRef = useRef(false);
+  const [stopped, setStopped] = useState<{ ids: string[]; total: number } | null>(null);
+  const removeDownloads = useDownloadsStore((s) => s.removeDownloads);
   /** Playlist entries the user unticked (indices into probe.playlist). */
   const [excluded, setExcluded] = useState<Set<number>>(new Set());
 
@@ -64,6 +68,7 @@ export function GrabVideoDialog() {
     setProbing(false);
     setBusy(false);
     setQueued(0);
+    setStopped(null);
     setSelected(0);
     setExcluded(new Set());
     setSaveDir(settings?.downloadDir ?? "");
@@ -161,17 +166,28 @@ export function GrabVideoDialog() {
     try {
       if (probe.playlist) {
         const picked = probe.playlist.filter((_, i) => !excluded.has(i));
-        let n = 0;
+        const ids: string[] = [];
+        stopRef.current = false;
         for (const entry of picked) {
-          setQueued(++n);
-          await addVideo(
-            entry.url,
-            entry.title,
-            opt.ext,
-            opt.selector,
-            saveDir || undefined,
-            wantsSubtitles ? subtitleLang : undefined
+          if (stopRef.current) break;
+          setQueued(ids.length + 1);
+          ids.push(
+            await addVideo(
+              entry.url,
+              entry.title,
+              opt.ext,
+              opt.selector,
+              saveDir || undefined,
+              wantsSubtitles ? subtitleLang : undefined
+            )
           );
+        }
+        if (stopRef.current && ids.length < picked.length) {
+          // Keep what was added (some may already be downloading) and say so,
+          // with an explicit way to undo it.
+          setStopped({ ids, total: picked.length });
+          setBusy(false);
+          return;
         }
       } else {
         await addVideo(
@@ -214,7 +230,15 @@ export function GrabVideoDialog() {
   };
 
   return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
+    <Dialog.Root
+      open={open}
+      onOpenChange={(o) => {
+        // Closing mid-queue (X, Esc, outside click) must stop the loop too,
+        // or the rest of the playlist keeps being added in the background.
+        if (!o && busy) stopRef.current = true;
+        setOpen(o);
+      }}
+    >
       <AnimatePresence>
         {open && (
           <Dialog.Portal forceMount>
@@ -559,12 +583,57 @@ export function GrabVideoDialog() {
                   </p>
                 )}
 
-                <div className="flex justify-end gap-2">
-                  <Dialog.Close asChild>
-                    <button className="px-4 py-2 rounded-lg text-sm font-medium text-ink-muted hover:text-ink hover:bg-white/[0.06] transition-colors">
-                      Cancel
+                {stopped && (
+                  <div className="rounded-lg bg-white/[0.04] border border-white/[0.08] p-4 mb-4">
+                    <p className="text-sm text-ink mb-1">
+                      Stopped after {stopped.ids.length} of {stopped.total} videos.
+                    </p>
+                    <p className="text-xs text-ink-muted leading-relaxed mb-3">
+                      {stopped.ids.length === 0
+                        ? "None were added."
+                        : `The ${stopped.ids.length} already added stay in your downloads list. Remove them if you didn't want any.`}
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setOpen(false)}
+                        className="px-3.5 py-2 rounded-lg bg-white/[0.06] border border-white/[0.08] text-xs text-ink hover:bg-white/[0.1] transition-colors"
+                      >
+                        {stopped.ids.length === 0 ? "Close" : "Keep them"}
+                      </button>
+                      {stopped.ids.length > 0 && (
+                        <button
+                          onClick={async () => {
+                            // Also deletes their partial files: these were
+                            // just started and the point is to undo them.
+                            await removeDownloads(stopped.ids, true);
+                            setOpen(false);
+                          }}
+                          className="px-3.5 py-2 rounded-lg text-xs text-error-soft hover:bg-white/[0.06] transition-colors"
+                        >
+                          Remove them
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className={stopped ? "hidden" : "flex justify-end gap-2"}>
+                  {busy && probe?.playlist ? (
+                    <button
+                      onClick={() => {
+                        stopRef.current = true;
+                      }}
+                      className="px-4 py-2 rounded-lg text-sm font-medium text-ink-muted hover:text-ink hover:bg-white/[0.06] transition-colors"
+                    >
+                      Stop
                     </button>
-                  </Dialog.Close>
+                  ) : (
+                    <Dialog.Close asChild>
+                      <button className="px-4 py-2 rounded-lg text-sm font-medium text-ink-muted hover:text-ink hover:bg-white/[0.06] transition-colors">
+                        Cancel
+                      </button>
+                    </Dialog.Close>
+                  )}
                   {probe && (
                     <button
                       disabled={busy || pickedCount === 0}

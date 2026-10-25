@@ -76,7 +76,7 @@ interface DownloadsState {
     selector: string,
     saveDir?: string,
     subtitleLang?: string
-  ) => Promise<void>;
+  ) => Promise<string>;
   pauseDownload: (id: string) => Promise<void>;
   resumeDownload: (id: string) => Promise<void>;
   restartDownload: (id: string) => Promise<void>;
@@ -293,6 +293,7 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
         ? s.downloads.map((x) => (x.id === d.id ? d : x))
         : sortDownloads([d, ...s.downloads]),
     }));
+    return d.id;
   },
 
   pauseDownload: async (id) => {
