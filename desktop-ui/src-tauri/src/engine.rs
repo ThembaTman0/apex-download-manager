@@ -131,7 +131,7 @@ const DEFAULT_UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 /// yet - its store fills lazily, only when schannel first needs a root, so a
 /// site on a newer root (aimp.ru, GlobalSign R46) failed until the browser
 /// happened to pull it in.
-fn build_client(proxy_url: &str) -> Result<reqwest::Client, String> {
+pub(crate) fn build_client(proxy_url: &str) -> Result<reqwest::Client, String> {
     let mut builder = reqwest::Client::builder()
         .user_agent(DEFAULT_UA)
         .use_rustls_tls()
