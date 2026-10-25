@@ -591,7 +591,7 @@ export function GrabVideoDialog() {
                     <p className="text-xs text-ink-muted leading-relaxed mb-3">
                       {stopped.ids.length === 0
                         ? "None were added."
-                        : `The ${stopped.ids.length} already added stay in your downloads list. Remove them if you didn't want any.`}
+                        : `The ${stopped.ids.length} already added stay in your downloads list. Remove them (and anything they already downloaded) if you didn't want any.`}
                     </p>
                     <div className="flex gap-2">
                       <button
