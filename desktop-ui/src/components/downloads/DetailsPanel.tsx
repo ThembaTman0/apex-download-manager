@@ -48,7 +48,7 @@ export function DetailsPanel() {
             <div>
               <p className="text-sm text-ink font-medium break-all">{download.name}</p>
               <div className="mt-1.5">
-                <StatusBadge status={download.status} />
+                <StatusBadge status={download.status} id={download.id} />
               </div>
               {download.error && (
                 <p className="text-xs text-error-soft mt-2 break-all">{download.error}</p>

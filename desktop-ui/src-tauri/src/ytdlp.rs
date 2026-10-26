@@ -181,16 +181,12 @@ async fn fetch_to_file(
     tool: &str,
 ) -> Result<String, String> {
     use sha2::{Digest, Sha256};
-    let client = reqwest::Client::builder()
-        .user_agent("ApexDownloadManager/1.0")
-        .build()
-        .map_err(|e| e.to_string())?;
-    let resp = client
+    let resp = tool_client(app)?
         .get(url)
         .send()
         .await
         .and_then(|r| r.error_for_status())
-        .map_err(|e| format!("download failed: {e}"))?;
+        .map_err(|e| format!("download failed: {}", error_chain(&e)))?;
     let total = resp.content_length().unwrap_or(0);
     if let Some(parent) = dest.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
@@ -203,7 +199,7 @@ async fn fetch_to_file(
     let mut hasher = Sha256::new();
     let mut last_emit = Instant::now();
     while let Some(chunk) = stream.next().await {
-        let chunk = chunk.map_err(|e| format!("download failed: {e}"))?;
+        let chunk = chunk.map_err(|e| format!("download failed: {}", error_chain(&e)))?;
         downloaded += chunk.len() as u64;
         hasher.update(&chunk);
         file.write_all(&chunk).await.map_err(|e| e.to_string())?;
@@ -223,21 +219,44 @@ async fn fetch_to_file(
     Ok(format!("{:x}", hasher.finalize()))
 }
 
+/// HTTP client for tool installs: the download engine's (rustls with the
+/// bundled Mozilla roots, so Windows' lazily filled root store can't break
+/// it) and the user's proxy setting, which tool installs used to ignore.
+fn tool_client(app: &AppHandle) -> Result<reqwest::Client, String> {
+    let proxy = app
+        .try_state::<crate::engine::DownloadManager>()
+        .map(|m| m.get_settings().proxy_url)
+        .unwrap_or_default();
+    crate::engine::build_client(&proxy)
+}
+
+/// "error sending request for url (...)" alone hid why an install failed;
+/// append each underlying cause (connection reset, certificate, DNS...).
+fn error_chain(e: &dyn std::error::Error) -> String {
+    let mut msg = e.to_string();
+    let mut source = e.source();
+    while let Some(s) = source {
+        let part = s.to_string();
+        if !msg.contains(&part) {
+            msg.push_str(": ");
+            msg.push_str(&part);
+        }
+        source = s.source();
+    }
+    msg
+}
+
 /// Fetch a small text file (a checksum list).
-async fn fetch_text(url: &str) -> Result<String, String> {
-    reqwest::Client::builder()
-        .user_agent("ApexDownloadManager/1.0")
-        .connect_timeout(Duration::from_secs(30))
-        .build()
-        .map_err(|e| e.to_string())?
+async fn fetch_text(app: &AppHandle, url: &str) -> Result<String, String> {
+    tool_client(app)?
         .get(url)
         .send()
         .await
         .and_then(|r| r.error_for_status())
-        .map_err(|e| format!("cannot download checksums: {e}"))?
+        .map_err(|e| format!("cannot download checksums: {}", error_chain(&e)))?
         .text()
         .await
-        .map_err(|e| format!("cannot download checksums: {e}"))
+        .map_err(|e| format!("cannot download checksums: {}", error_chain(&e)))
 }
 
 /// The SHA-256 listed for `file` in a sha256sum-style list
@@ -289,7 +308,7 @@ pub async fn install_ytdlp(app: &AppHandle) -> Result<ToolsStatus, String> {
         let tag = latest_ytdlp_version()
             .await
             .ok_or("cannot find the latest yt-dlp release. Check your connection and try again.")?;
-        let sums = fetch_text(&format!("{YTDLP_RELEASE_BASE}/{tag}/SHA2-256SUMS")).await?;
+        let sums = fetch_text(app, &format!("{YTDLP_RELEASE_BASE}/{tag}/SHA2-256SUMS")).await?;
         let actual =
             fetch_to_file(app, &format!("{YTDLP_RELEASE_BASE}/{tag}/{YTDLP_EXE}"), &tmp, "yt-dlp")
                 .await?;
@@ -319,7 +338,7 @@ pub async fn install_ffmpeg(app: &AppHandle) -> Result<ToolsStatus, String> {
     {
         let dir = tools_dir(app);
         let zip_path = dir.join("ffmpeg.zip.tmp");
-        let sums = fetch_text(&format!("{FFMPEG_RELEASE_BASE}/checksums.sha256")).await?;
+        let sums = fetch_text(app, &format!("{FFMPEG_RELEASE_BASE}/checksums.sha256")).await?;
         let actual = fetch_to_file(
             app,
             &format!("{FFMPEG_RELEASE_BASE}/{FFMPEG_ZIP_NAME}"),
@@ -1293,6 +1312,24 @@ mod tests {
         assert!(verify_sha256("tool", &path, HASH, &sums, "tool.exe").is_ok());
         assert!(path.exists());
         let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn error_chain_appends_each_cause_once() {
+        #[derive(Debug)]
+        struct Outer(std::io::Error);
+        impl std::fmt::Display for Outer {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "error sending request")
+            }
+        }
+        impl std::error::Error for Outer {
+            fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                Some(&self.0)
+            }
+        }
+        let e = Outer(std::io::Error::new(std::io::ErrorKind::ConnectionReset, "connection reset"));
+        assert_eq!(error_chain(&e), "error sending request: connection reset");
     }
 
     #[test]

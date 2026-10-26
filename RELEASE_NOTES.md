@@ -1,13 +1,17 @@
-Install the video tool right where you need it, and see what's new after every update.
+Select All now only picks what you can see, Stop really stops a playlist, and finished downloads are easier to tidy up.
 
-**Improvements**
+**Fixes**
 
-- New to Apex? A short welcome on first launch shows three things that are easy to miss: catching downloads from your browser, grabbing videos, and Auto-organize.
-- After an update, Apex now shows what changed, once. If you'd rather not see it, tick "Don't show this after future updates", or turn it off in Settings > Updates.
-- Grab Video can now install yt-dlp itself, with progress, instead of sending you to Settings. A video handed over from your browser is analyzed as soon as the install finishes.
-- The Auto-organize folders in Settings are now always visible, so it's easier to see that each category (Video, Music, Programs and more) can have its own folder and extra file types.
-- If your antivirus holds yt-dlp or FFmpeg for a scan, Apex now suggests waiting a minute before checking the quarantine, since the file often comes back on its own.
+- Select All (and Ctrl+A) now selects only the downloads shown in the current tab, type filter and search. Before, it selected every download, so deleting from the Completed tab could also delete active ones. Changing tab or search now clears the selection too.
+- Stopping a playlist while it's being queued now really stops it. The button reads Stop, videos already added stay in your list, and you can remove them in one click if you didn't want any.
+- The "Download link copied" popup no longer reappears for a link you copied earlier, for example when Apex starts or when you close your browser.
+- Installing or updating yt-dlp and FFmpeg now uses your proxy setting, and a failed install says why.
+
+**New**
+
+- Optionally remove downloads from the list as soon as they finish, in Settings > Finished downloads. Only the list entry goes, never the file.
+- Finished downloads whose file was moved or deleted now show "File missing", and the status bar offers to remove them all at once. Files on an unplugged drive are left alone.
 
 **Under the hood**
 
-- Updated Tauri and the libraries Apex is built on, including the updater.
+- Updated Tauri and the libraries Apex is built on.

@@ -50,7 +50,7 @@ export function DashboardPage() {
                       <ProgressCell progress={d.progress} status={d.status} />
                     </div>
                     <div className="w-24 shrink-0">
-                      <StatusBadge status={d.status} />
+                      <StatusBadge status={d.status} id={d.id} />
                     </div>
                   </div>
                 ))}

@@ -131,7 +131,7 @@ const DEFAULT_UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 /// yet - its store fills lazily, only when schannel first needs a root, so a
 /// site on a newer root (aimp.ru, GlobalSign R46) failed until the browser
 /// happened to pull it in.
-fn build_client(proxy_url: &str) -> Result<reqwest::Client, String> {
+pub(crate) fn build_client(proxy_url: &str) -> Result<reqwest::Client, String> {
     let mut builder = reqwest::Client::builder()
         .user_agent(DEFAULT_UA)
         .use_rustls_tls()
@@ -829,6 +829,20 @@ impl DownloadManager {
         Ok(())
     }
 
+    /// Completed downloads whose file is no longer there (#33), for a
+    /// "File missing" marker. Only counted when the folder itself still
+    /// exists: an unplugged USB drive or offline network share makes the
+    /// file *unreachable*, not gone, and those entries must not be offered
+    /// for removal. Reads the filesystem only.
+    pub fn missing_files(&self) -> Result<Vec<String>, String> {
+        Ok(self
+            .list()?
+            .into_iter()
+            .filter(|d| d.status == DownloadStatus::Completed && file_is_missing(d))
+            .map(|d| d.id)
+            .collect())
+    }
+
     pub fn open_file(&self, id: &str) -> Result<(), String> {
         let d = self
             .db
@@ -1110,6 +1124,12 @@ async fn run_download(ctx: TaskCtx, mgr: DownloadManager, mut d: Download) {
         d.modified_at = now_millis();
         let _ = ctx.db.lock().unwrap().upsert_download(&d);
         let _ = ctx.app.emit(EVENT_CHANGED, &d);
+        // Optional tidy-up (#33): drop the finished entry, never the file.
+        if d.status == DownloadStatus::Completed && ctx.settings.lock().unwrap().remove_completed {
+            if ctx.db.lock().unwrap().remove_download(&d.id).is_ok() {
+                let _ = ctx.app.emit(EVENT_REMOVED, d.id.clone());
+            }
+        }
     }
 
     // Deregister (remove()/restart() may have already taken the entry).
@@ -2032,6 +2052,11 @@ impl RateLimiter {
 }
 
 // ---------- path & name helpers ----------
+
+/// The download's folder is reachable but its file is not there.
+fn file_is_missing(d: &Download) -> bool {
+    !d.save_path.trim().is_empty() && Path::new(&d.save_path).is_dir() && !final_path(d).exists()
+}
 
 pub fn final_path(d: &Download) -> PathBuf {
     Path::new(&d.save_path).join(&d.name)
