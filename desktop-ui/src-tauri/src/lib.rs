@@ -380,6 +380,7 @@ pub fn run() {
             commands::resume_all,
             commands::retry_failed,
             commands::missing_files,
+            commands::updater_enabled,
             commands::open_download,
             commands::show_in_folder,
             commands::get_settings,

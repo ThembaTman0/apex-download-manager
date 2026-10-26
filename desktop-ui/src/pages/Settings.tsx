@@ -540,8 +540,10 @@ function AppUpdatesSection() {
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showWhatsNew, setShowWhatsNewState] = useState(getShowWhatsNew);
+  const [selfUpdates, setSelfUpdates] = useState(true);
 
   useEffect(() => {
+    backend.updaterEnabled().then(setSelfUpdates).catch(() => {});
     import("@tauri-apps/api/app")
       .then(({ getVersion }) => getVersion())
       .then(setVersion)
@@ -602,10 +604,12 @@ function AppUpdatesSection() {
         Updates
       </h2>
       <p className="text-[11px] text-ink-muted mb-4 leading-relaxed">
-        Apex {version ? `v${version}` : ""}. Updates are downloaded from GitHub
-        Releases and verified before installing.
+        Apex {version ? `v${version}` : ""}.{" "}
+        {selfUpdates
+          ? "Updates are downloaded from GitHub Releases and verified before installing."
+          : "This copy is updated by your package manager."}
       </p>
-      <div className="flex items-center gap-3 mb-5">
+      <div className={selfUpdates ? "flex items-center gap-3 mb-5" : "hidden"}>
         <button
           onClick={available ? installNow : checkNow}
           disabled={state === "checking" || state === "installing"}

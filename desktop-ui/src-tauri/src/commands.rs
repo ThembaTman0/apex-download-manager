@@ -279,6 +279,17 @@ pub async fn missing_files(mgr: State<'_, DownloadManager>) -> Result<Vec<String
     mgr.missing_files()
 }
 
+/// Whether this copy may update itself. Distro packages (AUR) are built with
+/// APEX_DISABLE_UPDATER set and are updated by the package manager, and on
+/// Linux only an AppImage can replace itself (a .deb install cannot).
+#[tauri::command]
+pub fn updater_enabled() -> bool {
+    if option_env!("APEX_DISABLE_UPDATER").is_some_and(|v| !v.is_empty()) {
+        return false;
+    }
+    cfg!(not(target_os = "linux")) || std::env::var_os("APPIMAGE").is_some()
+}
+
 /// Resume every failed download, and only those. Distinct from `resume_all`:
 /// after a network drop the user wants the casualties retried without
 /// un-pausing the downloads they stopped on purpose.

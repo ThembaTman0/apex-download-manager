@@ -56,6 +56,7 @@ export default function App() {
   useEffect(() => {
     const quietCheck = async () => {
       try {
+        if (!(await backend.updaterEnabled())) return;
         const { check } = await import("@tauri-apps/plugin-updater");
         const update = await check();
         if (update) {
