@@ -204,7 +204,7 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
     }, 60_000);
   },
 
-  setSearchQuery: (q) => set({ searchQuery: q }),
+  setSearchQuery: (q) => set({ searchQuery: q, selectedIds: new Set() }),
   setActiveNav: (nav) => set({ activeNav: nav }),
   setAddDialogOpen: (open) =>
     set((s) => ({
@@ -224,8 +224,8 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
   setScheduleTarget: (d) => set({ scheduleTarget: d }),
   setChecksumTarget: (d) => set({ checksumTarget: d }),
   setDetailsId: (id) => set({ detailsId: id }),
-  setStatusFilter: (f) => set({ statusFilter: f }),
-  setCategoryFilter: (f) => set({ categoryFilter: f }),
+  setStatusFilter: (f) => set({ statusFilter: f, selectedIds: new Set() }),
+  setCategoryFilter: (f) => set({ categoryFilter: f, selectedIds: new Set() }),
   setQueueEmptyAction: (a) => set({ queueEmptyAction: a }),
 
   scheduleDownload: async (id, startAt) => {
@@ -271,8 +271,13 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
 
   selectOnly: (id) => set({ selectedIds: new Set([id]) }),
 
+  // Only what the current tab, type and search show (#38).
   selectAll: () =>
-    set((s) => ({ selectedIds: new Set(s.downloads.map((d) => d.id)) })),
+    set((s) => ({
+      selectedIds: new Set(
+        filterDownloads(s.downloads, { ...s, categoryRules: s.settings?.categoryRules }).map((d) => d.id)
+      ),
+    })),
 
   clearSelection: () => set({ selectedIds: new Set() }),
 
@@ -427,37 +432,51 @@ export const useFilteredDownloads = (): Download[] => {
   const statusFilter = useDownloadsStore((s) => s.statusFilter);
   const categoryFilter = useDownloadsStore((s) => s.categoryFilter);
   const categoryRules = useDownloadsStore((s) => s.settings?.categoryRules);
-  return useMemo(() => {
-    const q = searchQuery.toLowerCase();
-    return downloads.filter((d) => {
-      if (q && !d.name.toLowerCase().includes(q) && !d.url.toLowerCase().includes(q)) {
-        return false;
-      }
-      if (statusFilter === "active") {
-        const scheduledForLater =
-          d.status === "queued" && d.startAt && d.startAt > Date.now();
-        if (
-          scheduledForLater ||
-          !["downloading", "queued", "merging", "paused"].includes(d.status)
-        ) {
-          return false;
-        }
-      }
-      if (statusFilter === "completed" && d.status !== "completed") return false;
-      if (statusFilter === "failed" && d.status !== "failed") return false;
-      if (
-        statusFilter === "scheduled" &&
-        !(d.status === "queued" && d.startAt && d.startAt > Date.now())
-      ) {
-        return false;
-      }
-      if (
-        categoryFilter !== "all" &&
-        categoryForType(d.type, categoryRules) !== categoryFilter
-      ) {
-        return false;
-      }
-      return true;
-    });
-  }, [downloads, searchQuery, statusFilter, categoryFilter, categoryRules]);
+  return useMemo(
+    () => filterDownloads(downloads, { searchQuery, statusFilter, categoryFilter, categoryRules }),
+    [downloads, searchQuery, statusFilter, categoryFilter, categoryRules]
+  );
 };
+
+/** The rows the downloads list shows for the current tab, type and search.
+ *  Shared by the table and selectAll, so "select all" can never reach a
+ *  download the user can't see (#38). */
+export function filterDownloads(
+  downloads: Download[],
+  f: Pick<DownloadsState, "searchQuery" | "statusFilter" | "categoryFilter"> & {
+    categoryRules: Parameters<typeof categoryForType>[1];
+  }
+): Download[] {
+  const { searchQuery, statusFilter, categoryFilter, categoryRules } = f;
+  const q = searchQuery.toLowerCase();
+  return downloads.filter((d) => {
+    if (q && !d.name.toLowerCase().includes(q) && !d.url.toLowerCase().includes(q)) {
+      return false;
+    }
+    if (statusFilter === "active") {
+      const scheduledForLater =
+        d.status === "queued" && d.startAt && d.startAt > Date.now();
+      if (
+        scheduledForLater ||
+        !["downloading", "queued", "merging", "paused"].includes(d.status)
+      ) {
+        return false;
+      }
+    }
+    if (statusFilter === "completed" && d.status !== "completed") return false;
+    if (statusFilter === "failed" && d.status !== "failed") return false;
+    if (
+      statusFilter === "scheduled" &&
+      !(d.status === "queued" && d.startAt && d.startAt > Date.now())
+    ) {
+      return false;
+    }
+    if (
+      categoryFilter !== "all" &&
+      categoryForType(d.type, categoryRules) !== categoryFilter
+    ) {
+      return false;
+    }
+    return true;
+  });
+}
