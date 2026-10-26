@@ -66,8 +66,19 @@ fn command(program: &Path) -> tokio::process::Command {
     cmd.stdin(Stdio::null());
     #[cfg(windows)]
     cmd.creation_flags(CREATE_NO_WINDOW);
+    // The AppImage runtime points these at its bundled libraries, and the
+    // system Python inside yt-dlp then dies with <no-python-frame>.
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("APPIMAGE").is_some() {
+        for var in APPIMAGE_LEAKED_ENV {
+            cmd.env_remove(var);
+        }
+    }
     cmd
 }
+
+#[cfg(target_os = "linux")]
+const APPIMAGE_LEAKED_ENV: [&str; 3] = ["LD_LIBRARY_PATH", "PYTHONHOME", "PYTHONPATH"];
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
