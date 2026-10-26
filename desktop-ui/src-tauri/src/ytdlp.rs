@@ -5,6 +5,10 @@
 //! live in `<app-data>/tools/`. They can also be picked up from PATH if the
 //! user already has them installed.
 
+// The one-click yt-dlp/FFmpeg installers are Windows-only for now, so on
+// other platforms their download and checksum helpers go unused.
+#![cfg_attr(not(windows), allow(dead_code))]
+
 use crate::engine::{TaskCtx, EVENT_CHANGED};
 use crate::models::{file_type_from_name, now_millis, Download};
 use futures_util::StreamExt;
