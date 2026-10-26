@@ -24,7 +24,7 @@ export default function DownloadCta() {
           <h2 id="download-title" className="section-title">
             Get Apex.
             <br />
-            <span className="muted">Free for Windows 10 and 11.</span>
+            <span className="muted">Free for Windows and Linux.</span>
           </h2>
           <div className="cta-side">
             <a className="btn btn-primary" href="/dl">
@@ -32,14 +32,18 @@ export default function DownloadCta() {
               Download for Windows
             </a>
             <p className="cta-meta mono">
-              v{version ?? FALLBACK_VERSION} · {sizeMb ?? FALLBACK_SIZE_MB} MB · x64 installer
+              v{version ?? FALLBACK_VERSION} · {sizeMb ?? FALLBACK_SIZE_MB} MB · Windows 10/11 x64 installer
+            </p>
+            <p className="cta-meta mono">
+              Linux: <a className="text-link" href="/dl?os=linux">AppImage</a> ·{" "}
+              <a className="text-link" href="/dl?os=deb">.deb</a> (x64)
             </p>
             <p className="cta-note">
               Pair the browser extension from Apex Settings, then downloads you
               click are caught automatically.
             </p>
             <p className="cta-note">
-              The installer is not code-signed yet, so Windows shows a
+              The Windows installer is not code-signed yet, so Windows shows a
               SmartScreen prompt on first run. Check the SHA-256 below against
               your download, or build from source.{" "}
               <a

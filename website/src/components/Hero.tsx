@@ -20,7 +20,7 @@ export default function Hero() {
     <section className="hero" id="top" aria-labelledby="hero-title">
       <div className="container">
         <Reveal>
-          <h1 id="hero-title">A free, open source download manager for Windows</h1>
+          <h1 id="hero-title">A free, open source download manager for Windows and Linux</h1>
         </Reveal>
         <Reveal delay={60}>
           <p className="hero-sub">
@@ -37,6 +37,10 @@ export default function Hero() {
             </a>
             <span className="hero-meta mono">
               v{shownVersion} · {sizeMb ?? FALLBACK_SIZE_MB} MB · Windows 10/11 x64 · GPL v3
+            </span>
+            <span className="hero-meta mono">
+              Linux: <a className="text-link" href="/dl?os=linux">AppImage</a> ·{" "}
+              <a className="text-link" href="/dl?os=deb">.deb</a>
             </span>
             <a
               className="hero-new"

@@ -1,5 +1,6 @@
 // GET /dl (rewritten from /dl via vercel.json): bumps anonymous counters,
-// then 302s to the latest Windows installer on GitHub Releases. No IP,
+// then 302s to the latest installer on GitHub Releases: Windows by default,
+// ?os=linux for the AppImage, ?os=deb for the .deb. No IP,
 // country, or any other request data is read or stored; the desktop app
 // itself stays telemetry-free.
 //
@@ -23,13 +24,37 @@
 const REPO = "ThembaTman0/apex-download-manager-releases";
 const ASSET_CACHE_TTL_MS = 5 * 60 * 1000;
 
+// Which asset each ?os= value gets, best match first. No parameter means
+// Windows, so every /dl link written before Linux builds keeps working.
+const ASSET_PATTERNS = {
+  windows: [/x64-setup\.exe$/i, /\.exe$/i, /\.msi$/i],
+  linux: [/\.AppImage$/i],
+  deb: [/\.deb$/i],
+};
+
 // Warm-lambda cache so we don't hit the GitHub API on every click
 // (unauthenticated rate limits are shared across Vercel's egress IPs).
-let cached = { url: null, version: null, at: 0 };
+let cached = { release: null, at: 0 };
 
-async function resolveInstaller() {
-  if (cached.url && Date.now() - cached.at < ASSET_CACHE_TTL_MS) {
-    return cached;
+async function resolveInstaller(os) {
+  const release = await latestRelease();
+  const assets = release.assets || [];
+  const patterns = ASSET_PATTERNS[os] || ASSET_PATTERNS.windows;
+  let installer = null;
+  for (const p of patterns) {
+    installer = assets.find((a) => p.test(a.name));
+    if (installer) break;
+  }
+  if (!installer) throw new Error(`No ${os} asset found on latest release`);
+  return {
+    url: installer.browser_download_url,
+    version: (release.tag_name || "").replace(/^v/, "") || null,
+  };
+}
+
+async function latestRelease() {
+  if (cached.release && Date.now() - cached.at < ASSET_CACHE_TTL_MS) {
+    return cached.release;
   }
 
   const headers = {
@@ -46,20 +71,8 @@ async function resolveInstaller() {
   });
   if (!res.ok) throw new Error(`GitHub API ${res.status}`);
   const release = await res.json();
-
-  const assets = release.assets || [];
-  const installer =
-    assets.find((a) => /x64-setup\.exe$/i.test(a.name)) ||
-    assets.find((a) => /\.exe$/i.test(a.name)) ||
-    assets.find((a) => /\.msi$/i.test(a.name));
-  if (!installer) throw new Error("No installer asset found on latest release");
-
-  cached = {
-    url: installer.browser_download_url,
-    version: (release.tag_name || "").replace(/^v/, "") || null,
-    at: Date.now(),
-  };
-  return cached;
+  cached = { release, at: Date.now() };
+  return release;
 }
 
 async function recordDownload(version) {
@@ -96,7 +109,8 @@ export default async function handler(req, res) {
   let target = null;
   let version = null;
   try {
-    ({ url: target, version } = await resolveInstaller());
+    const os = String(req.query?.os || "windows").toLowerCase();
+    ({ url: target, version } = await resolveInstaller(os));
   } catch {
     // No release yet, rate-limited, or GitHub is down: fall back below.
   }
