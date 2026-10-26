@@ -29,6 +29,29 @@ struct AddRequest {
 
 const FORWARDABLE_HEADERS: [&str; 3] = ["cookie", "referer", "user-agent"];
 
+pub const EVENT_EXTENSION_PAIRED: &str = "extension:paired";
+
+/// Whether an extension has paired, or shown the current token, since Apex
+/// started. Drives the "Paired" status on the welcome screen; in memory
+/// only, so it says nothing about extensions that stay quiet.
+static EXTENSION_PAIRED: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
+pub fn extension_paired() -> bool {
+    EXTENSION_PAIRED.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// A regenerated token unpairs every extension until it pairs again.
+pub fn forget_extension_pairing() {
+    EXTENSION_PAIRED.store(false, std::sync::atomic::Ordering::Relaxed);
+}
+
+fn mark_extension_paired(app: &AppHandle) {
+    if !EXTENSION_PAIRED.swap(true, std::sync::atomic::Ordering::Relaxed) {
+        let _ = app.emit(EVENT_EXTENSION_PAIRED, ());
+    }
+}
+
 pub fn start(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         let port = app.state::<DownloadManager>().get_settings().capture_port;
@@ -145,6 +168,9 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
             } else {
                 let current = app.state::<DownloadManager>().get_settings().capture_token;
                 let valid = !current.is_empty() && ct_eq(&token, &current);
+                if valid && is_extension {
+                    mark_extension_paired(&app);
+                }
                 format!(
                     r#"{{"ok":true,"app":"apex-download-manager","tokenValid":{valid}}}"#
                 )
@@ -212,6 +238,7 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
                 return respond(&mut stream, 403, r#"{"ok":false,"error":"denied"}"#, cors).await;
             }
             let token = app.state::<DownloadManager>().get_settings().capture_token;
+            mark_extension_paired(&app);
             let reply = format!(
                 r#"{{"ok":true,"token":{}}}"#,
                 serde_json::to_string(&token).unwrap_or_default()
@@ -254,6 +281,7 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
                 return respond(&mut stream, 401, r#"{"ok":false,"error":"bad token"}"#, cors)
                     .await;
             }
+            mark_extension_paired(&app);
             let req: AddRequest = match serde_json::from_slice(&body) {
                 Ok(r) => r,
                 Err(_) => {

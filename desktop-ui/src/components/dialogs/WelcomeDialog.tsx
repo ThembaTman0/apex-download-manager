@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "framer-motion";
-import { Clapperboard, FolderTree, Globe, PartyPopper, Sparkles, X } from "lucide-react";
+import { Check, Clapperboard, FolderTree, Globe, PartyPopper, Sparkles, X } from "lucide-react";
+import { backend } from "@/services/backend";
 import { useDownloadsStore } from "@/stores/downloadsStore";
 import { getShowWhatsNew, setShowWhatsNew } from "@/lib/whatsNew";
 // The notes for the version being built, bundled so "What's new" works
@@ -110,6 +111,30 @@ function Notes({ text }: { text: string }) {
  * update gets that version's release notes. Nothing leaves the device: the
  * last-seen version lives in the webview's local storage.
  */
+/** Live "is an extension paired?" line; flips when Apex hears from one. */
+function PairingStatus() {
+  const [paired, setPaired] = useState(false);
+
+  useEffect(() => {
+    backend.extensionPaired().then(setPaired).catch(() => {});
+    let unlisten: (() => void) | undefined;
+    backend.onExtensionPaired(() => setPaired(true)).then((fn) => (unlisten = fn));
+    return () => unlisten?.();
+  }, []);
+
+  return paired ? (
+    <p className="text-xs text-success flex items-center gap-1.5 mb-3">
+      <Check className="w-3.5 h-3.5" />
+      Paired with your browser
+    </p>
+  ) : (
+    <p className="text-xs text-ink-muted flex items-center gap-1.5 mb-3">
+      <span className="w-1.5 h-1.5 rounded-full bg-ink-muted/60" />
+      Not paired yet
+    </p>
+  );
+}
+
 export function WelcomeDialog() {
   const loaded = useDownloadsStore((s) => s.settings !== null);
   const hasDownloads = useDownloadsStore((s) => s.downloads.length > 0);
@@ -210,9 +235,11 @@ export function WelcomeDialog() {
                         Catch downloads from your browser
                       </p>
                       <p className="text-xs text-ink-muted leading-relaxed mb-3">
-                        Add the free extension, then click "Pair with Apex app" in it.
-                        Downloads you start in the browser come straight to Apex.
+                        Add the free extension, click "Pair with Apex app" in it, then
+                        press Allow here. Downloads you start in the browser come
+                        straight to Apex.
                       </p>
+                      <PairingStatus />
                       <div className="flex flex-wrap gap-2">
                         {STORES.map((s) => (
                           <button

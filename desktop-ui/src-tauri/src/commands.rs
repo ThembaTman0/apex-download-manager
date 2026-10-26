@@ -126,7 +126,13 @@ pub async fn regenerate_capture_token(
 ) -> Result<Settings, String> {
     let mut s = mgr.get_settings();
     s.capture_token = uuid::Uuid::new_v4().simple().to_string();
+    crate::capture::forget_extension_pairing();
     mgr.update_settings(s)
+}
+
+#[tauri::command]
+pub fn extension_paired() -> bool {
+    crate::capture::extension_paired()
 }
 
 #[tauri::command]

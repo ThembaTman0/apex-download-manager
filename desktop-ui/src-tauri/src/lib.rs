@@ -381,6 +381,7 @@ pub fn run() {
             commands::retry_failed,
             commands::missing_files,
             commands::updater_enabled,
+            commands::extension_paired,
             commands::open_download,
             commands::show_in_folder,
             commands::get_settings,
