@@ -237,10 +237,40 @@ function isDuplicateSend(url, fileName) {
   return dup;
 }
 
-// A download whose startTime is this far in the past was not started by a
-// click just now - it's an entry the browser restored from a previous
-// session (shutdown-interrupted downloads auto-resume at launch).
+// When this browser session began: stamped by the first service-worker boot
+// of the session (storage.session is wiped when the browser closes, so later
+// worker restarts keep the first stamp). A download that started before it
+// was revived from an earlier session, however quickly the browser was
+// reopened. Stamped here rather than in onStartup, which can fire after the
+// revived download's own event.
+const sessionStartReady = (async () => {
+  if (!chrome.storage.session) return null;
+  try {
+    const { sessionStart } = await chrome.storage.session.get("sessionStart");
+    if (sessionStart) return sessionStart;
+    const now = Date.now();
+    await chrome.storage.session.set({ sessionStart: now });
+    return now;
+  } catch {
+    return null;
+  }
+})();
+
+// A click can wake the worker a moment after its download was created, so
+// only a start clearly before the session counts as revived.
+const SESSION_START_SLACK_MS = 2_000;
+
+// Fallback when storage.session is unavailable: a download whose startTime is
+// this far in the past was not started by a click just now.
 const RESTORED_AGE_MS = 60_000;
+
+async function isRevived(item) {
+  const started = item.startTime ? Date.parse(item.startTime) : NaN;
+  if (Number.isNaN(started)) return false;
+  const sessionStart = await sessionStartReady;
+  if (sessionStart) return started < sessionStart - SESSION_START_SLACK_MS;
+  return Date.now() - started > RESTORED_AGE_MS;
+}
 
 async function captureDownload(item) {
   await configReady;
@@ -256,9 +286,7 @@ async function captureDownload(item) {
   // whose erase didn't land before the browser closed (the startup sweep can
   // lose the race with this event), so erase it here. Otherwise it was the
   // browser's own download, and it finishes in the browser, untouched.
-  const isRestored =
-    !!item.startTime && Date.now() - Date.parse(item.startTime) > RESTORED_AGE_MS;
-  if (isRestored) {
+  if (await isRevived(item)) {
     const { captured } = await chrome.storage.local.get({ captured: {} });
     if (captured[url] || captured[item.url]) cancelAndErase(item.id);
     return;
