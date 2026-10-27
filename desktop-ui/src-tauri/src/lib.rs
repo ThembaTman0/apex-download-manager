@@ -154,6 +154,61 @@ pub(crate) fn apply_autostart(app: &tauri::AppHandle, enabled: bool) {
     } else {
         autolaunch.disable()
     };
+    #[cfg(target_os = "linux")]
+    if enabled {
+        quote_linux_autostart_exec(app);
+    }
+}
+
+/// The autostart plugin writes `Exec=<path> --autostart` unquoted, and the
+/// AppImage's file name has spaces ("Apex Download Manager_1.1.0_amd64.AppImage"),
+/// so the session would try to run ".../Apex" and nothing starts. Rewrite the
+/// Exec line with the path quoted per the Desktop Entry spec.
+#[cfg(target_os = "linux")]
+fn quote_linux_autostart_exec(app: &tauri::AppHandle) {
+    let Some(home) = std::env::var_os("HOME") else {
+        return;
+    };
+    let file = std::path::Path::new(&home)
+        .join(".config/autostart")
+        .join(format!("{}.desktop", app.package_info().name));
+    let target = match std::env::var_os("APPIMAGE") {
+        Some(p) => std::path::PathBuf::from(p),
+        None => match std::env::current_exe() {
+            Ok(p) => p,
+            Err(_) => return,
+        },
+    };
+    let Ok(text) = std::fs::read_to_string(&file) else {
+        return;
+    };
+    let exec = format!("Exec={} --autostart", desktop_exec_arg(&target.to_string_lossy()));
+    let fixed: Vec<String> = text
+        .lines()
+        .map(|l| if l.starts_with("Exec=") { exec.clone() } else { l.to_string() })
+        .collect();
+    let _ = std::fs::write(&file, fixed.join("\n") + "\n");
+}
+
+/// One Exec argument, quoted per the Desktop Entry spec: inside double quotes
+/// `"`, `` ` ``, `$` and `\` take a backslash, then the value's own escaping
+/// doubles every backslash; `%` becomes `%%` so it isn't read as a field code.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+fn desktop_exec_arg(arg: &str) -> String {
+    let mut out = String::from("\"");
+    for c in arg.chars() {
+        match c {
+            '"' | '`' | '$' => {
+                out.push_str("\\\\");
+                out.push(c);
+            }
+            '\\' => out.push_str("\\\\\\\\"),
+            '%' => out.push_str("%%"),
+            _ => out.push(c),
+        }
+    }
+    out.push('"');
+    out
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -380,6 +435,8 @@ pub fn run() {
             commands::resume_all,
             commands::retry_failed,
             commands::missing_files,
+            commands::updater_enabled,
+            commands::extension_paired,
             commands::open_download,
             commands::show_in_folder,
             commands::get_settings,
@@ -408,6 +465,17 @@ pub fn run() {
 mod tests {
     use super::*;
     use models::{Download, DownloadStatus};
+
+    #[test]
+    fn desktop_exec_arg_quotes_spaces_and_escapes() {
+        assert_eq!(
+            desktop_exec_arg("/home/u/Apex Download Manager_1.1.0_amd64.AppImage"),
+            "\"/home/u/Apex Download Manager_1.1.0_amd64.AppImage\""
+        );
+        assert_eq!(desktop_exec_arg("/a/$b"), "\"/a/\\\\$b\"");
+        assert_eq!(desktop_exec_arg("/a/50%"), "\"/a/50%%\"");
+        assert_eq!(desktop_exec_arg("/a\\b"), "\"/a\\\\\\\\b\"");
+    }
 
     fn dl(status: DownloadStatus, size_bytes: u64, downloaded_bytes: u64) -> Download {
         Download {

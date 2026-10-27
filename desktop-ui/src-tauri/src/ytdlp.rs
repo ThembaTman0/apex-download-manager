@@ -5,6 +5,10 @@
 //! live in `<app-data>/tools/`. They can also be picked up from PATH if the
 //! user already has them installed.
 
+// The one-click yt-dlp/FFmpeg installers are Windows-only for now, so on
+// other platforms their download and checksum helpers go unused.
+#![cfg_attr(not(windows), allow(dead_code))]
+
 use crate::engine::{TaskCtx, EVENT_CHANGED};
 use crate::models::{file_type_from_name, now_millis, Download};
 use futures_util::StreamExt;
@@ -66,8 +70,19 @@ fn command(program: &Path) -> tokio::process::Command {
     cmd.stdin(Stdio::null());
     #[cfg(windows)]
     cmd.creation_flags(CREATE_NO_WINDOW);
+    // The AppImage runtime points these at its bundled libraries, and the
+    // system Python inside yt-dlp then dies with <no-python-frame>.
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("APPIMAGE").is_some() {
+        for var in APPIMAGE_LEAKED_ENV {
+            cmd.env_remove(var);
+        }
+    }
     cmd
 }
+
+#[cfg(target_os = "linux")]
+const APPIMAGE_LEAKED_ENV: [&str; 3] = ["LD_LIBRARY_PATH", "PYTHONHOME", "PYTHONPATH"];
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]

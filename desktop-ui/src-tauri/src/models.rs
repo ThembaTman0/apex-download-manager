@@ -414,6 +414,9 @@ mod tests {
         assert_eq!(s.folder_for_file("holiday.mp4"), under_downloads("Movies"));
     }
 
+    // Backslashes are path separators only on Windows; elsewhere they are
+    // ordinary filename characters, hence a variant per platform.
+    #[cfg(windows)]
     #[test]
     fn a_relative_rule_folder_cannot_climb_out() {
         let mut s = settings();
@@ -421,11 +424,28 @@ mod tests {
         assert_eq!(s.folder_for_file("holiday.mp4"), under_downloads("Video"));
     }
 
+    #[cfg(not(windows))]
+    #[test]
+    fn a_relative_rule_folder_cannot_climb_out() {
+        let mut s = settings();
+        s.category_rules = vec![rule("Video", "../../etc", &[])];
+        assert_eq!(s.folder_for_file("holiday.mp4"), under_downloads("Video"));
+    }
+
+    #[cfg(windows)]
     #[test]
     fn an_absolute_rule_folder_can_point_at_another_drive() {
         let mut s = settings();
         s.category_rules = vec![rule("Video", r"D:\Media\Films", &[])];
         assert_eq!(s.folder_for_file("holiday.mp4"), r"D:\Media\Films");
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn an_absolute_rule_folder_can_point_at_another_drive() {
+        let mut s = settings();
+        s.category_rules = vec![rule("Video", "/media/usb/Films", &[])];
+        assert_eq!(s.folder_for_file("holiday.mp4"), "/media/usb/Films");
     }
 
     #[test]

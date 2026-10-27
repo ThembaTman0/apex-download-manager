@@ -126,7 +126,13 @@ pub async fn regenerate_capture_token(
 ) -> Result<Settings, String> {
     let mut s = mgr.get_settings();
     s.capture_token = uuid::Uuid::new_v4().simple().to_string();
+    crate::capture::forget_extension_pairing();
     mgr.update_settings(s)
+}
+
+#[tauri::command]
+pub fn extension_paired() -> bool {
+    crate::capture::extension_paired()
 }
 
 #[tauri::command]
@@ -277,6 +283,17 @@ pub async fn resume_all(mgr: State<'_, DownloadManager>) -> Result<(), String> {
 #[tauri::command]
 pub async fn missing_files(mgr: State<'_, DownloadManager>) -> Result<Vec<String>, String> {
     mgr.missing_files()
+}
+
+/// Whether this copy may update itself. Distro packages (AUR) are built with
+/// APEX_DISABLE_UPDATER set and are updated by the package manager, and on
+/// Linux only an AppImage can replace itself (a .deb install cannot).
+#[tauri::command]
+pub fn updater_enabled() -> bool {
+    if option_env!("APEX_DISABLE_UPDATER").is_some_and(|v| !v.is_empty()) {
+        return false;
+    }
+    cfg!(not(target_os = "linux")) || std::env::var_os("APPIMAGE").is_some()
 }
 
 /// Resume every failed download, and only those. Distinct from `resume_all`:

@@ -18,6 +18,11 @@ import { SettingsPage } from "@/pages/Settings";
 import { backend } from "@/services/backend";
 import { useDownloadsStore } from "@/stores/downloadsStore";
 
+// WebKitGTK only shows a transparent window when the compositor plays along
+// (KDE often doesn't), and then the rounded corners sit on opaque squares.
+// Square corners are the native look on Linux anyway.
+const ROUNDED_WINDOW = !navigator.userAgent.includes("Linux");
+
 const pageMap: Record<string, React.ReactNode> = {
   dashboard: <DashboardPage />,
   downloads: <DownloadsPage />,
@@ -56,6 +61,7 @@ export default function App() {
   useEffect(() => {
     const quietCheck = async () => {
       try {
+        if (!(await backend.updaterEnabled())) return;
         const { check } = await import("@tauri-apps/plugin-updater");
         const update = await check();
         if (update) {
@@ -183,7 +189,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-bg overflow-hidden rounded-[10px]">
+    <div className={`flex flex-col h-screen bg-bg overflow-hidden ${ROUNDED_WINDOW ? "rounded-[10px]" : ""}`}>
       <TopBar />
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar column */}

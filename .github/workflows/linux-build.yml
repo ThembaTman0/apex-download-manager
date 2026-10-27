@@ -1,0 +1,60 @@
+# Build-only Linux check: compiles the app and bundles the AppImage + .deb
+# without publishing anything, and keeps them as a workflow artifact for
+# testers. Run by hand (Actions > Linux build > Run workflow) or on PRs that
+# touch the desktop app. Releases are built by release.yml.
+name: Linux build
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "desktop-ui/**"
+      - ".github/workflows/linux-build.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev \
+            libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop-ui/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+
+      - uses: swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          workspaces: desktop-ui/src-tauri
+
+      - name: Install frontend dependencies
+        working-directory: desktop-ui
+        run: npm ci
+
+      - name: Rust tests
+        working-directory: desktop-ui/src-tauri
+        run: cargo test
+
+      # No signing key here, so no updater artifacts.
+      - name: Build the AppImage and .deb
+        working-directory: desktop-ui
+        run: npx tauri build --bundles appimage,deb -c '{"bundle":{"createUpdaterArtifacts":false}}'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apex-linux
+          path: |
+            desktop-ui/src-tauri/target/release/bundle/appimage/*.AppImage
+            desktop-ui/src-tauri/target/release/bundle/deb/*.deb

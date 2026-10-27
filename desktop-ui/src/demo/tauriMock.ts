@@ -416,6 +416,8 @@ if (!("__TAURI_INTERNALS__" in window)) {
       }
     },
     missing_files: () => [],
+    updater_enabled: () => true,
+    extension_paired: () => false,
     retry_failed: () => {
       for (const d of state.values()) {
         if (d.status === "failed") {

@@ -1,6 +1,6 @@
 # Apex Download Manager
 
-**A free, open source download manager for Windows.**
+**A free, open source download manager for Windows and Linux.**
 
 A native Rust engine splits every download across up to 32 parallel connections
 and resumes from the exact byte after pauses, restarts and network drops, so a
@@ -9,7 +9,8 @@ telemetry, and every line is yours to read. GPL v3.
 
 > ⚡ Single native binary (Tauri v2 + Rust). No Electron, no JVM, no bloat.
 
-**[Download for Windows](https://apexdownloadmanager.com/dl)** · also on
+**[Download for Windows](https://apexdownloadmanager.com/dl)** ·
+**Linux: [AppImage](https://apexdownloadmanager.com/dl?os=linux), [.deb](https://apexdownloadmanager.com/dl?os=deb)** · also on
 [Chrome](https://chromewebstore.google.com/detail/apex-download-manager/gopdilekdjnfekbmhedjidlmaahnnhco),
 [Edge](https://microsoftedge.microsoft.com/addons/detail/apex-download-manager/bjpggfmgbhafacbcmhpncjaapdknohjg) and
 [Firefox](https://addons.mozilla.org/en-US/firefox/addon/apex-download-manager/) for browser capture ·
@@ -44,6 +45,18 @@ telemetry, and every line is yours to read. GPL v3.
 
 The winget package is waiting for approval and the Chocolatey package is not
 published yet; until they are, those two commands won't find Apex.
+
+**Linux (x64)**
+
+- **AppImage:** [download](https://apexdownloadmanager.com/dl?os=linux), make it
+  executable (`chmod +x`) and run it. It updates itself like the Windows app.
+- **.deb** (Debian, Ubuntu, Mint): [download](https://apexdownloadmanager.com/dl?os=deb)
+  and install with `sudo apt install ./Apex*.deb`. Updates come from new .deb
+  releases, not from inside the app.
+
+Video grabbing uses the `yt-dlp` (and optionally `ffmpeg`) from your system:
+install them with your package manager. Windows-only for now: Mark-of-the-Web
+tagging, taskbar progress and the one-click yt-dlp/FFmpeg install.
 
 ## Features
 
@@ -146,7 +159,7 @@ npm run tauri build    # produces MSI / NSIS installers
 - [x] Extension store publishing (Chrome Web Store / Edge Add-ons / AMO)
 - [x] Bandwidth scheduler (off-peak speed profiles)
 - [ ] Package managers: Scoop (own bucket, available now), winget (submitted, awaiting approval), Chocolatey (package ready, not yet published)
-- [ ] Linux build (considering; 👍 [#1](https://github.com/ThembaTman0/apex-download-manager/issues/1) if you want it)
+- [x] Linux build: AppImage and .deb (thanks to [@YofaGh](https://github.com/YofaGh) for testing, [#1](https://github.com/ThembaTman0/apex-download-manager/issues/1))
 
 ## Support Apex
 
