@@ -14,8 +14,9 @@
 // each of those resumes re-enters capture, fails to reach Apex, and gets
 // restarted in the browser, popping a Save As dialog with no user action at
 // every boot. Two defenses: a startup sweep erases leftover entries for URLs
-// Apex already owns, and a restored (old-startTime) download that can't reach
-// Apex is dropped with a notification instead of being handed back.
+// Apex already owns, and a restored (old-startTime) download is never sent to
+// Apex as a new one: a leftover Apex owns is erased, anything else is left to
+// finish in the browser.
 
 const DEFAULTS = { enabled: true, port: 43666, token: "", hideShelf: true };
 
@@ -241,39 +242,6 @@ function isDuplicateSend(url, fileName) {
 // session (shutdown-interrupted downloads auto-resume at launch).
 const RESTORED_AGE_MS = 60_000;
 
-// Chromium can restore several shutdown-interrupted downloads at once during
-// the brief window before Apex's capture server has bound to its port. A
-// notification per item stacks a wall of toasts at every boot; batch them
-// into a single summary instead.
-const RESTORED_DROP_BATCH_MS = 2_000;
-let restoredDropNames = [];
-let restoredDropTimer = null;
-
-function queueRestoredDropNotice(name) {
-  restoredDropNames.push(name);
-  if (restoredDropTimer) clearTimeout(restoredDropTimer);
-  restoredDropTimer = setTimeout(flushRestoredDropNotice, RESTORED_DROP_BATCH_MS);
-}
-
-function flushRestoredDropNotice() {
-  const names = restoredDropNames;
-  restoredDropNames = [];
-  restoredDropTimer = null;
-  if (!names.length) return;
-  const message =
-    names.length === 1
-      ? `Apex isn't running, so an unfinished download from a previous session was dismissed: ${names[0]}. Start it again once Apex is open.`
-      : `Apex isn't running, so ${names.length} unfinished downloads from previous sessions were dismissed: ${names
-          .slice(0, 3)
-          .join(", ")}${names.length > 3 ? ", …" : ""}. Start them again once Apex is open.`;
-  chrome.notifications.create({
-    type: "basic",
-    iconUrl: "icons/128.png",
-    title: "Apex Download Manager",
-    message,
-  });
-}
-
 async function captureDownload(item) {
   await configReady;
   if (!config.enabled || !config.token) return;
@@ -283,8 +251,18 @@ async function captureDownload(item) {
   if (url.startsWith(`http://127.0.0.1:${config.port}`)) return;
   if (handedBack.delete(url)) return;
 
+  // A download the browser revived from an earlier session, not a click just
+  // now: never prompt for it. If Apex already took it over, it is a leftover
+  // whose erase didn't land before the browser closed (the startup sweep can
+  // lose the race with this event), so erase it here. Otherwise it was the
+  // browser's own download, and it finishes in the browser, untouched.
   const isRestored =
     !!item.startTime && Date.now() - Date.parse(item.startTime) > RESTORED_AGE_MS;
+  if (isRestored) {
+    const { captured } = await chrome.storage.local.get({ captured: {} });
+    if (captured[url] || captured[item.url]) cancelAndErase(item.id);
+    return;
+  }
 
   // Take it away from the browser right away so its UI never settles in.
   cancelAndErase(item.id);
@@ -298,19 +276,6 @@ async function captureDownload(item) {
     rememberCaptured(url);
   } catch (e) {
     if (e && e.status === 401) notifyBadToken();
-    if (isRestored) {
-      if (e && e.status === 401) {
-        // Apex IS running - the drop notice's "Apex isn't running" wording
-        // would mislead; the bad-token toast above already says what to do.
-        return;
-      }
-      // A restored leftover and Apex is down (typical right after boot):
-      // handing it back would pop a Save As dialog with no user action at
-      // every browser launch. Drop it and say so instead - batched, so a
-      // boot with many leftovers surfaces one toast, not a stack of them.
-      queueRestoredDropNotice(basename(item.filename) || url);
-      return;
-    }
     // Apex unavailable - give the download back to the browser, with its UI
     // visible so the user can see it happening.
     forgetCaptured(url);
