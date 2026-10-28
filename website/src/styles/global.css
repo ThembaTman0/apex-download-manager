@@ -3057,6 +3057,11 @@ ol {
     padding: 0 18px;
   }
 
+  .checksum-compact {
+    min-height: 44px;
+    padding: 0 14px;
+  }
+
   .nav-links .btn-pill {
     height: 44px;
   }
@@ -3114,6 +3119,53 @@ ol {
 }
 
 /* Published installer checksum ----------------------------------------------- */
+
+/* The compact form sits with the hero's download button. The installer is
+   unsigned, so the hash belongs where someone decides to run it, not only at
+   the foot of the page. */
+.checksum-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 10px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  color: var(--text-3);
+  cursor: pointer;
+  transition:
+    border-color 0.16s var(--ease),
+    color 0.16s var(--ease),
+    transform 0.16s var(--ease);
+}
+
+.checksum-compact:hover {
+  border-color: var(--line-2);
+  color: var(--text-mute);
+}
+
+.checksum-compact:active {
+  transform: scale(0.97);
+  transition: transform 0.09s var(--ease);
+}
+
+.checksum-compact-label {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.checksum-compact-hash {
+  font-size: 11px;
+  color: var(--text-mute);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checksum-compact:active {
+    transform: none;
+  }
+}
 
 .checksum {
   margin-top: 28px;

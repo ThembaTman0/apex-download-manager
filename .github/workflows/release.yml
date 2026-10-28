@@ -270,3 +270,26 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "komac could not submit $version to winget-pkgs. Check that WINGET_TOKEN is a classic PAT with public_repo."
           }
+
+      # The website bakes the current version, size and SHA-256 into its HTML
+      # and its structured data at build time, and it only builds when the
+      # site repo is pushed. Without this, a release ships and the page keeps
+      # advertising the previous one to crawlers and to anyone with scripting
+      # off until the next unrelated commit.
+      #
+      # Optional, like the winget and Chocolatey steps: create a Deploy Hook
+      # in the Vercel project (Settings > Git > Deploy Hooks) and store the
+      # URL as VERCEL_DEPLOY_HOOK. Never fatal, because a stale page is not a
+      # reason to fail a release that already published.
+      - name: Rebuild the website so it advertises this version
+        continue-on-error: true
+        shell: pwsh
+        env:
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          if (-not $env:VERCEL_DEPLOY_HOOK) {
+            "::notice::VERCEL_DEPLOY_HOOK is not set, skipping the site rebuild."
+            exit 0
+          }
+          Invoke-RestMethod -Method Post -Uri $env:VERCEL_DEPLOY_HOOK | Out-Null
+          "::notice::Asked Vercel to rebuild the site for ${{ github.ref_name }}."
