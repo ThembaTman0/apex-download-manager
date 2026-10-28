@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { useLatestRelease } from "../lib/latestRelease";
+import {
+  FALLBACK_FILE_NAME,
+  FALLBACK_SHA256,
+  useLatestRelease,
+} from "../lib/latestRelease";
 import { CheckIcon, CopyIcon } from "./icons";
 
 /**
@@ -7,8 +11,13 @@ import { CheckIcon, CopyIcon } from "./icons";
  * hash on the page always describes the file /dl hands out. Hidden when the
  * API cannot answer: a stale hash would be worse than none.
  */
-export default function Checksum() {
-  const { sha256, fileName } = useLatestRelease();
+export default function Checksum({ compact = false }: { compact?: boolean }) {
+  const live = useLatestRelease();
+  // The build-time snapshot means the hash is in the served HTML too, so it
+  // is there for a reader with scripting off and for the first paint. The
+  // live value replaces it once /api/stats answers.
+  const sha256 = live.sha256 ?? FALLBACK_SHA256;
+  const fileName = live.fileName ?? FALLBACK_FILE_NAME;
   const [copied, setCopied] = useState(false);
 
   if (!sha256) return null;
@@ -22,6 +31,29 @@ export default function Checksum() {
       // Clipboard blocked: the hash is selectable on the page anyway.
     }
   };
+
+  // Beside the first download button, where the decision to run an unsigned
+  // installer is actually made. The full value lives at the foot of the page;
+  // here the ends are enough to check a copy against, and the whole hash is
+  // what the button puts on the clipboard.
+  if (compact) {
+    return (
+      <button
+        type="button"
+        className="checksum-compact"
+        onClick={copy}
+        aria-label={`Copy the installer's SHA-256 checksum, ${sha256}`}
+      >
+        <span className="checksum-compact-label mono">SHA-256</span>
+        <span className="checksum-compact-hash mono">
+          {sha256.slice(0, 8)}
+          <span aria-hidden="true">…</span>
+          {sha256.slice(-8)}
+        </span>
+        {copied ? <CheckIcon size={11} /> : <CopyIcon size={11} />}
+      </button>
+    );
+  }
 
   return (
     <div className="checksum">

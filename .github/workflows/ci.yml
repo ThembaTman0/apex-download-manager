@@ -1,0 +1,84 @@
+# Runs the checks that CLAUDE.md calls verification, on every push and pull
+# request, so "the tests pass" is something anyone can see rather than
+# something the author remembers doing.
+#
+# There is no frontend test suite and no linter; the type checker and the
+# build are the frontend's verification, and the Rust unit tests live inline
+# in the engine.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A second push to the same branch makes the first run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: Rust engine tests
+    # Windows, not because the tests are slower elsewhere but because the app
+    # is a Windows download manager: the crate pulls in Windows APIs and the
+    # Tauri Windows bundler.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: desktop-ui/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: desktop-ui/src-tauri
+
+      # tauri.conf.json points frontendDist at ../dist and the crate's build
+      # script reads it, so the frontend has to exist before cargo runs.
+      - name: Build the frontend the crate expects
+        working-directory: desktop-ui
+        run: |
+          npm ci
+          npm run build
+
+      - name: cargo test
+        working-directory: desktop-ui/src-tauri
+        run: cargo test --all-features
+
+  web:
+    name: Website and UI type checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Website build, including the prerender
+        working-directory: website
+        env:
+          # The build asks GitHub for the newest release to stamp the page.
+          # Without a token that call shares an IP with every other runner and
+          # gets rate limited; the build survives it, but the snapshot is then
+          # whatever was committed.
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          npm ci
+          npm run build
+
+      - name: Desktop UI type check and build
+        working-directory: desktop-ui
+        run: |
+          npm ci
+          npm run build

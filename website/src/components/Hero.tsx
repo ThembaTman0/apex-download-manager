@@ -7,6 +7,7 @@ import {
   useLatestRelease,
 } from "../lib/latestRelease";
 import AppMockup from "./AppMockup";
+import Checksum from "./Checksum";
 import CaptureCard from "./CaptureCard";
 import { ArrowRight, DownloadIcon } from "./icons";
 
@@ -38,6 +39,7 @@ export default function Hero() {
             <span className="hero-meta mono">
               v{shownVersion} · {sizeMb ?? FALLBACK_SIZE_MB} MB · Windows 10/11 x64 · GPL v3
             </span>
+            <Checksum compact />
             <a
               className="hero-new"
               href={latest?.url ?? RELEASES_URL}
