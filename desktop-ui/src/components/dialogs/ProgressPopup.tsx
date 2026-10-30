@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CircleCheck, Clock, Pause, Play, X } from "lucide-react";
+import { CircleCheck, Clock, FolderOpen, Pause, Play, X } from "lucide-react";
 import { backend } from "@/services/backend";
 import { cn, formatBytes, formatSpeed } from "@/lib/utils";
 import type { Download } from "@/types";
@@ -11,8 +11,6 @@ const AUTO_CLOSE_MS = 10_000;
 /** Speed samples kept for the chart: one every 2 s, so the last minute. */
 const SAMPLE_MS = 2_000;
 const SAMPLES = 30;
-/** A second click on Cancel within this window confirms it. */
-const CANCEL_CONFIRM_MS = 3_000;
 
 const isFinished = (d: Download) => d.status === "completed" || d.status === "failed";
 const isActive = (d: Download) => d.status === "downloading" || d.status === "queued";
@@ -210,12 +208,10 @@ function Bar({ d }: { d: Download }) {
 function IconButton({
   title,
   onClick,
-  danger,
   children,
 }: {
   title: string;
   onClick: () => void;
-  danger?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -223,31 +219,20 @@ function IconButton({
       onClick={onClick}
       title={title}
       aria-label={title}
-      className={cn(
-        "relative w-[26px] h-[26px] rounded-full border flex items-center justify-center transition-colors",
-        danger
-          ? "border-error/40 bg-error/15 text-error-soft"
-          : "border-white/[0.09] bg-white/[0.03] text-ink hover:bg-white/[0.08]"
-      )}
+      className="relative w-[26px] h-[26px] rounded-full border border-white/[0.09] bg-white/[0.03] text-ink hover:bg-white/[0.08] flex items-center justify-center transition-colors"
     >
       {children}
     </button>
   );
 }
 
-/** Pause/resume and a two-click cancel, shown while the pointer is over the
- * window (the parent's group hover). */
+/** Pause or resume, shown while the pointer is over the window (the parent's
+ * group hover). No cancel here on purpose: a stray click in a corner window
+ * must never cost a download; removing one stays in the main app. */
 function Controls({ d }: { d: Download }) {
-  const [arming, setArming] = useState(false);
-  useEffect(() => {
-    if (!arming) return;
-    const t = setTimeout(() => setArming(false), CANCEL_CONFIRM_MS);
-    return () => clearTimeout(t);
-  }, [arming]);
-
   if (isFinished(d)) return null;
   return (
-    <div className="flex gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+    <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
       {d.status === "paused" ? (
         <IconButton title="Resume" onClick={() => backend.resumeDownload(d.id).catch(() => {})}>
           <Play className="w-3 h-3" />
@@ -257,18 +242,14 @@ function Controls({ d }: { d: Download }) {
           <Pause className="w-3 h-3" />
         </IconButton>
       )}
-      <IconButton
-        title={arming ? "Click again to cancel the download" : "Cancel"}
-        danger={arming}
-        onClick={() =>
-          arming ? backend.removeDownload(d.id, true).catch(() => {}) : setArming(true)
-        }
-      >
-        <X className="w-3 h-3" />
-      </IconButton>
     </div>
   );
 }
+
+/** Right-hand columns of a list row, fixed width so every row's button and
+ * status line up whatever the text ("6%", "13%", "Waiting"). */
+const BUTTON_COL = "w-[26px] shrink-0 flex justify-center";
+const STATUS_COL = "w-[52px] shrink-0 text-right tabular-nums";
 
 function CloseButton({ onClose }: { onClose: () => void }) {
   return (
@@ -481,17 +462,16 @@ function ListRow({ d }: { d: Download }) {
         <span className="flex-1 min-w-0 truncate text-ink" title={d.name}>
           {d.name}
         </span>
+        <span className={BUTTON_COL}>
+          <IconButton title="Show in folder" onClick={() => backend.showInFolder(d.id).catch(() => {})}>
+            <FolderOpen className="w-3 h-3" />
+          </IconButton>
+        </span>
         <button
           onClick={() => backend.openDownload(d.id).catch(() => {})}
-          className="text-[12px] text-accent hover:underline"
+          className={cn(STATUS_COL, "text-accent hover:underline")}
         >
           Open
-        </button>
-        <button
-          onClick={() => backend.showInFolder(d.id).catch(() => {})}
-          className="text-[12px] text-accent hover:underline"
-        >
-          Show
         </button>
       </div>
     );
@@ -510,12 +490,11 @@ function ListRow({ d }: { d: Download }) {
         <span className="flex-1 min-w-0 truncate text-ink" title={d.error || d.name}>
           {d.name}
         </span>
-        <Controls d={d} />
+        <span className={BUTTON_COL}>
+          <Controls d={d} />
+        </span>
         <span
-          className={cn(
-            "tabular-nums shrink-0",
-            d.status === "failed" ? "text-error-soft" : "text-ink-muted"
-          )}
+          className={cn(STATUS_COL, d.status === "failed" ? "text-error-soft" : "text-ink-muted")}
         >
           {right}
         </span>
