@@ -222,7 +222,11 @@ pub async fn add_video(
     subtitle_lang: Option<String>,
 ) -> Result<Download, String> {
     let headers = hints.headers_for(url.trim());
-    mgr.add_video(url, title, ext, selector, save_dir, subtitle_lang, headers)
+    let d = mgr.add_video(url, title, ext, selector, save_dir, subtitle_lang, headers)?;
+    // Grabbed videos (usually from the extension) follow captures into the
+    // progress window.
+    mgr.track_progress(&d);
+    Ok(d)
 }
 
 #[tauri::command]

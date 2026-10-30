@@ -412,7 +412,7 @@ export function SettingsPage() {
               className="accent-accent w-4 h-4 disabled:opacity-40"
             />
             <span className="text-sm text-ink-mid disabled:opacity-40">
-              Show a progress window when a captured download starts
+              Show a progress window when a captured download or video starts
             </span>
           </label>
         </Field>
