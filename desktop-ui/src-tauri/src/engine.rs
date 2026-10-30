@@ -731,7 +731,10 @@ impl DownloadManager {
             .decorations(false)
             .always_on_top(true)
             .skip_taskbar(true)
-            .focused(false);
+            .focused(false)
+            // The card colour from the first frame: without it the webview
+            // shows white until React paints, a flash in the corner.
+            .background_color(tauri::window::Color(15, 19, 26, 255));
             // Bottom-right of the primary monitor's work area, clear of the
             // taskbar, like a notification.
             if let Ok(Some(mon)) = app.primary_monitor() {

@@ -30,10 +30,10 @@ function timeLeft(seconds: number): string {
   if (seconds <= 0) return "Working it out";
   if (seconds < 60) return "Under a minute left";
   const min = Math.round(seconds / 60);
-  if (min < 60) return `About ${min} min left`;
+  if (min < 60) return `${min} min left`;
   const h = Math.floor(min / 60);
   const m = min % 60;
-  return m ? `About ${h} h ${m} min left` : `About ${h} h left`;
+  return m ? `${h} h ${m} min left` : `${h} h left`;
 }
 
 /**
@@ -170,7 +170,7 @@ function AppLogo() {
 
 function Pill({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full border border-white/[0.09] bg-white/[0.03] text-[11.5px] text-ink-mid tabular-nums">
+    <span className="inline-flex items-center justify-center gap-1.5 h-6 px-2.5 rounded-full border border-white/[0.09] bg-white/[0.03] text-[11.5px] text-ink-mid tabular-nums">
       {children}
     </span>
   );
@@ -304,7 +304,7 @@ function SingleView({
         <Controls d={d} />
         <CloseButton onClose={onClose} />
       </div>
-      <div className="flex flex-wrap gap-1.5 mt-2.5">
+      <div className="grid grid-cols-2 w-fit gap-1.5 mt-2.5">
         <Pill>
           <ProgressRing paused={paused} />
           {paused ? "Paused" : d.status === "queued" ? "Waiting" : "Downloading"}
@@ -447,7 +447,7 @@ function ListView({ rows, onClose }: { rows: Download[]; onClose: () => void }) 
         <span className="flex-1 text-sm font-medium text-ink">Downloads</span>
         <CloseButton onClose={onClose} />
       </div>
-      <div className="flex flex-wrap gap-1.5 mt-2.5">
+      <div className="grid grid-cols-2 w-fit gap-1.5 mt-2.5">
         <Pill>
           <ProgressRing paused={active.length === 0} />
           {active.length > 0
