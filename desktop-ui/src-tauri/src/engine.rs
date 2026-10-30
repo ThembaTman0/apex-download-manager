@@ -112,6 +112,8 @@ pub struct DownloadManager {
     client: Arc<Mutex<reqwest::Client>>,
     /// Ordered so the approval window shows captures in arrival order.
     pending_captures: Arc<Mutex<Vec<PendingCapture>>>,
+    /// Downloads shown in the progress window, in the order they started.
+    progress_tracked: Arc<Mutex<Vec<String>>>,
 }
 
 /// Default User-Agent when the browser didn't supply its own (manual adds).
@@ -167,6 +169,7 @@ impl DownloadManager {
             task_limiters: Arc::new(Mutex::new(HashMap::new())),
             client: Arc::new(Mutex::new(client)),
             pending_captures: Arc::new(Mutex::new(Vec::new())),
+            progress_tracked: Arc::new(Mutex::new(Vec::new())),
         })
     }
 
@@ -180,6 +183,7 @@ impl DownloadManager {
             task_limiters: self.task_limiters.clone(),
             client: self.client.clone(),
             pending_captures: self.pending_captures.clone(),
+            progress_tracked: self.progress_tracked.clone(),
         }
     }
 
@@ -610,6 +614,77 @@ impl DownloadManager {
         });
     }
 
+    /// Show a browser capture that has started downloading in the progress
+    /// window (when the setting is on). The window picks rows up from
+    /// `progress:track` and keeps them current from `download:changed`.
+    pub fn track_progress(&self, d: &Download) {
+        if !self.get_settings().show_progress_window {
+            return;
+        }
+        {
+            let mut list = self.progress_tracked.lock().unwrap();
+            if !list.contains(&d.id) {
+                list.push(d.id.clone());
+            }
+        }
+        self.ensure_progress_window();
+        let _ = self.app.emit("progress:track", d.id.clone());
+    }
+
+    /// Ids in the progress window, oldest first, for a window that mounts
+    /// after the events it would have caught.
+    pub fn list_progress_tracked(&self) -> Vec<String> {
+        self.progress_tracked.lock().unwrap().clone()
+    }
+
+    /// The window was closed (by the user or after everything finished):
+    /// forget its rows so the next capture starts a fresh list.
+    pub fn dismiss_progress(&self) {
+        self.progress_tracked.lock().unwrap().clear();
+        if let Some(win) = self.app.get_webview_window("progress") {
+            let _ = win.hide();
+        }
+    }
+
+    fn ensure_progress_window(&self) {
+        // Shown without focus: the user just approved a download and is
+        // probably back in the browser, so this must not steal the keyboard.
+        if let Some(win) = self.app.get_webview_window("progress") {
+            let _ = win.show();
+            return;
+        }
+        let app = self.app.clone();
+        let _ = app.clone().run_on_main_thread(move || {
+            const W: f64 = 380.0;
+            const H: f64 = 160.0;
+            const MARGIN: f64 = 16.0;
+            let mut builder = tauri::WebviewWindowBuilder::new(
+                &app,
+                "progress",
+                tauri::WebviewUrl::App("index.html".into()),
+            )
+            .title("Apex: Download progress")
+            .inner_size(W, H)
+            .resizable(false)
+            .decorations(false)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .focused(false);
+            // Bottom-right of the primary monitor's work area, clear of the
+            // taskbar, like a notification.
+            if let Ok(Some(mon)) = app.primary_monitor() {
+                let scale = mon.scale_factor();
+                let area = mon.work_area();
+                let x = (area.position.x as f64 + area.size.width as f64) / scale - W - MARGIN;
+                let y = (area.position.y as f64 + area.size.height as f64) / scale - H - MARGIN;
+                builder = builder.position(x, y);
+            }
+            if let Ok(win) = builder.build() {
+                let _ = win.show();
+            }
+        });
+    }
+
     /// Captures currently waiting for approval, in arrival order.
     pub fn list_pending_captures(&self) -> Vec<CaptureView> {
         let mut list = self.pending_captures.lock().unwrap();
@@ -652,6 +727,7 @@ impl DownloadManager {
             .filter(|n| !n.trim().is_empty())
             .or(pending.file_name);
         let d = self.add(pending.url, save_dir, name, pending.request_headers)?;
+        self.track_progress(&d);
         Ok(Some(d))
     }
 

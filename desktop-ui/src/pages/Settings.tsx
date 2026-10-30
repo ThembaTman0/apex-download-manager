@@ -403,6 +403,18 @@ export function SettingsPage() {
               Ask me to approve each capture before it downloads
             </span>
           </label>
+          <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
+            <input
+              type="checkbox"
+              checked={form.showProgressWindow}
+              disabled={!form.captureEnabled}
+              onChange={(e) => update({ showProgressWindow: e.target.checked })}
+              className="accent-accent w-4 h-4 disabled:opacity-40"
+            />
+            <span className="text-sm text-ink-mid disabled:opacity-40">
+              Show a progress window when a captured download starts
+            </span>
+          </label>
         </Field>
 
         {form.captureAllowedHosts.length > 0 && (

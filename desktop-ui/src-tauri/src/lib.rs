@@ -167,9 +167,10 @@ pub fn run() {
                 show_main_window(app);
             }
         }))
-        // The capture prompt must NOT have its state restored: it manages its
-        // own size (auto-fits content) and visibility (Rust shows it per
-        // capture) - a session that ended with it hidden would otherwise
+        // The capture prompt (and the progress window, same rules) must NOT
+        // have its state restored: it manages its own size (auto-fits
+        // content) and visibility (Rust shows it per capture) - a session
+        // that ended with it hidden would otherwise
         // resurrect every future prompt invisible and mis-sized.
         //
         // VISIBLE is dropped from the flags for the same reason, for every
@@ -186,7 +187,7 @@ pub fn run() {
                     tauri_plugin_window_state::StateFlags::all()
                         & !tauri_plugin_window_state::StateFlags::VISIBLE,
                 )
-                .with_denylist(&["capture"])
+                .with_denylist(&["capture", "progress"])
                 .build(),
         )
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -392,6 +393,8 @@ pub fn run() {
             commands::disk_free,
             commands::resolve_capture,
             commands::list_pending_captures,
+            commands::list_progress_tracked,
+            commands::dismiss_progress,
             commands::ytdlp_status,
             commands::ytdlp_check_update,
             commands::install_ytdlp,

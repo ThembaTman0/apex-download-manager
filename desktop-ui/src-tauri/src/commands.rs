@@ -137,6 +137,17 @@ pub async fn list_pending_captures(
 }
 
 #[tauri::command]
+pub async fn list_progress_tracked(mgr: State<'_, DownloadManager>) -> Result<Vec<String>, String> {
+    Ok(mgr.list_progress_tracked())
+}
+
+#[tauri::command]
+pub async fn dismiss_progress(mgr: State<'_, DownloadManager>) -> Result<(), String> {
+    mgr.dismiss_progress();
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn resolve_capture(
     mgr: State<'_, DownloadManager>,
     id: String,

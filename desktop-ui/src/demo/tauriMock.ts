@@ -193,6 +193,7 @@ const demoSettings = {
   capturePort: 43666,
   captureToken: "demo",
   captureAllowedHosts: [],
+  showProgressWindow: true,
   launchAtStartup: false,
   schedulerEnabled: false,
   offpeakStartMin: 23 * 60,
@@ -324,6 +325,8 @@ if (!("__TAURI_INTERNALS__" in window)) {
       label: "C:",
     }),
     list_pending_captures: () => [],
+    list_progress_tracked: () => [],
+    dismiss_progress: () => undefined,
     ytdlp_status: () => ({ ...demoTools }),
     // Fake install so the "Install yt-dlp" buttons work in the demo: ~2s of
     // progress events, then yt-dlp reports as installed until a page reload.
