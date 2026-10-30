@@ -325,9 +325,13 @@ if (!("__TAURI_INTERNALS__" in window)) {
       label: "C:",
     }),
     list_pending_captures: () => [],
-    // One row of each kind so ?window=progress shows every state.
+    // One row of each kind so ?window=progress shows every state;
+    // &single shows the one-download view instead.
     list_progress_tracked: () =>
-      (["downloading", "paused", "completed"] as const)
+      (new URLSearchParams(location.search).has("single")
+        ? ["downloading"]
+        : ["downloading", "paused", "completed"]
+      )
         .map((s) => [...state.values()].find((d) => d.status === s)?.id)
         .filter(Boolean),
     dismiss_progress: () => undefined,
