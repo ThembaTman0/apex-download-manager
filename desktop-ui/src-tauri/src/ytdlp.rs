@@ -1147,13 +1147,13 @@ pub(crate) async fn drive_video(ctx: &TaskCtx, d: &mut Download) -> Result<bool,
             // audio); a new file resets downloaded_bytes. Accumulate phases so
             // the visible progress never jumps backwards.
             if downloaded < prev_downloaded {
-                phase_base += prev_downloaded;
+                phase_base = phase_base.saturating_add(prev_downloaded);
             }
             prev_downloaded = downloaded;
 
             let this_total = total.or(estimate).unwrap_or(0.0) as u64;
-            peak_total = peak_total.max(phase_base + this_total).max(whole);
-            d.downloaded_bytes = phase_base + downloaded;
+            peak_total = peak_total.max(phase_base.saturating_add(this_total)).max(whole);
+            d.downloaded_bytes = phase_base.saturating_add(downloaded);
             d.size_bytes = peak_total.max(d.downloaded_bytes);
             d.progress = if d.size_bytes > 0 {
                 (d.downloaded_bytes as f64 / d.size_bytes as f64 * 100.0).min(100.0)
