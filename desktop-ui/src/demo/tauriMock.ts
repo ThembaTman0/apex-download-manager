@@ -193,6 +193,7 @@ const demoSettings = {
   capturePort: 43666,
   captureToken: "demo",
   captureAllowedHosts: [],
+  showProgressWindow: true,
   launchAtStartup: false,
   schedulerEnabled: false,
   offpeakStartMin: 23 * 60,
@@ -324,6 +325,18 @@ if (!("__TAURI_INTERNALS__" in window)) {
       label: "C:",
     }),
     list_pending_captures: () => [],
+    // One row of each kind so ?window=progress shows every state;
+    // &single shows the one-download view instead.
+    list_progress_tracked: () =>
+      (new URLSearchParams(location.search).has("single")
+        ? ["downloading"]
+        : ["downloading", "paused", "completed"]
+      )
+        .map((s) => [...state.values()].find((d) => d.status === s)?.id)
+        .filter(Boolean),
+    dismiss_progress: () => undefined,
+    fit_progress_window: () => undefined,
+    open_main_window: () => undefined,
     ytdlp_status: () => ({ ...demoTools }),
     // Fake install so the "Install yt-dlp" buttons work in the demo: ~2s of
     // progress events, then yt-dlp reports as installed until a page reload.
@@ -501,10 +514,12 @@ if (!("__TAURI_INTERNALS__" in window)) {
     execute_queue_action: () => null,
   };
 
+  // ?window=capture or ?window=progress renders that popup window instead.
+  const label = new URLSearchParams(location.search).get("window") || "main";
   (window as any).__TAURI_INTERNALS__ = {
     metadata: {
-      currentWindow: { label: "main" },
-      currentWebview: { label: "main", windowLabel: "main" },
+      currentWindow: { label },
+      currentWebview: { label, windowLabel: label },
     },
     transformCallback(cb?: (r: unknown) => void) {
       const id = ++callbackId;
@@ -524,6 +539,11 @@ if (!("__TAURI_INTERNALS__" in window)) {
       if (cmd in commands) return commands[cmd](args);
       return null;
     },
+  };
+  // unlisten() calls this before the unlisten command; without it every
+  // effect cleanup (StrictMode runs one on mount) throws in the demo.
+  (window as any).__TAURI_EVENT_PLUGIN_INTERNALS__ = {
+    unregisterListener() {},
   };
 }
 

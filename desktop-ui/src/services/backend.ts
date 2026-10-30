@@ -74,6 +74,10 @@ export const backend = {
       saveDir: saveDir || null,
       fileName: fileName || null,
     }),
+  listProgressTracked: () => invoke<string[]>("list_progress_tracked"),
+  dismissProgress: () => invoke<void>("dismiss_progress"),
+  fitProgressWindow: (height: number) => invoke<void>("fit_progress_window", { height }),
+  openMainWindow: () => invoke<void>("open_main_window"),
   executeQueueAction: (action: string) =>
     invoke<void>("execute_queue_action", { action }),
   removeDownload: (id: string, deleteFile: boolean) =>
@@ -150,6 +154,11 @@ export const backend = {
 
   onCapturePending(cb: (c: PendingCapture) => void): Promise<UnlistenFn> {
     return listen<PendingCapture>("capture:pending", (e) => cb(e.payload));
+  },
+
+  /** A browser capture started downloading: show it in the progress window. */
+  onProgressTrack(cb: (id: string) => void): Promise<UnlistenFn> {
+    return listen<string>("progress:track", (e) => cb(e.payload));
   },
 
   /** A staged capture's probe finished: real file name / size are known. */

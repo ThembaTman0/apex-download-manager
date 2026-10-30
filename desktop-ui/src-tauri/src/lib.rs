@@ -167,9 +167,10 @@ pub fn run() {
                 show_main_window(app);
             }
         }))
-        // The capture prompt must NOT have its state restored: it manages its
-        // own size (auto-fits content) and visibility (Rust shows it per
-        // capture) - a session that ended with it hidden would otherwise
+        // The capture prompt (and the progress window, same rules) must NOT
+        // have its state restored: it manages its own size (auto-fits
+        // content) and visibility (Rust shows it per capture) - a session
+        // that ended with it hidden would otherwise
         // resurrect every future prompt invisible and mis-sized.
         //
         // VISIBLE is dropped from the flags for the same reason, for every
@@ -186,7 +187,7 @@ pub fn run() {
                     tauri_plugin_window_state::StateFlags::all()
                         & !tauri_plugin_window_state::StateFlags::VISIBLE,
                 )
-                .with_denylist(&["capture"])
+                .with_denylist(&["capture", "progress"])
                 .build(),
         )
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -363,6 +364,22 @@ pub fn run() {
                 api.prevent_close();
                 let _ = window.hide();
             }
+            // Minimizing the main window (title bar, taskbar, Win+D) swaps in
+            // the progress window; bringing it back swaps it out again.
+            if window.label() == "main" {
+                let mgr = window.state::<DownloadManager>();
+                match event {
+                    tauri::WindowEvent::Resized(_) => {
+                        if window.is_minimized().unwrap_or(false) {
+                            mgr.show_progress_for_active();
+                        } else {
+                            mgr.hide_progress_after_restore();
+                        }
+                    }
+                    tauri::WindowEvent::Focused(true) => mgr.hide_progress_after_restore(),
+                    _ => {}
+                }
+            }
         })
         .invoke_handler(tauri::generate_handler![
             commands::list_downloads,
@@ -392,6 +409,10 @@ pub fn run() {
             commands::disk_free,
             commands::resolve_capture,
             commands::list_pending_captures,
+            commands::list_progress_tracked,
+            commands::dismiss_progress,
+            commands::fit_progress_window,
+            commands::open_main_window,
             commands::ytdlp_status,
             commands::ytdlp_check_update,
             commands::install_ytdlp,

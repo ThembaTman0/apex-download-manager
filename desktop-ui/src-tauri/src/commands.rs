@@ -137,6 +137,35 @@ pub async fn list_pending_captures(
 }
 
 #[tauri::command]
+pub async fn list_progress_tracked(mgr: State<'_, DownloadManager>) -> Result<Vec<String>, String> {
+    Ok(mgr.list_progress_tracked())
+}
+
+#[tauri::command]
+pub async fn fit_progress_window(mgr: State<'_, DownloadManager>, height: f64) -> Result<(), String> {
+    mgr.fit_progress_window(height);
+    Ok(())
+}
+
+/// "Open Apex" in the progress window: bring the main window back and
+/// close the progress window, since the user is going to the full list.
+#[tauri::command]
+pub async fn open_main_window(
+    app: tauri::AppHandle,
+    mgr: State<'_, DownloadManager>,
+) -> Result<(), String> {
+    crate::show_main_window(&app);
+    mgr.dismiss_progress();
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn dismiss_progress(mgr: State<'_, DownloadManager>) -> Result<(), String> {
+    mgr.dismiss_progress();
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn resolve_capture(
     mgr: State<'_, DownloadManager>,
     id: String,
@@ -205,7 +234,11 @@ pub async fn add_video(
     subtitle_lang: Option<String>,
 ) -> Result<Download, String> {
     let headers = hints.headers_for(url.trim());
-    mgr.add_video(url, title, ext, selector, save_dir, subtitle_lang, headers)
+    let d = mgr.add_video(url, title, ext, selector, save_dir, subtitle_lang, headers)?;
+    // Grabbed videos (usually from the extension) follow captures into the
+    // progress window.
+    mgr.track_progress(&d);
+    Ok(d)
 }
 
 #[tauri::command]

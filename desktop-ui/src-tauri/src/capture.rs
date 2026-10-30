@@ -331,6 +331,7 @@ async fn handle_conn(mut stream: TcpStream, app: AppHandle) -> std::io::Result<(
 
             match mgr.add(req.url, None, req.file_name, request_headers) {
                 Ok(d) => {
+                    mgr.track_progress(&d);
                     let _ = app
                         .notification()
                         .builder()
