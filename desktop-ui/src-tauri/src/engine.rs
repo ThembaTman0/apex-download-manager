@@ -63,6 +63,10 @@ fn referrer_of(headers: &[(String, String)]) -> String {
 /// clicking links; further captures are rejected so the extension hands the
 /// download back to the browser instead.
 const MAX_PENDING_CAPTURES: usize = 25;
+/// Progress window width and its gap from the screen edges (logical px).
+const PROGRESS_W: f64 = 380.0;
+const PROGRESS_MARGIN: f64 = 16.0;
+
 const MAX_PENDING_AGE_MS: i64 = 24 * 60 * 60 * 1000;
 
 /// Identity of a capture for dedup: pages that auto-retry a canceled
@@ -646,6 +650,23 @@ impl DownloadManager {
         }
     }
 
+    /// Fit the progress window to its content, keeping its bottom-right
+    /// corner pinned above the taskbar so it grows upward, not off-screen.
+    pub fn fit_progress_window(&self, height: f64) {
+        let Some(win) = self.app.get_webview_window("progress") else {
+            return;
+        };
+        let h = height.clamp(80.0, 560.0);
+        let _ = win.set_size(tauri::LogicalSize::new(PROGRESS_W, h));
+        if let Ok(Some(mon)) = win.current_monitor() {
+            let scale = mon.scale_factor();
+            let area = mon.work_area();
+            let x = (area.position.x as f64 + area.size.width as f64) / scale - PROGRESS_W - PROGRESS_MARGIN;
+            let y = (area.position.y as f64 + area.size.height as f64) / scale - h - PROGRESS_MARGIN;
+            let _ = win.set_position(tauri::LogicalPosition::new(x, y));
+        }
+    }
+
     fn ensure_progress_window(&self) {
         // Shown without focus: the user just approved a download and is
         // probably back in the browser, so this must not steal the keyboard.
@@ -655,9 +676,9 @@ impl DownloadManager {
         }
         let app = self.app.clone();
         let _ = app.clone().run_on_main_thread(move || {
-            const W: f64 = 380.0;
+            const W: f64 = PROGRESS_W;
             const H: f64 = 160.0;
-            const MARGIN: f64 = 16.0;
+            const MARGIN: f64 = PROGRESS_MARGIN;
             let mut builder = tauri::WebviewWindowBuilder::new(
                 &app,
                 "progress",

@@ -142,6 +142,12 @@ pub async fn list_progress_tracked(mgr: State<'_, DownloadManager>) -> Result<Ve
 }
 
 #[tauri::command]
+pub async fn fit_progress_window(mgr: State<'_, DownloadManager>, height: f64) -> Result<(), String> {
+    mgr.fit_progress_window(height);
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn dismiss_progress(mgr: State<'_, DownloadManager>) -> Result<(), String> {
     mgr.dismiss_progress();
     Ok(())

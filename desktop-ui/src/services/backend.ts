@@ -76,6 +76,7 @@ export const backend = {
     }),
   listProgressTracked: () => invoke<string[]>("list_progress_tracked"),
   dismissProgress: () => invoke<void>("dismiss_progress"),
+  fitProgressWindow: (height: number) => invoke<void>("fit_progress_window", { height }),
   executeQueueAction: (action: string) =>
     invoke<void>("execute_queue_action", { action }),
   removeDownload: (id: string, deleteFile: boolean) =>

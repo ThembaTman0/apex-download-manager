@@ -14,13 +14,9 @@ import {
   Play,
   X,
 } from "lucide-react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import { LogicalSize } from "@tauri-apps/api/dpi";
 import { backend } from "@/services/backend";
 import { categoryForType, cn, formatBytes, formatSpeed } from "@/lib/utils";
 import type { Download } from "@/types";
-
-const appWindow = getCurrentWindow();
 
 /** Once everything shown has finished, the window closes itself this long
  * after, unless the pointer is over it. */
@@ -141,12 +137,17 @@ export function ProgressPopup() {
     return () => clearTimeout(t);
   }, [allDone, hovered, rows.length]);
 
-  // Fit the OS window to the content (no window chrome to resize by hand).
+  // Fit the OS window to the content. Rust also re-pins the bottom-right
+  // corner, so the window grows upward instead of off the screen.
   const bodyRef = useRef<HTMLDivElement>(null);
+  const lastHeight = useRef(0);
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
       const h = bodyRef.current?.offsetHeight ?? 0;
-      if (h > 0) appWindow.setSize(new LogicalSize(380, Math.min(h, 560))).catch(() => {});
+      if (h > 0 && h !== lastHeight.current) {
+        lastHeight.current = h;
+        backend.fitProgressWindow(h).catch(() => {});
+      }
     });
     return () => cancelAnimationFrame(raf);
   });

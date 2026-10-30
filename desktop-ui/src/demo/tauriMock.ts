@@ -335,6 +335,7 @@ if (!("__TAURI_INTERNALS__" in window)) {
         .map((s) => [...state.values()].find((d) => d.status === s)?.id)
         .filter(Boolean),
     dismiss_progress: () => undefined,
+    fit_progress_window: () => undefined,
     ytdlp_status: () => ({ ...demoTools }),
     // Fake install so the "Install yt-dlp" buttons work in the demo: ~2s of
     // progress events, then yt-dlp reports as installed until a page reload.
