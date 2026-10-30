@@ -697,6 +697,10 @@ impl DownloadManager {
         let Some(win) = self.app.get_webview_window("progress") else {
             return;
         };
+        // NaN would pass through clamp() and reach the OS window.
+        if !height.is_finite() {
+            return;
+        }
         let h = height.clamp(80.0, 560.0);
         let _ = win.set_size(tauri::LogicalSize::new(PROGRESS_W, h));
         if let Ok(Some(mon)) = win.current_monitor() {
