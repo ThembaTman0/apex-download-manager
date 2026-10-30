@@ -1,23 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  Archive,
-  CircleCheck,
-  Clapperboard,
-  Clock,
-  Download as DownloadIcon,
-  File,
-  FileText,
-  Image as ImageIcon,
-  Music,
-  Package,
-  Pause,
-  PanelsTopLeft,
-  Play,
-  X,
-} from "lucide-react";
+import { CircleCheck, Clock, Pause, Play, X } from "lucide-react";
 import { backend } from "@/services/backend";
-import { categoryForType, cn, formatBytes, formatSpeed } from "@/lib/utils";
+import { cn, formatBytes, formatSpeed } from "@/lib/utils";
 import type { Download } from "@/types";
+import { LogoBadge } from "@/components/ui/LogoMark";
 
 /** Once everything shown has finished, the window closes itself this long
  * after, unless the pointer is over it. */
@@ -27,16 +13,6 @@ const SAMPLE_MS = 2_000;
 const SAMPLES = 30;
 /** A second click on Cancel within this window confirms it. */
 const CANCEL_CONFIRM_MS = 3_000;
-
-const categoryIcons: Record<string, React.ElementType> = {
-  Video: Clapperboard,
-  Music: Music,
-  Programs: Package,
-  Archives: Archive,
-  Documents: FileText,
-  Images: ImageIcon,
-  Other: File,
-};
 
 const isFinished = (d: Download) => d.status === "completed" || d.status === "failed";
 const isActive = (d: Download) => d.status === "downloading" || d.status === "queued";
@@ -178,11 +154,17 @@ export function ProgressPopup() {
   );
 }
 
-function Chip({ icon: Icon }: { icon: React.ElementType }) {
+/** The Apex mark, leading the header; clicking it brings the app back. */
+function AppLogo() {
   return (
-    <span className="w-[26px] h-[26px] rounded-[7px] bg-white/[0.06] border border-white/[0.08] flex items-center justify-center shrink-0">
-      <Icon className="w-[15px] h-[15px] text-ink-mid" />
-    </span>
+    <button
+      onClick={() => backend.openMainWindow().catch(() => {})}
+      title="Open Apex"
+      aria-label="Open Apex"
+      className="relative shrink-0 rounded-[7px] transition-opacity hover:opacity-80"
+    >
+      <LogoBadge className="w-[26px] h-[26px]" />
+    </button>
   );
 }
 
@@ -288,35 +270,6 @@ function Controls({ d }: { d: Download }) {
   );
 }
 
-const openApp = () => backend.openMainWindow().catch(() => {});
-
-/** The header's file or "Downloads" title; clicking it opens Apex. */
-function Title({ children, title }: { children: React.ReactNode; title?: string }) {
-  return (
-    <button
-      onClick={openApp}
-      title={title ? `${title}
-Open in Apex` : "Open Apex"}
-      className="relative flex-1 min-w-0 text-left text-sm font-medium text-ink truncate hover:text-white transition-colors"
-    >
-      {children}
-    </button>
-  );
-}
-
-function OpenAppButton() {
-  return (
-    <button
-      onClick={openApp}
-      className="relative text-ink-muted hover:text-ink transition-colors opacity-0 group-hover:opacity-100"
-      title="Open Apex"
-      aria-label="Open Apex"
-    >
-      <PanelsTopLeft className="w-3.5 h-3.5" />
-    </button>
-  );
-}
-
 function CloseButton({ onClose }: { onClose: () => void }) {
   return (
     <button
@@ -339,16 +292,16 @@ function SingleView({
   speeds: number[];
   onClose: () => void;
 }) {
-  const Icon = categoryIcons[categoryForType(d.type)] ?? File;
   const host = hostOf(d.url);
   const paused = d.status === "paused";
   return (
     <div className="group">
       <div className="relative flex items-center gap-2.5">
-        <Chip icon={Icon} />
-        <Title title={d.name}>{d.name}</Title>
+        <AppLogo />
+        <span className="flex-1 min-w-0 text-sm font-medium text-ink truncate" title={d.name}>
+          {d.name}
+        </span>
         <Controls d={d} />
-        <OpenAppButton />
         <CloseButton onClose={onClose} />
       </div>
       <div className="flex flex-wrap gap-1.5 mt-2.5">
@@ -490,9 +443,8 @@ function ListView({ rows, onClose }: { rows: Download[]; onClose: () => void }) 
   return (
     <div className="group">
       <div className="relative flex items-center gap-2.5">
-        <Chip icon={DownloadIcon} />
-        <Title>Downloads</Title>
-        <OpenAppButton />
+        <AppLogo />
+        <span className="flex-1 text-sm font-medium text-ink">Downloads</span>
         <CloseButton onClose={onClose} />
       </div>
       <div className="flex flex-wrap gap-1.5 mt-2.5">
