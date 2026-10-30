@@ -118,6 +118,9 @@ pub struct DownloadManager {
     pending_captures: Arc<Mutex<Vec<PendingCapture>>>,
     /// Downloads shown in the progress window, in the order they started.
     progress_tracked: Arc<Mutex<Vec<String>>>,
+    /// The progress window was opened by minimizing the main window, so
+    /// restoring it should close the progress window again.
+    progress_from_minimize: Arc<AtomicBool>,
 }
 
 /// Default User-Agent when the browser didn't supply its own (manual adds).
@@ -174,6 +177,7 @@ impl DownloadManager {
             client: Arc::new(Mutex::new(client)),
             pending_captures: Arc::new(Mutex::new(Vec::new())),
             progress_tracked: Arc::new(Mutex::new(Vec::new())),
+            progress_from_minimize: Arc::new(AtomicBool::new(false)),
         })
     }
 
@@ -188,6 +192,7 @@ impl DownloadManager {
             client: self.client.clone(),
             pending_captures: self.pending_captures.clone(),
             progress_tracked: self.progress_tracked.clone(),
+            progress_from_minimize: self.progress_from_minimize.clone(),
         }
     }
 
@@ -633,6 +638,42 @@ impl DownloadManager {
         }
         self.ensure_progress_window();
         let _ = self.app.emit("progress:track", d.id.clone());
+    }
+
+    /// The main window was minimized: show every running download in the
+    /// progress window, so they can still be watched. Nothing running,
+    /// nothing shown. An explicit action, so it ignores the capture setting.
+    pub fn show_progress_for_active(&self) {
+        let Ok(all) = self.list() else { return };
+        let ids: Vec<String> = all
+            .iter()
+            .filter(|d| matches!(d.status, DownloadStatus::Downloading | DownloadStatus::Queued))
+            .map(|d| d.id.clone())
+            .collect();
+        if ids.is_empty() {
+            return;
+        }
+        {
+            let mut list = self.progress_tracked.lock().unwrap();
+            for id in &ids {
+                if !list.contains(id) {
+                    list.push(id.clone());
+                }
+            }
+        }
+        self.progress_from_minimize.store(true, Ordering::SeqCst);
+        self.ensure_progress_window();
+        for id in ids {
+            let _ = self.app.emit("progress:track", id);
+        }
+    }
+
+    /// The main window is back: close the progress window if minimizing is
+    /// what opened it (one opened by a capture stays).
+    pub fn hide_progress_after_restore(&self) {
+        if self.progress_from_minimize.swap(false, Ordering::SeqCst) {
+            self.dismiss_progress();
+        }
     }
 
     /// Ids in the progress window, oldest first, for a window that mounts

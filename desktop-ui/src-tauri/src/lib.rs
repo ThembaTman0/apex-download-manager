@@ -364,6 +364,22 @@ pub fn run() {
                 api.prevent_close();
                 let _ = window.hide();
             }
+            // Minimizing the main window (title bar, taskbar, Win+D) swaps in
+            // the progress window; bringing it back swaps it out again.
+            if window.label() == "main" {
+                let mgr = window.state::<DownloadManager>();
+                match event {
+                    tauri::WindowEvent::Resized(_) => {
+                        if window.is_minimized().unwrap_or(false) {
+                            mgr.show_progress_for_active();
+                        } else {
+                            mgr.hide_progress_after_restore();
+                        }
+                    }
+                    tauri::WindowEvent::Focused(true) => mgr.hide_progress_after_restore(),
+                    _ => {}
+                }
+            }
         })
         .invoke_handler(tauri::generate_handler![
             commands::list_downloads,
