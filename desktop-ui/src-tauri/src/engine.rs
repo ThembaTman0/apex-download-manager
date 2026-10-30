@@ -121,6 +121,11 @@ pub struct DownloadManager {
     /// The progress window was opened by minimizing the main window, so
     /// restoring it should close the progress window again.
     progress_from_minimize: Arc<AtomicBool>,
+    /// Where Apex last pinned the progress window (logical px), and whether
+    /// the user has since dragged it elsewhere; once moved it stays where
+    /// they put it for the rest of the session.
+    progress_placed: Arc<Mutex<Option<(f64, f64)>>>,
+    progress_user_moved: Arc<AtomicBool>,
 }
 
 /// Default User-Agent when the browser didn't supply its own (manual adds).
@@ -178,6 +183,8 @@ impl DownloadManager {
             pending_captures: Arc::new(Mutex::new(Vec::new())),
             progress_tracked: Arc::new(Mutex::new(Vec::new())),
             progress_from_minimize: Arc::new(AtomicBool::new(false)),
+            progress_placed: Arc::new(Mutex::new(None)),
+            progress_user_moved: Arc::new(AtomicBool::new(false)),
         })
     }
 
@@ -193,6 +200,8 @@ impl DownloadManager {
             pending_captures: self.pending_captures.clone(),
             progress_tracked: self.progress_tracked.clone(),
             progress_from_minimize: self.progress_from_minimize.clone(),
+            progress_placed: self.progress_placed.clone(),
+            progress_user_moved: self.progress_user_moved.clone(),
         }
     }
 
@@ -691,8 +700,9 @@ impl DownloadManager {
         }
     }
 
-    /// Fit the progress window to its content, keeping its bottom-right
-    /// corner pinned above the taskbar so it grows upward, not off-screen.
+    /// Fit the progress window to its content. Until the user moves it, its
+    /// bottom-right corner stays pinned above the taskbar so it grows upward;
+    /// after a move it keeps the user's spot, nudged only to stay on screen.
     pub fn fit_progress_window(&self, height: f64) {
         let Some(win) = self.app.get_webview_window("progress") else {
             return;
@@ -703,13 +713,39 @@ impl DownloadManager {
         }
         let h = height.clamp(80.0, 560.0);
         let _ = win.set_size(tauri::LogicalSize::new(PROGRESS_W, h));
-        if let Ok(Some(mon)) = win.current_monitor() {
-            let scale = mon.scale_factor();
-            let area = mon.work_area();
-            let x = (area.position.x as f64 + area.size.width as f64) / scale - PROGRESS_W - PROGRESS_MARGIN;
-            let y = (area.position.y as f64 + area.size.height as f64) / scale - h - PROGRESS_MARGIN;
-            let _ = win.set_position(tauri::LogicalPosition::new(x, y));
+        let Ok(Some(mon)) = win.current_monitor() else {
+            return;
+        };
+        let scale = mon.scale_factor();
+        let area = mon.work_area();
+        let left = area.position.x as f64 / scale;
+        let top = area.position.y as f64 / scale;
+        let right = left + area.size.width as f64 / scale;
+        let bottom = top + area.size.height as f64 / scale;
+
+        // Not where we last put it: the user dragged it.
+        let mut placed = self.progress_placed.lock().unwrap();
+        if let (Some((px, py)), Ok(cur)) = (*placed, win.outer_position()) {
+            let (cx, cy) = (cur.x as f64 / scale, cur.y as f64 / scale);
+            if (cx - px).abs() > 2.0 || (cy - py).abs() > 2.0 {
+                self.progress_user_moved.store(true, Ordering::SeqCst);
+            }
         }
+
+        if self.progress_user_moved.load(Ordering::SeqCst) {
+            // Keep the user's spot; only pull it back if growing would push
+            // it off the work area.
+            if let Ok(cur) = win.outer_position() {
+                let x = (cur.x as f64 / scale).clamp(left, (right - PROGRESS_W).max(left));
+                let y = (cur.y as f64 / scale).clamp(top, (bottom - h).max(top));
+                let _ = win.set_position(tauri::LogicalPosition::new(x, y));
+            }
+            return;
+        }
+        let x = right - PROGRESS_W - PROGRESS_MARGIN;
+        let y = bottom - h - PROGRESS_MARGIN;
+        let _ = win.set_position(tauri::LogicalPosition::new(x, y));
+        *placed = Some((x, y));
     }
 
     fn ensure_progress_window(&self) {
