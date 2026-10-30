@@ -1031,7 +1031,7 @@ pub(crate) async fn drive_video(ctx: &TaskCtx, d: &mut Download) -> Result<bool,
         "--progress",
         "--newline",
         "--progress-template",
-        "download:APEXP|%(progress.downloaded_bytes)s|%(progress.total_bytes)s|%(progress.total_bytes_estimate)s|%(progress.speed)s|%(progress.eta)s",
+        "download:APEXP|%(progress.downloaded_bytes)s|%(progress.total_bytes)s|%(progress.total_bytes_estimate)s|%(progress.speed)s|%(progress.eta)s|%(info.filesize,info.filesize_approx)s",
         "--print",
         "after_move:filepath",
         "-N",
@@ -1110,7 +1110,9 @@ pub(crate) async fn drive_video(ctx: &TaskCtx, d: &mut Download) -> Result<bool,
     let mut final_file: Option<String> = None;
     let mut last_emit = Instant::now();
     let mut last_save = Instant::now();
-    let mut peak_total: u64 = 0;
+    // Never shrink below what an earlier run of this download reached: a
+    // resume starts a fresh yt-dlp whose own counts only cover what's left.
+    let mut peak_total: u64 = d.size_bytes;
     let mut phase_base: u64 = 0; // bytes finished in earlier phases (video, then audio)
     let mut prev_downloaded: u64 = 0;
 
@@ -1134,18 +1136,24 @@ pub(crate) async fn drive_video(ctx: &TaskCtx, d: &mut Download) -> Result<bool,
             let estimate = num(it.next());
             let speed = num(it.next()).unwrap_or(0.0);
             let eta = num(it.next()).unwrap_or(0.0);
+            // Size of the whole download: for a merged format, yt-dlp sums
+            // the video and audio streams. Without it the total only knew
+            // the streams seen so far, so the video part ran to 100% and the
+            // bar fell back when the audio started. "NA" when the site gives
+            // no size; the per-stream totals below remain the fallback.
+            let whole = num(it.next()).unwrap_or(0.0) as u64;
 
             // A merged download runs as two sequential files (video then
             // audio); a new file resets downloaded_bytes. Accumulate phases so
             // the visible progress never jumps backwards.
             if downloaded < prev_downloaded {
-                phase_base += prev_downloaded;
+                phase_base = phase_base.saturating_add(prev_downloaded);
             }
             prev_downloaded = downloaded;
 
             let this_total = total.or(estimate).unwrap_or(0.0) as u64;
-            peak_total = peak_total.max(phase_base + this_total);
-            d.downloaded_bytes = phase_base + downloaded;
+            peak_total = peak_total.max(phase_base.saturating_add(this_total)).max(whole);
+            d.downloaded_bytes = phase_base.saturating_add(downloaded);
             d.size_bytes = peak_total.max(d.downloaded_bytes);
             d.progress = if d.size_bytes > 0 {
                 (d.downloaded_bytes as f64 / d.size_bytes as f64 * 100.0).min(100.0)
