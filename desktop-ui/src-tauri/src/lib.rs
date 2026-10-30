@@ -412,6 +412,7 @@ pub fn run() {
             commands::list_progress_tracked,
             commands::dismiss_progress,
             commands::fit_progress_window,
+            commands::open_main_window,
             commands::ytdlp_status,
             commands::ytdlp_check_update,
             commands::install_ytdlp,

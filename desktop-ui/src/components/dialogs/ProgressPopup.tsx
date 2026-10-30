@@ -11,6 +11,7 @@ import {
   Music,
   Package,
   Pause,
+  PanelsTopLeft,
   Play,
   X,
 } from "lucide-react";
@@ -287,6 +288,35 @@ function Controls({ d }: { d: Download }) {
   );
 }
 
+const openApp = () => backend.openMainWindow().catch(() => {});
+
+/** The header's file or "Downloads" title; clicking it opens Apex. */
+function Title({ children, title }: { children: React.ReactNode; title?: string }) {
+  return (
+    <button
+      onClick={openApp}
+      title={title ? `${title}
+Open in Apex` : "Open Apex"}
+      className="relative flex-1 min-w-0 text-left text-sm font-medium text-ink truncate hover:text-white transition-colors"
+    >
+      {children}
+    </button>
+  );
+}
+
+function OpenAppButton() {
+  return (
+    <button
+      onClick={openApp}
+      className="relative text-ink-muted hover:text-ink transition-colors opacity-0 group-hover:opacity-100"
+      title="Open Apex"
+      aria-label="Open Apex"
+    >
+      <PanelsTopLeft className="w-3.5 h-3.5" />
+    </button>
+  );
+}
+
 function CloseButton({ onClose }: { onClose: () => void }) {
   return (
     <button
@@ -316,10 +346,9 @@ function SingleView({
     <div className="group">
       <div className="relative flex items-center gap-2.5">
         <Chip icon={Icon} />
-        <span className="flex-1 min-w-0 text-sm font-medium text-ink truncate" title={d.name}>
-          {d.name}
-        </span>
+        <Title title={d.name}>{d.name}</Title>
         <Controls d={d} />
+        <OpenAppButton />
         <CloseButton onClose={onClose} />
       </div>
       <div className="flex flex-wrap gap-1.5 mt-2.5">
@@ -462,7 +491,8 @@ function ListView({ rows, onClose }: { rows: Download[]; onClose: () => void }) 
     <div className="group">
       <div className="relative flex items-center gap-2.5">
         <Chip icon={DownloadIcon} />
-        <span className="flex-1 text-sm font-medium text-ink">Downloads</span>
+        <Title>Downloads</Title>
+        <OpenAppButton />
         <CloseButton onClose={onClose} />
       </div>
       <div className="flex flex-wrap gap-1.5 mt-2.5">

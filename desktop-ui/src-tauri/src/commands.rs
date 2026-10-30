@@ -147,6 +147,18 @@ pub async fn fit_progress_window(mgr: State<'_, DownloadManager>, height: f64) -
     Ok(())
 }
 
+/// "Open Apex" in the progress window: bring the main window back and
+/// close the progress window, since the user is going to the full list.
+#[tauri::command]
+pub async fn open_main_window(
+    app: tauri::AppHandle,
+    mgr: State<'_, DownloadManager>,
+) -> Result<(), String> {
+    crate::show_main_window(&app);
+    mgr.dismiss_progress();
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn dismiss_progress(mgr: State<'_, DownloadManager>) -> Result<(), String> {
     mgr.dismiss_progress();
