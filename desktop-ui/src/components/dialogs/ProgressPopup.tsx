@@ -56,15 +56,20 @@ export function ProgressPopup() {
   }, []);
 
   const close = () => {
+    hadRows.current = false;
     setRows([]);
     backend.dismissProgress().catch(() => {});
   };
 
   // Nothing left to watch: close a while after the last one finishes, or
-  // right away if every row was removed.
+  // right away if every row was removed. Only once rows have shown up: the
+  // list is empty while it first loads, and closing then would clear the
+  // tracked ids before they were read.
+  const hadRows = useRef(false);
+  if (rows.length) hadRows.current = true;
   const allDone = rows.every(isFinished);
   useEffect(() => {
-    if (!allDone || hovered) return;
+    if (!hadRows.current || !allDone || hovered) return;
     const t = setTimeout(close, rows.length ? AUTO_CLOSE_MS : 0);
     return () => clearTimeout(t);
   }, [allDone, hovered, rows.length]);
@@ -84,7 +89,14 @@ export function ProgressPopup() {
     return () => cancelAnimationFrame(raf);
   });
 
-  const active = rows.filter((d) => !isFinished(d)).length;
+  const active = rows.filter((d) => d.status === "downloading" || d.status === "queued").length;
+  const paused = rows.filter((d) => d.status === "paused").length;
+  const title =
+    active > 0
+      ? `Downloading ${active} ${active === 1 ? "file" : "files"}`
+      : paused > 0
+        ? `${paused} paused`
+        : "Downloads finished";
 
   return (
     <div
@@ -98,9 +110,7 @@ export function ProgressPopup() {
       >
         <span className="flex items-center gap-1.5 text-[11px] font-medium text-ink-muted pointer-events-none">
           <LogoBadge className="w-4 h-4" />
-          {active > 0
-            ? `Downloading ${active} ${active === 1 ? "file" : "files"}`
-            : "Downloads finished"}
+          {title}
         </span>
         <button
           onClick={close}
