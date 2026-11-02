@@ -116,39 +116,41 @@ $("grabVideo").addEventListener("click", async () => {
 });
 // #grab-end
 
-// One-click pairing: ask Apex for the token; the user approves in a native
-// Apex dialog. Long timeout - the request blocks until they click Allow.
-$("pair").addEventListener("click", async () => {
+// One-click pairing: the background worker asks Apex for the token and the
+// user approves in a native Apex dialog. Clicking that dialog closes this
+// popup, so the request can't live here; the worker records its progress in
+// storage.session and this just shows it, now or when the popup reopens.
+function showPairing(p) {
   const status = $("pairStatus");
-  const port = parseInt($("port").value, 10) || DEFAULTS.port;
-  status.textContent = "Approve the prompt in the Apex window…";
-  $("pair").disabled = true;
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 120_000);
-    const res = await fetch(`http://127.0.0.1:${port}/pair`, {
-      method: "POST",
-      signal: ctrl.signal,
+  $("pair").disabled = !!p && p.state === "waiting";
+  if (!p) {
+    status.textContent = "";
+  } else if (p.state === "waiting") {
+    status.textContent = "Approve the prompt in the Apex window…";
+  } else if (p.state === "paired") {
+    status.textContent = "Paired ✓";
+    chrome.storage.local.get(DEFAULTS, (cfg) => {
+      $("token").value = cfg.token;
+      ping(cfg.port, cfg.token);
     });
-    clearTimeout(timer);
-    const data = await res.json().catch(() => ({}));
-    if (res.ok && data.ok && data.token) {
-      $("token").value = data.token;
-      chrome.storage.local.set({ token: data.token, port }, () => {
-        status.textContent = "Paired ✓";
-        setTimeout(() => (status.textContent = ""), 2500);
-        ping(port, data.token);
-      });
-    } else if (data.error === "denied") {
-      status.textContent = "Denied in Apex";
-    } else {
-      status.textContent = data.error || "Pairing failed. Is Apex running?";
-    }
-  } catch {
-    status.textContent = "Pairing failed. Is Apex running?";
-  } finally {
-    $("pair").disabled = false;
+    // Shown once; the next popup opens clean.
+    setTimeout(() => chrome.storage.session.remove("pairing"), 2500);
+  } else if (p.state === "denied") {
+    status.textContent = "Denied in Apex";
+  } else {
+    status.textContent = p.error || "Pairing failed. Is Apex running?";
   }
+}
+
+chrome.storage.session.get("pairing", ({ pairing }) => showPairing(pairing));
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "session" && "pairing" in changes) showPairing(changes.pairing.newValue);
+});
+
+$("pair").addEventListener("click", () => {
+  const port = parseInt($("port").value, 10) || DEFAULTS.port;
+  showPairing({ state: "waiting" });
+  chrome.runtime.sendMessage({ type: "pair", port }).catch(() => {});
 });
 
 $("save").addEventListener("click", () => {

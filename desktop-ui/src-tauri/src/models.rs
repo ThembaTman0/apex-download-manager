@@ -163,6 +163,9 @@ pub struct Settings {
     /// Hosts whose captures skip the approval prompt (lowercase). Built via
     /// "Always allow downloads from this site" in the approval window.
     pub capture_allowed_hosts: Vec<String>,
+    /// Open the small always-on-top progress window when a browser capture
+    /// starts downloading, so there is a sign it began before it finishes.
+    pub show_progress_window: bool,
     /// Launch Apex (hidden, in the tray) when the user signs in, so the
     /// browser extension can reach it before any download is clicked.
     /// Off for new installs: registering a startup entry is a system change
@@ -203,6 +206,7 @@ impl Default for Settings {
             capture_port: 43666,
             capture_token: String::new(),
             capture_allowed_hosts: Vec::new(),
+            show_progress_window: true,
             launch_at_startup: false,
             scheduler_enabled: false,
             offpeak_start_min: 23 * 60,

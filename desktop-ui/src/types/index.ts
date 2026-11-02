@@ -70,6 +70,8 @@ export interface Settings {
   captureToken: string;
   /** Hosts whose captures skip the approval prompt (lowercase). */
   captureAllowedHosts: string[];
+  /** Open the small progress window when a browser capture starts. */
+  showProgressWindow: boolean;
   /** Launch Apex hidden in the tray when the user signs in. */
   launchAtStartup: boolean;
   /** Bandwidth scheduler: full speed in the off-peak window, capped outside. */

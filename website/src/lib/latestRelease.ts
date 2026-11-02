@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import snapshot from "./release-snapshot.json";
 
 /** Subset of /api/stats consumed by version/size/counter displays. */
 export interface LatestRelease {
@@ -25,8 +26,15 @@ export interface ChangelogEntry {
  * never disagree with itself while the API is slow or unreachable.
  * 4 MB matches the real installer (about 4.0 MiB for 1.0.x).
  */
-export const FALLBACK_VERSION = "1.0.11";
-export const FALLBACK_SIZE_MB = 4;
+// Captured from the newest release at build time by scripts/release-snapshot.mjs
+// rather than typed in here, because a constant edited by hand is a constant
+// that is wrong a release later. Readers with scripting still get the live
+// values from /api/stats; these are what the served HTML and the structured
+// data carry until that answers.
+export const FALLBACK_VERSION = snapshot.version;
+export const FALLBACK_SIZE_MB = snapshot.sizeMb;
+export const FALLBACK_SHA256: string | null = snapshot.sha256;
+export const FALLBACK_FILE_NAME = snapshot.fileName;
 
 export const RELEASES_URL =
   "https://github.com/ThembaTman0/apex-download-manager-releases/releases";

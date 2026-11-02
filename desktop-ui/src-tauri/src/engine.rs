@@ -63,6 +63,10 @@ fn referrer_of(headers: &[(String, String)]) -> String {
 /// clicking links; further captures are rejected so the extension hands the
 /// download back to the browser instead.
 const MAX_PENDING_CAPTURES: usize = 25;
+/// Progress window width and its gap from the screen edges (logical px).
+const PROGRESS_W: f64 = 380.0;
+const PROGRESS_MARGIN: f64 = 16.0;
+
 const MAX_PENDING_AGE_MS: i64 = 24 * 60 * 60 * 1000;
 
 /// Identity of a capture for dedup: pages that auto-retry a canceled
@@ -112,6 +116,16 @@ pub struct DownloadManager {
     client: Arc<Mutex<reqwest::Client>>,
     /// Ordered so the approval window shows captures in arrival order.
     pending_captures: Arc<Mutex<Vec<PendingCapture>>>,
+    /// Downloads shown in the progress window, in the order they started.
+    progress_tracked: Arc<Mutex<Vec<String>>>,
+    /// The progress window was opened by minimizing the main window, so
+    /// restoring it should close the progress window again.
+    progress_from_minimize: Arc<AtomicBool>,
+    /// Where Apex last pinned the progress window (logical px), and whether
+    /// the user has since dragged it elsewhere; once moved it stays where
+    /// they put it for the rest of the session.
+    progress_placed: Arc<Mutex<Option<(f64, f64)>>>,
+    progress_user_moved: Arc<AtomicBool>,
 }
 
 /// Default User-Agent when the browser didn't supply its own (manual adds).
@@ -167,6 +181,10 @@ impl DownloadManager {
             task_limiters: Arc::new(Mutex::new(HashMap::new())),
             client: Arc::new(Mutex::new(client)),
             pending_captures: Arc::new(Mutex::new(Vec::new())),
+            progress_tracked: Arc::new(Mutex::new(Vec::new())),
+            progress_from_minimize: Arc::new(AtomicBool::new(false)),
+            progress_placed: Arc::new(Mutex::new(None)),
+            progress_user_moved: Arc::new(AtomicBool::new(false)),
         })
     }
 
@@ -180,6 +198,10 @@ impl DownloadManager {
             task_limiters: self.task_limiters.clone(),
             client: self.client.clone(),
             pending_captures: self.pending_captures.clone(),
+            progress_tracked: self.progress_tracked.clone(),
+            progress_from_minimize: self.progress_from_minimize.clone(),
+            progress_placed: self.progress_placed.clone(),
+            progress_user_moved: self.progress_user_moved.clone(),
         }
     }
 
@@ -610,6 +632,164 @@ impl DownloadManager {
         });
     }
 
+    /// Show a browser capture that has started downloading in the progress
+    /// window (when the setting is on). The window picks rows up from
+    /// `progress:track` and keeps them current from `download:changed`.
+    pub fn track_progress(&self, d: &Download) {
+        if !self.get_settings().show_progress_window {
+            return;
+        }
+        {
+            let mut list = self.progress_tracked.lock().unwrap();
+            if !list.contains(&d.id) {
+                list.push(d.id.clone());
+            }
+        }
+        self.ensure_progress_window();
+        let _ = self.app.emit("progress:track", d.id.clone());
+    }
+
+    /// The main window was minimized: show every running download in the
+    /// progress window, so they can still be watched. Nothing running,
+    /// nothing shown. An explicit action, so it ignores the capture setting.
+    pub fn show_progress_for_active(&self) {
+        let Ok(all) = self.list() else { return };
+        let ids: Vec<String> = all
+            .iter()
+            .filter(|d| matches!(d.status, DownloadStatus::Downloading | DownloadStatus::Queued))
+            .map(|d| d.id.clone())
+            .collect();
+        if ids.is_empty() {
+            return;
+        }
+        {
+            let mut list = self.progress_tracked.lock().unwrap();
+            for id in &ids {
+                if !list.contains(id) {
+                    list.push(id.clone());
+                }
+            }
+        }
+        self.progress_from_minimize.store(true, Ordering::SeqCst);
+        self.ensure_progress_window();
+        for id in ids {
+            let _ = self.app.emit("progress:track", id);
+        }
+    }
+
+    /// The main window is back: close the progress window if minimizing is
+    /// what opened it (one opened by a capture stays).
+    pub fn hide_progress_after_restore(&self) {
+        if self.progress_from_minimize.swap(false, Ordering::SeqCst) {
+            self.dismiss_progress();
+        }
+    }
+
+    /// Ids in the progress window, oldest first, for a window that mounts
+    /// after the events it would have caught.
+    pub fn list_progress_tracked(&self) -> Vec<String> {
+        self.progress_tracked.lock().unwrap().clone()
+    }
+
+    /// The window was closed (by the user or after everything finished):
+    /// forget its rows so the next capture starts a fresh list.
+    pub fn dismiss_progress(&self) {
+        self.progress_tracked.lock().unwrap().clear();
+        if let Some(win) = self.app.get_webview_window("progress") {
+            let _ = win.hide();
+        }
+    }
+
+    /// Fit the progress window to its content. Until the user moves it, its
+    /// bottom-right corner stays pinned above the taskbar so it grows upward;
+    /// after a move it keeps the user's spot, nudged only to stay on screen.
+    pub fn fit_progress_window(&self, height: f64) {
+        let Some(win) = self.app.get_webview_window("progress") else {
+            return;
+        };
+        // NaN would pass through clamp() and reach the OS window.
+        if !height.is_finite() {
+            return;
+        }
+        let h = height.clamp(80.0, 560.0);
+        let _ = win.set_size(tauri::LogicalSize::new(PROGRESS_W, h));
+        let Ok(Some(mon)) = win.current_monitor() else {
+            return;
+        };
+        let scale = mon.scale_factor();
+        let area = mon.work_area();
+        let left = area.position.x as f64 / scale;
+        let top = area.position.y as f64 / scale;
+        let right = left + area.size.width as f64 / scale;
+        let bottom = top + area.size.height as f64 / scale;
+
+        // Not where we last put it: the user dragged it.
+        let mut placed = self.progress_placed.lock().unwrap();
+        if let (Some((px, py)), Ok(cur)) = (*placed, win.outer_position()) {
+            let (cx, cy) = (cur.x as f64 / scale, cur.y as f64 / scale);
+            if (cx - px).abs() > 2.0 || (cy - py).abs() > 2.0 {
+                self.progress_user_moved.store(true, Ordering::SeqCst);
+            }
+        }
+
+        if self.progress_user_moved.load(Ordering::SeqCst) {
+            // Keep the user's spot; only pull it back if growing would push
+            // it off the work area.
+            if let Ok(cur) = win.outer_position() {
+                let x = (cur.x as f64 / scale).clamp(left, (right - PROGRESS_W).max(left));
+                let y = (cur.y as f64 / scale).clamp(top, (bottom - h).max(top));
+                let _ = win.set_position(tauri::LogicalPosition::new(x, y));
+            }
+            return;
+        }
+        let x = right - PROGRESS_W - PROGRESS_MARGIN;
+        let y = bottom - h - PROGRESS_MARGIN;
+        let _ = win.set_position(tauri::LogicalPosition::new(x, y));
+        *placed = Some((x, y));
+    }
+
+    fn ensure_progress_window(&self) {
+        // Shown without focus: the user just approved a download and is
+        // probably back in the browser, so this must not steal the keyboard.
+        if let Some(win) = self.app.get_webview_window("progress") {
+            let _ = win.show();
+            return;
+        }
+        let app = self.app.clone();
+        let _ = app.clone().run_on_main_thread(move || {
+            const W: f64 = PROGRESS_W;
+            const H: f64 = 160.0;
+            const MARGIN: f64 = PROGRESS_MARGIN;
+            let mut builder = tauri::WebviewWindowBuilder::new(
+                &app,
+                "progress",
+                tauri::WebviewUrl::App("index.html".into()),
+            )
+            .title("Apex: Download progress")
+            .inner_size(W, H)
+            .resizable(false)
+            .decorations(false)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .focused(false)
+            // The card colour from the first frame: without it the webview
+            // shows white until React paints, a flash in the corner.
+            .background_color(tauri::window::Color(15, 19, 26, 255));
+            // Bottom-right of the primary monitor's work area, clear of the
+            // taskbar, like a notification.
+            if let Ok(Some(mon)) = app.primary_monitor() {
+                let scale = mon.scale_factor();
+                let area = mon.work_area();
+                let x = (area.position.x as f64 + area.size.width as f64) / scale - W - MARGIN;
+                let y = (area.position.y as f64 + area.size.height as f64) / scale - H - MARGIN;
+                builder = builder.position(x, y);
+            }
+            if let Ok(win) = builder.build() {
+                let _ = win.show();
+            }
+        });
+    }
+
     /// Captures currently waiting for approval, in arrival order.
     pub fn list_pending_captures(&self) -> Vec<CaptureView> {
         let mut list = self.pending_captures.lock().unwrap();
@@ -652,6 +832,7 @@ impl DownloadManager {
             .filter(|n| !n.trim().is_empty())
             .or(pending.file_name);
         let d = self.add(pending.url, save_dir, name, pending.request_headers)?;
+        self.track_progress(&d);
         Ok(Some(d))
     }
 
