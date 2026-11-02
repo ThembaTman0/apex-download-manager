@@ -46,13 +46,20 @@ export default function App() {
   // WebView2's opaque-white first paint never flashes through the
   // transparent, rounded-corner window before this dark theme is up.
   // Two rAFs guarantee the browser has actually painted this frame
-  // before we tell Rust to reveal it.
+  // before we tell Rust to reveal it. WebKitGTK (Linux) runs no rAF
+  // callbacks for a window that isn't shown, so there a hidden window
+  // would wait forever; the timer reveals it anyway. Revealing twice is
+  // harmless, and on Windows the rAFs win long before the timer.
   useEffect(() => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        backend.signalFrontendReady();
-      });
-    });
+    let sent = false;
+    const reveal = () => {
+      if (sent) return;
+      sent = true;
+      backend.signalFrontendReady();
+    };
+    requestAnimationFrame(() => requestAnimationFrame(reveal));
+    const t = setTimeout(reveal, 500);
+    return () => clearTimeout(t);
   }, []);
 
   // Quiet update check shortly after launch, then every 6 hours - Apex is
