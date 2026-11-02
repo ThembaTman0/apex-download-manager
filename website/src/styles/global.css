@@ -435,6 +435,9 @@ ol {
    surrounding text, so they get the body colour and an underline. */
 .hero-meta .text-link,
 .cta-meta .text-link {
+  /* Baseline, not center: with a mark first in the link, centring lifted
+     the link's text 2px above the rest of the line. */
+  align-items: baseline;
   font-size: inherit;
   color: var(--text);
   text-decoration: underline;
