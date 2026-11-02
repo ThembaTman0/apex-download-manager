@@ -393,14 +393,22 @@ ol {
   letter-spacing: -0.005em;
 }
 
-/* Five items need about 1,370px on one line, so the row wraps instead of
-   squeezing them into narrow columns on 1280px laptops. */
+/* Two rows on purpose: the choice, then the details. One wrapping row broke
+   wherever the width ran out and stranded the checksum on its own line. */
 .hero-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.hero-choice,
+.hero-details {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 12px 20px;
-  margin-top: 32px;
 }
 
 .hero-meta {
