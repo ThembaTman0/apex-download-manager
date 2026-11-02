@@ -18,6 +18,7 @@ import { backend } from "@/services/backend";
 import { useDownloadsStore } from "@/stores/downloadsStore";
 import { cn, formatBytes } from "@/lib/utils";
 import type { ToolsStatus, VideoProbe } from "@/types";
+import { Checkbox } from "@/components/ui/Checkbox";
 
 function formatDuration(s: number): string {
   const h = Math.floor(s / 3600);
@@ -425,8 +426,7 @@ export function GrabVideoDialog() {
                                   key={i}
                                   className="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-white/[0.03] transition-colors"
                                 >
-                                  <input
-                                    type="checkbox"
+                                  <Checkbox
                                     checked={!excluded.has(i)}
                                     onChange={(e) => {
                                       const next = new Set(excluded);
@@ -434,7 +434,7 @@ export function GrabVideoDialog() {
                                       else next.add(i);
                                       setExcluded(next);
                                     }}
-                                    className="accent-accent w-3.5 h-3.5 shrink-0"
+                                    size="sm"
                                   />
                                   <span className="text-xs text-ink truncate flex-1">
                                     {entry.title}

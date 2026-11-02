@@ -3,6 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "framer-motion";
 import { Trash2, X } from "lucide-react";
 import { useDownloadsStore } from "@/stores/downloadsStore";
+import { Checkbox } from "@/components/ui/Checkbox";
 
 export function DeleteDialog() {
   const open = useDownloadsStore((s) => s.deleteDialogOpen);
@@ -66,11 +67,10 @@ export function DeleteDialog() {
                 </p>
 
                 <label className="flex items-center gap-2 mb-6 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={deleteFile}
                     onChange={(e) => setDeleteFile(e.target.checked)}
-                    className="accent-error"
+                    tone="error"
                   />
                   <span className="text-sm text-ink-muted">
                     Also delete file{count !== 1 ? "s" : ""} from disk

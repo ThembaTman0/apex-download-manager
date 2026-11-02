@@ -3,6 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "framer-motion";
 import { FileUp, FolderOpen, Link2, Loader2, Plus, X } from "lucide-react";
 import { useDownloadsStore } from "@/stores/downloadsStore";
+import { Checkbox } from "@/components/ui/Checkbox";
 
 const MAX_BATCH = 500;
 
@@ -220,11 +221,10 @@ export function AddUrlDialog() {
                             } already in your list.`}
                       </p>
                       <label className="flex items-center gap-2 mt-1 cursor-pointer select-none">
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={skipDuplicates}
                           onChange={(e) => setSkipDuplicates(e.target.checked)}
-                          className="accent-accent w-3.5 h-3.5"
+                          size="sm"
                         />
                         <span className="text-[11px] text-ink-mid">
                           Skip duplicate{duplicates.length !== 1 ? "s" : ""} (uncheck to

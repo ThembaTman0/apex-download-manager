@@ -21,6 +21,7 @@ import { backend } from "@/services/backend";
 import { categoryForType, formatBytes } from "@/lib/utils";
 import type { PendingCapture } from "@/types";
 import { LogoBadge } from "@/components/ui/LogoMark";
+import { Checkbox } from "@/components/ui/Checkbox";
 
 const appWindow = getCurrentWindow();
 
@@ -332,11 +333,10 @@ export function CapturePopup() {
               </label>
 
               <label className="flex items-center gap-2 mb-3 cursor-pointer select-none">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={alwaysAllow}
                   onChange={(e) => setAlwaysAllow(e.target.checked)}
-                  className="accent-accent w-3.5 h-3.5 shrink-0"
+                  size="sm"
                 />
                 <span className="text-[11px] text-ink-mid truncate" title={host}>
                   Always allow downloads from {host}

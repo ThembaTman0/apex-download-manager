@@ -8,6 +8,7 @@ import { getShowWhatsNew, setShowWhatsNew } from "@/lib/whatsNew";
 // The notes for the version being built, bundled so "What's new" works
 // offline and the app makes no extra network request.
 import releaseNotes from "../../../../RELEASE_NOTES.md?raw";
+import { Checkbox } from "@/components/ui/Checkbox";
 
 const LAST_SEEN_KEY = "apex.lastSeenVersion";
 
@@ -298,11 +299,10 @@ export function WelcomeDialog() {
                 <div className="flex items-center justify-between gap-4 mt-5">
                   {mode === "whatsnew" ? (
                     <label className="flex items-center gap-2 text-xs text-ink-muted cursor-pointer select-none">
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={optOut}
                         onChange={(e) => setOptOut(e.target.checked)}
-                        className="accent-accent w-3.5 h-3.5"
+                        size="sm"
                       />
                       Don't show this after future updates
                     </label>

@@ -34,6 +34,7 @@ import type {
   Settings,
   ToolsStatus,
 } from "@/types";
+import { Checkbox } from "@/components/ui/Checkbox";
 
 /** The built-in categories, in the order the panel lists them. */
 const CATEGORIES: Category[] = [
@@ -170,11 +171,9 @@ export function SettingsPage() {
           hint="Full speed inside the off-peak window; outside it a lower cap applies automatically"
         >
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={form.schedulerEnabled}
               onChange={(e) => update({ schedulerEnabled: e.target.checked })}
-              className="accent-accent w-4 h-4"
             />
             <span className="text-sm text-ink-mid">
               Limit speed outside off-peak hours
@@ -239,11 +238,9 @@ export function SettingsPage() {
 
         <Field icon={Bell} label="Notifications" hint="">
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={form.notifyOnComplete}
               onChange={(e) => update({ notifyOnComplete: e.target.checked })}
-              className="accent-accent w-4 h-4"
             />
             <span className="text-sm text-ink-mid">
               Notify when a download completes
@@ -257,11 +254,9 @@ export function SettingsPage() {
           hint="Only the list entry is removed, never the file. Removed downloads no longer trigger the warning when you download the same file again."
         >
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={form.removeCompleted}
               onChange={(e) => update({ removeCompleted: e.target.checked })}
-              className="accent-accent w-4 h-4"
             />
             <span className="text-sm text-ink-mid">
               Remove downloads from the list when they finish
@@ -275,11 +270,9 @@ export function SettingsPage() {
           hint="Offers to grab download links the moment you copy them"
         >
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={form.watchClipboard}
               onChange={(e) => update({ watchClipboard: e.target.checked })}
-              className="accent-accent w-4 h-4"
             />
             <span className="text-sm text-ink-mid">
               Watch clipboard for download URLs
@@ -293,11 +286,9 @@ export function SettingsPage() {
           hint="Saves into Video, Music, Programs… subfolders. Each category can have its own folder, even on another drive, and take extra file types."
         >
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={form.autoOrganize}
               onChange={(e) => update({ autoOrganize: e.target.checked })}
-              className="accent-accent w-4 h-4"
             />
             <span className="text-sm text-ink-mid">
               Sort downloads into category folders
@@ -328,11 +319,9 @@ export function SettingsPage() {
           hint="Starts hidden in the tray at sign-in, so browser downloads are captured even before you open Apex"
         >
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={form.launchAtStartup}
               onChange={(e) => update({ launchAtStartup: e.target.checked })}
-              className="accent-accent w-4 h-4"
             />
             <span className="text-sm text-ink-mid">
               Launch Apex when I sign in
@@ -381,35 +370,29 @@ export function SettingsPage() {
 
         <Field icon={ClipboardCopy} label="Capture" hint="">
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={form.captureEnabled}
               onChange={(e) => update({ captureEnabled: e.target.checked })}
-              className="accent-accent w-4 h-4"
             />
             <span className="text-sm text-ink-mid">
               Accept downloads from the browser extension
             </span>
           </label>
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={form.captureConfirm}
               disabled={!form.captureEnabled}
               onChange={(e) => update({ captureConfirm: e.target.checked })}
-              className="accent-accent w-4 h-4 disabled:opacity-40"
             />
             <span className="text-sm text-ink-mid disabled:opacity-40">
               Ask me to approve each capture before it downloads
             </span>
           </label>
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={form.showProgressWindow}
               disabled={!form.captureEnabled}
               onChange={(e) => update({ showProgressWindow: e.target.checked })}
-              className="accent-accent w-4 h-4 disabled:opacity-40"
             />
             <span className="text-sm text-ink-mid disabled:opacity-40">
               Show a progress window when a captured download or video starts
@@ -648,14 +631,12 @@ function AppUpdatesSection() {
         )}
       </div>
       <label className="flex items-center gap-2.5 cursor-pointer select-none mb-5">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={showWhatsNew}
           onChange={(e) => {
             setShowWhatsNew(e.target.checked);
             setShowWhatsNewState(e.target.checked);
           }}
-          className="accent-accent w-4 h-4"
         />
         <span className="text-sm text-ink-mid">Show what's new after updates</span>
       </label>
