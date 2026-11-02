@@ -41,12 +41,12 @@ Chromium-only APIs the code feature-detects; safe to ignore).
 
 **Summary (AMO limit 250 chars):**
 Hands your downloads to the free, open source Apex Download Manager app for
-Windows: up to 32 connections, resume that survives restarts, and checksum
+Windows and Linux: up to 32 connections, resume across restarts, and checksum
 verification. If Apex isn't running the download restarts in the browser, so
 nothing is lost.
 
 **Description:**
-Apex Download Manager is a free, open source download manager for Windows,
+Apex Download Manager is a free, open source download manager for Windows and Linux,
 licensed GPL v3. This extension hands your browser's downloads to the Apex
 app, which splits each file across up to 32 connections, resumes interrupted
 transfers from the exact byte they stopped at, and can verify checksums
@@ -62,7 +62,7 @@ before you run what you downloaded.
 - No tracking. The extension reads no page content and talks only to the
   Apex app on your own machine (127.0.0.1)
 
-Requires the free Apex Download Manager app for Windows:
+Requires the free Apex Download Manager app for Windows or Linux:
 https://apexdownloadmanager.com
 
 Source code (GPL v3):
