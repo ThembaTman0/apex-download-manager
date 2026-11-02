@@ -555,3 +555,68 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     });
   }
 });
+
+// --- Pairing ------------------------------------------------------------
+
+// The popup asks; the request runs here. Clicking Apex's Allow dialog moves
+// focus off the browser, which closes the popup and kills any fetch it owns,
+// so a popup-side request saved nothing (Apex counted itself paired while the
+// extension never stored the token). The worker outlives the popup. Progress
+// goes to storage.session so a reopened popup can show where it got to.
+const PAIR_TIMEOUT_MS = 120_000;
+let pairing = false;
+
+// A fresh worker has no pairing in flight, so a leftover "waiting" means the
+// last one died mid-request; without this the popup's button stays disabled.
+chrome.storage.session
+  .get("pairing")
+  .then(({ pairing: p }) => {
+    if (p && p.state === "waiting" && !pairing) {
+      chrome.storage.session.set({ pairing: { state: "failed", error: "" } });
+    }
+  })
+  .catch(() => {});
+
+async function pairWithApex(port) {
+  if (pairing) return;
+  pairing = true;
+  const setState = (state, error) =>
+    chrome.storage.session.set({ pairing: { state, error: error || "" } }).catch(() => {});
+  // A pending fetch alone doesn't keep an MV3 worker alive; an extension API
+  // call every 20 s resets the idle timer while the user decides.
+  const keepAlive = setInterval(() => chrome.runtime.getPlatformInfo(() => {}), 20_000);
+  await setState("waiting");
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), PAIR_TIMEOUT_MS);
+    const res = await fetch(`http://127.0.0.1:${port}/pair`, {
+      method: "POST",
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok && data.token) {
+      await chrome.storage.local.set({ token: data.token, port });
+      await setState("paired");
+      chrome.notifications.create({
+        type: "basic",
+        iconUrl: "icons/128.png",
+        title: "Apex Download Manager",
+        message: "Paired with Apex. Downloads you click now go to the app.",
+      });
+    } else if (data.error === "denied") {
+      await setState("denied");
+    } else {
+      await setState("failed", data.error);
+    }
+  } catch {
+    await setState("failed");
+  } finally {
+    clearInterval(keepAlive);
+    pairing = false;
+  }
+}
+
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg && msg.type === "pair") pairWithApex(parseInt(msg.port, 10) || DEFAULTS.port);
+});
