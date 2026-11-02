@@ -211,7 +211,8 @@ export function AddUrlDialog() {
                       className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-ink placeholder:text-ink-faint pl-9 pr-3 py-2.5 outline-none focus:border-accent/50 transition-colors resize-none leading-relaxed"
                     />
                   </div>
-                  {duplicates.length > 0 && (
+                  {/* While adding, the new entries already match themselves. */}
+                  {!busy && duplicates.length > 0 && (
                     <div className="mt-1.5">
                       <p className="text-[11px] text-warning">
                         {urls.length === 1
