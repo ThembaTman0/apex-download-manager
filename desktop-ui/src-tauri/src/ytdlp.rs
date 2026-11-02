@@ -5,9 +5,10 @@
 //! live in `<app-data>/tools/`. They can also be picked up from PATH if the
 //! user already has them installed.
 
-// The one-click yt-dlp/FFmpeg installers are Windows-only for now, so on
-// other platforms their download and checksum helpers go unused.
-#![cfg_attr(not(windows), allow(dead_code))]
+// The one-click yt-dlp installer covers Windows and Linux, FFmpeg's only
+// Windows (Linux users get it from their package manager), so on other
+// platforms the download and checksum helpers go unused.
+#![cfg_attr(not(any(windows, target_os = "linux")), allow(dead_code))]
 
 use crate::engine::{TaskCtx, EVENT_CHANGED};
 use crate::models::{file_type_from_name, now_millis, Download};
@@ -25,7 +26,9 @@ const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 /// yt-dlp is fetched from an explicit release tag so the binary and the
 /// SHA2-256SUMS it is checked against always come from the same release.
 const YTDLP_RELEASE_BASE: &str = "https://github.com/yt-dlp/yt-dlp/releases/download";
+#[cfg_attr(not(windows), allow(dead_code))]
 const FFMPEG_ZIP_NAME: &str = "ffmpeg-master-latest-win64-gpl.zip";
+#[cfg_attr(not(windows), allow(dead_code))]
 const FFMPEG_RELEASE_BASE: &str =
     "https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download";
 
@@ -37,6 +40,20 @@ const YTDLP_EXE: &str = "yt-dlp";
 const FFMPEG_EXE: &str = "ffmpeg.exe";
 #[cfg(not(windows))]
 const FFMPEG_EXE: &str = "ffmpeg";
+
+/// The yt-dlp release asset for this platform. On Linux it is the standalone
+/// build (no system Python needed), saved locally as plain `yt-dlp`.
+#[cfg(windows)]
+const YTDLP_ASSET: Option<&str> = Some("yt-dlp.exe");
+#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+const YTDLP_ASSET: Option<&str> = Some("yt-dlp_linux");
+#[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+const YTDLP_ASSET: Option<&str> = Some("yt-dlp_linux_aarch64");
+#[cfg(not(any(
+    windows,
+    all(target_os = "linux", any(target_arch = "x86_64", target_arch = "aarch64"))
+)))]
+const YTDLP_ASSET: Option<&str> = None;
 
 pub fn tools_dir(app: &AppHandle) -> PathBuf {
     app.path()
@@ -313,25 +330,31 @@ fn removed_after_download(tool: &str, dir: &Path) -> String {
 }
 
 pub async fn install_ytdlp(app: &AppHandle) -> Result<ToolsStatus, String> {
-    #[cfg(not(windows))]
-    return Err("Automatic install is only supported on Windows; install yt-dlp from your package manager".into());
-    #[cfg(windows)]
+    let Some(asset) = YTDLP_ASSET else {
+        return Err("Automatic install isn't available on this system; install yt-dlp from your package manager".into());
+    };
     {
         let dir = tools_dir(app);
         let dest = dir.join(YTDLP_EXE);
-        let tmp = dest.with_extension("exe.tmp");
+        let tmp = dir.join(format!("{YTDLP_EXE}.tmp"));
         let tag = latest_ytdlp_version()
             .await
             .ok_or("cannot find the latest yt-dlp release. Check your connection and try again.")?;
         let sums = fetch_text(app, &format!("{YTDLP_RELEASE_BASE}/{tag}/SHA2-256SUMS")).await?;
         let actual =
-            fetch_to_file(app, &format!("{YTDLP_RELEASE_BASE}/{tag}/{YTDLP_EXE}"), &tmp, "yt-dlp")
+            fetch_to_file(app, &format!("{YTDLP_RELEASE_BASE}/{tag}/{asset}"), &tmp, "yt-dlp")
                 .await?;
         if !tmp.exists() {
             return Err(removed_after_download("yt-dlp", &dir));
         }
-        verify_sha256("yt-dlp", &tmp, &actual, &sums, YTDLP_EXE)?;
-        // Replace atomically so a running yt-dlp.exe never gets half a binary.
+        verify_sha256("yt-dlp", &tmp, &actual, &sums, asset)?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(0o755))
+                .map_err(|e| format!("cannot install yt-dlp: {e}"))?;
+        }
+        // Replace atomically so a running yt-dlp never gets half a binary.
         std::fs::rename(&tmp, &dest).map_err(|e| {
             if e.kind() == std::io::ErrorKind::NotFound {
                 removed_after_download("yt-dlp", &dir)
@@ -347,8 +370,9 @@ pub async fn install_ytdlp(app: &AppHandle) -> Result<ToolsStatus, String> {
 }
 
 pub async fn install_ffmpeg(app: &AppHandle) -> Result<ToolsStatus, String> {
+    // Every Linux distro packages a current FFmpeg, so Settings points there.
     #[cfg(not(windows))]
-    return Err("Automatic install is only supported on Windows; install ffmpeg from your package manager".into());
+    return Err("Install FFmpeg from your package manager, for example: sudo apt install ffmpeg".into());
     #[cfg(windows)]
     {
         let dir = tools_dir(app);

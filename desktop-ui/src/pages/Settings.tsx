@@ -652,6 +652,14 @@ function AppUpdatesSection() {
   );
 }
 
+// Linux users get FFmpeg from their package manager instead of a download.
+const IS_LINUX = navigator.userAgent.includes("Linux");
+const FFMPEG_PACKAGE_COMMANDS = [
+  { distro: "Ubuntu / Debian", cmd: "sudo apt install ffmpeg" },
+  { distro: "Fedora", cmd: "sudo dnf install ffmpeg" },
+  { distro: "Arch", cmd: "sudo pacman -S ffmpeg" },
+];
+
 /** yt-dlp / ffmpeg status with one-click installers. */
 function VideoGrabberSection() {
   const [tools, setTools] = useState<ToolsStatus | null>(null);
@@ -659,6 +667,27 @@ function VideoGrabberSection() {
   const [progress, setProgress] = useState<{ downloaded: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [updateAvailable, setUpdateAvailable] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [copiedCmd, setCopiedCmd] = useState<string | null>(null);
+
+  const recheck = async () => {
+    setChecking(true);
+    setError(null);
+    try {
+      setTools(await backend.ytdlpStatus());
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const copyCmd = async (cmd: string) => {
+    const { writeText } = await import("@tauri-apps/plugin-clipboard-manager");
+    await writeText(cmd);
+    setCopiedCmd(cmd);
+    setTimeout(() => setCopiedCmd(null), 1500);
+  };
 
   useEffect(() => {
     backend.ytdlpStatus().then(setTools).catch(() => {});
@@ -727,12 +756,38 @@ function VideoGrabberSection() {
             : "Not installed · best quality limited"
         }
         ok={!!tools?.ffmpegPath}
-        installing={installing === "ffmpeg"}
+        installing={IS_LINUX ? checking : installing === "ffmpeg"}
         progress={installing === "ffmpeg" ? progress : null}
-        onInstall={() => install("ffmpeg")}
-        installLabel={tools?.ffmpegPath ? "Reinstall" : "Install (~180 MB)"}
-        disabled={installing !== null}
+        onInstall={IS_LINUX ? recheck : () => install("ffmpeg")}
+        installLabel={IS_LINUX ? "Check again" : tools?.ffmpegPath ? "Reinstall" : "Install (~180 MB)"}
+        busyLabel={IS_LINUX ? "Checking…" : undefined}
+        icon={IS_LINUX ? <RefreshCw className="w-3.5 h-3.5" /> : undefined}
+        disabled={installing !== null || checking}
       />
+      {IS_LINUX && tools && !tools.ffmpegPath && (
+        <div className="-mt-1 mb-3 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
+          <p className="text-[11px] text-ink-muted mb-2">
+            Install FFmpeg with your package manager, then press Check again:
+          </p>
+          {FFMPEG_PACKAGE_COMMANDS.map(({ distro, cmd }) => (
+            <div key={cmd} className="flex items-center gap-2 py-0.5">
+              <span className="text-[11px] text-ink-muted w-28 shrink-0">{distro}</span>
+              <code className="flex-1 min-w-0 truncate text-[11px] text-ink-mid">{cmd}</code>
+              <button
+                onClick={() => copyCmd(cmd)}
+                aria-label={`Copy ${cmd}`}
+                className="text-ink-muted hover:text-ink transition-colors shrink-0"
+              >
+                {copiedCmd === cmd ? (
+                  <Check className="w-3.5 h-3.5 text-success" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       {error && <p className="text-xs text-error-soft mb-4 break-all">{error}</p>}
     </>
   );
@@ -747,6 +802,8 @@ function ToolRow({
   progress,
   onInstall,
   installLabel,
+  busyLabel = "Installing…",
+  icon,
   disabled,
 }: {
   name: string;
@@ -757,6 +814,8 @@ function ToolRow({
   progress: { downloaded: number; total: number } | null;
   onInstall: () => void;
   installLabel: string;
+  busyLabel?: string;
+  icon?: React.ReactNode;
   disabled: boolean;
 }) {
   return (
@@ -783,9 +842,9 @@ function ToolRow({
         {installing ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
         ) : (
-          <Download className="w-3.5 h-3.5" />
+          (icon ?? <Download className="w-3.5 h-3.5" />)
         )}
-        {installing ? "Installing…" : installLabel}
+        {installing ? busyLabel : installLabel}
       </button>
     </div>
   );
