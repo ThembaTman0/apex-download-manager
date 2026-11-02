@@ -1,3 +1,4 @@
+import { usePlatform } from "../lib/platform";
 import { Reveal } from "../lib/reveal";
 import {
   FALLBACK_SIZE_MB,
@@ -16,6 +17,7 @@ export default function Hero() {
   const changelog = useChangelog();
   const latest = changelog?.[0];
   const shownVersion = version ?? latest?.version ?? FALLBACK_VERSION;
+  const platform = usePlatform();
 
   return (
     <section className="hero" id="top" aria-labelledby="hero-title">
@@ -32,18 +34,47 @@ export default function Hero() {
         </Reveal>
         <Reveal delay={120}>
           <div className="hero-actions">
-            <a className="btn btn-primary" href="/dl">
-              <DownloadIcon size={15} />
-              Download for Windows
-            </a>
-            <span className="hero-meta mono">
-              v{shownVersion} · {sizeMb ?? FALLBACK_SIZE_MB} MB · Windows 10/11 x64 · GPL v3
-            </span>
-            <Checksum compact />
-            <span className="hero-meta mono">
-              Linux: <a className="text-link" href="/dl?os=linux">AppImage</a> ·{" "}
-              <a className="text-link" href="/dl?os=deb">.deb</a>
-            </span>
+            {platform === "linux" ? (
+              <>
+                <a className="btn btn-primary" href="/dl?os=linux">
+                  <DownloadIcon size={15} />
+                  Download for Linux
+                </a>
+                {/* The other choices sit right after the button so they read as
+                    one group with it. */}
+                <span className="hero-meta hero-linux mono">
+                  AppImage, any distro · <a className="text-link" href="/dl?os=deb">.deb</a> ·{" "}
+                  <a className="text-link" href="/dl">Windows</a>
+                </span>
+                <span className="hero-meta mono">v{shownVersion} · x64 · GPL v3</span>
+              </>
+            ) : platform === "mobile" ? (
+              <>
+                <a className="btn btn-primary" href="#download">
+                  <DownloadIcon size={15} />
+                  Free for Windows and Linux
+                </a>
+                <span className="hero-meta mono">
+                  v{shownVersion} · A desktop app: download it on your computer
+                </span>
+              </>
+            ) : (
+              <>
+                <a className="btn btn-primary" href="/dl">
+                  <DownloadIcon size={15} />
+                  Download for Windows
+                </a>
+                <span className="hero-meta hero-linux mono">
+                  Linux: <a className="text-link" href="/dl?os=linux">AppImage</a> ·{" "}
+                  <a className="text-link" href="/dl?os=deb">.deb</a> (x64)
+                </span>
+                <span className="hero-meta mono">
+                  v{shownVersion} · {sizeMb ?? FALLBACK_SIZE_MB} MB · Windows 10/11 x64 · GPL v3
+                </span>
+                {/* The published hash is the Windows installer's. */}
+                <Checksum compact />
+              </>
+            )}
             <a
               className="hero-new"
               href={latest?.url ?? RELEASES_URL}
@@ -61,7 +92,6 @@ export default function Hero() {
       </div>
 
       <Reveal delay={200} className="hero-stage">
-        <div className="hero-floor" aria-hidden="true" />
         <div className="hero-frame">
           <AppMockup />
           <div

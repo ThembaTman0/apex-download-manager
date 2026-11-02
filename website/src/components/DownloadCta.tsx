@@ -1,3 +1,4 @@
+import { usePlatform } from "../lib/platform";
 import { Reveal } from "../lib/reveal";
 import {
   FALLBACK_SIZE_MB,
@@ -16,6 +17,7 @@ const COUNTER_MIN = 1000;
 export default function DownloadCta() {
   const { version, sizeMb, total } = useLatestRelease();
   const showCount = typeof total === "number" && total >= COUNTER_MIN;
+  const platform = usePlatform();
 
   return (
     <section className="band cta" id="download" aria-labelledby="download-title">
@@ -27,17 +29,37 @@ export default function DownloadCta() {
             <span className="muted">Free for Windows and Linux.</span>
           </h2>
           <div className="cta-side">
-            <a className="btn btn-primary" href="/dl">
-              <DownloadIcon size={15} />
-              Download for Windows
-            </a>
-            <p className="cta-meta mono">
-              v{version ?? FALLBACK_VERSION} · {sizeMb ?? FALLBACK_SIZE_MB} MB · Windows 10/11 x64 installer
-            </p>
-            <p className="cta-meta mono">
-              Linux: <a className="text-link" href="/dl?os=linux">AppImage</a> ·{" "}
-              <a className="text-link" href="/dl?os=deb">.deb</a> (x64)
-            </p>
+            {platform === "linux" ? (
+              <>
+                <a className="btn btn-primary" href="/dl?os=linux">
+                  <DownloadIcon size={15} />
+                  Download for Linux
+                </a>
+                <p className="cta-meta mono">
+                  v{version ?? FALLBACK_VERSION} · AppImage (x64), runs on any distro
+                </p>
+                <p className="cta-meta mono">
+                  Also: <a className="text-link" href="/dl?os=deb">.deb</a> for Ubuntu and
+                  Debian · <a className="text-link" href="/dl">Windows</a> installer
+                </p>
+              </>
+            ) : (
+              <>
+                {/* On a phone this section is where the hero sends you; the
+                    links still work, for sending them on to a computer. */}
+                <a className="btn btn-primary" href="/dl">
+                  <DownloadIcon size={15} />
+                  Download for Windows
+                </a>
+                <p className="cta-meta mono">
+                  v{version ?? FALLBACK_VERSION} · {sizeMb ?? FALLBACK_SIZE_MB} MB · Windows 10/11 x64 installer
+                </p>
+                <p className="cta-meta mono">
+                  Linux: <a className="text-link" href="/dl?os=linux">AppImage</a> ·{" "}
+                  <a className="text-link" href="/dl?os=deb">.deb</a> (x64)
+                </p>
+              </>
+            )}
             <p className="cta-note">
               Pair the browser extension from Apex Settings, then downloads you
               click are caught automatically.

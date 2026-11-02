@@ -40,6 +40,10 @@
   --text-mute: #8a8f98;
   --text-3: #787d86;
 
+  /* Brand: the app's amber, for primary actions. Dark text on it is 10:1. */
+  --accent: #e6b450;
+  --accent-hover: #f0c46a;
+
   /* Product colors: used only inside app mockups (mirror desktop-ui/src/index.css) */
   --mk-bg: #0b0e14;
   --mk-surface: #0d1017;
@@ -185,12 +189,12 @@ ol {
 }
 
 .btn-primary {
-  background: var(--text);
+  background: var(--accent);
   color: var(--bg);
 }
 
 .btn-primary:hover {
-  background: #ffffff;
+  background: var(--accent-hover);
 }
 
 /* Feedback belongs on the press, not the release: waiting for the click to
@@ -389,10 +393,13 @@ ol {
   letter-spacing: -0.005em;
 }
 
+/* Five items need about 1,370px on one line, so the row wraps instead of
+   squeezing them into narrow columns on 1280px laptops. */
 .hero-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 20px;
+  gap: 12px 20px;
   margin-top: 32px;
 }
 
@@ -400,6 +407,26 @@ ol {
   font-size: 12px;
   color: var(--text-3);
   letter-spacing: 0;
+}
+
+.hero-linux {
+  white-space: nowrap;
+}
+
+/* Links inside grey metadata lines: colour alone was 1.27:1 against the
+   surrounding text, so they get the body colour and an underline. */
+.hero-meta .text-link,
+.cta-meta .text-link {
+  font-size: inherit;
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--line-2);
+  text-underline-offset: 3px;
+}
+
+.hero-meta .text-link:hover,
+.cta-meta .text-link:hover {
+  text-decoration-color: currentColor;
 }
 
 .hero-new {
@@ -438,35 +465,12 @@ ol {
   transform: translateX(2px);
 }
 
-/* The product composition: wider than the text column, lit from beneath. */
+/* The product composition: wider than the text column, sitting on the page
+   itself rather than on a lit floor. */
 .hero-stage {
   position: relative;
   margin-top: 64px;
   padding: 0 16px 72px;
-}
-
-.hero-floor {
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  top: 72px;
-  bottom: 0;
-  border-radius: var(--r-12);
-  background:
-    radial-gradient(60% 55% at 50% 100%, rgba(178, 184, 196, 0.26), transparent 72%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.035) 100%);
-  pointer-events: none;
-}
-
-.hero-floor::after {
-  /* the lit edge where the floor meets the page */
-  content: "";
-  position: absolute;
-  left: 18%;
-  right: 18%;
-  bottom: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
 }
 
 .hero-frame {
@@ -2893,11 +2897,6 @@ ol {
     padding: 0 8px 40px;
   }
 
-  .hero-floor {
-    left: 0;
-    right: 0;
-  }
-
   .mk-window {
     height: 480px;
   }
@@ -3057,11 +3056,6 @@ ol {
     padding: 0 18px;
   }
 
-  .checksum-compact {
-    min-height: 44px;
-    padding: 0 14px;
-  }
-
   .nav-links .btn-pill {
     height: 44px;
   }
@@ -3138,6 +3132,15 @@ ol {
     border-color 0.16s var(--ease),
     color 0.16s var(--ease),
     transform 0.16s var(--ease);
+}
+
+/* After the base rule: a media query adds no specificity, so placed earlier
+   the base min-height won and the button stayed 32px on phones. */
+@media (max-width: 860px) {
+  .checksum-compact {
+    min-height: 44px;
+    padding: 0 14px;
+  }
 }
 
 .checksum-compact:hover {
