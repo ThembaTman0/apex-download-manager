@@ -1,17 +1,18 @@
-Select All now only picks what you can see, Stop really stops a playlist, and finished downloads are easier to tidy up.
-
-**Fixes**
-
-- Select All (and Ctrl+A) now selects only the downloads shown in the current tab, type filter and search. Before, it selected every download, so deleting from the Completed tab could also delete active ones. Changing tab or search now clears the selection too.
-- Stopping a playlist while it's being queued now really stops it. The button reads Stop, videos already added stay in your list, and you can remove them in one click if you didn't want any.
-- The "Download link copied" popup no longer reappears for a link you copied earlier, for example when Apex starts or when you close your browser.
-- Installing or updating yt-dlp and FFmpeg now uses your proxy setting, and a failed install says why.
+Apex now runs on Linux, and a small progress window keeps your downloads in view while you work.
 
 **New**
 
-- Optionally remove downloads from the list as soon as they finish, in Settings > Finished downloads. Only the list entry goes, never the file.
-- Finished downloads whose file was moved or deleted now show "File missing", and the status bar offers to remove them all at once. Files on an unplugged drive are left alone.
+- Apex for Linux, as an AppImage or a .deb for Ubuntu, Debian and similar. Everything works as on Windows: the browser extension, the tray, starting at sign-in, and the video grabber. The AppImage updates itself; with the .deb, install the new version when one comes out.
+- A progress window appears in the corner when a download from your browser or a grabbed video starts, and whenever you minimize Apex. With one download it shows the time left and a live speed chart; with several, a simple list. Pause and resume from it, open finished files, and click the Apex logo to bring the app back. It never takes focus, stays where you drag it, and closes itself once everything is done. Turn it off in Settings > Browser capture.
+- YouTube offers its full range of qualities again. YouTube now needs a small helper called Deno for that, and you can install it with one click in Settings > Video Grabber. Without it, YouTube may only offer a few qualities, and Apex tells you so when you grab a YouTube video.
+- The welcome screen shows whether the browser extension is paired.
+
+**Fixes**
+
+- Video downloads no longer reach 100% and then drop back to around 60%. Videos that arrive as separate picture and sound files now show one steady bar for the whole download, and pausing and resuming keeps the size and progress where they were.
+- The Grab Video window no longer keeps showing "yt-dlp is not installed" after you install it from there.
 
 **Under the hood**
 
-- Updated Tauri and the libraries Apex is built on.
+- Updated the certificate libraries Apex uses for secure connections, so it no longer trusts certificates that browsers have stopped trusting.
+- The progress window can only do the few things it needs, nothing else in Apex.
