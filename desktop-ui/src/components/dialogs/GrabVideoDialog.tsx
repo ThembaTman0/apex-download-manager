@@ -112,6 +112,9 @@ export function GrabVideoDialog() {
     setInstalling(true);
     setInstallProgress(null);
     setInstallError(null);
+    // A link handed over by the extension was analyzed before yt-dlp existed;
+    // that "not installed" error is stale once the install starts.
+    setError(null);
     try {
       const s = await backend.installYtdlp();
       setTools(s);
@@ -277,8 +280,9 @@ export function GrabVideoDialog() {
                     </p>
                     <p className="text-xs text-ink-muted leading-relaxed mb-1.5">
                       The video grabber uses yt-dlp, a free tool, to fetch video and
-                      audio from YouTube and a thousand other sites. It's about 18 MB
-                      and only needs installing once.
+                      audio from YouTube and a thousand other sites. It's a{" "}
+                      {navigator.userAgent.includes("Linux") ? "41" : "18"} MB download and
+                      only needs installing once.
                     </p>
                     <p className="text-xs text-ink-muted leading-relaxed mb-3">
                       Some antivirus products flag yt-dlp. If the install fails, wait
@@ -492,6 +496,12 @@ export function GrabVideoDialog() {
                               FFmpeg is not installed, so only qualities that come as a
                               single file are offered. Install it under Settings → Video
                               Grabber to unlock the highest resolutions.
+                            </p>
+                          )}
+                          {tools && !tools.denoPath && /youtube\.com|youtu\.be/i.test(url) && (
+                            <p className="text-[10px] text-warning/90 mt-1.5 leading-relaxed">
+                              Deno is not installed, so YouTube may offer fewer
+                              qualities. Install it under Settings → Video Grabber.
                             </p>
                           )}
                         </div>

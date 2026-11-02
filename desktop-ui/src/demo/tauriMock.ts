@@ -221,7 +221,16 @@ if (!("__TAURI_INTERNALS__" in window)) {
     ytdlpVersion: string | null;
     ffmpegPath: string | null;
     ffmpegVersion: string | null;
-  } = { ytdlpPath: null, ytdlpVersion: null, ffmpegPath: null, ffmpegVersion: null };
+    denoPath: string | null;
+    denoVersion: string | null;
+  } = {
+    ytdlpPath: null,
+    ytdlpVersion: null,
+    ffmpegPath: null,
+    ffmpegVersion: null,
+    denoPath: null,
+    denoVersion: null,
+  };
 
   const emit = (event: string, payload: unknown) => {
     for (const cb of listeners.get(event) ?? []) {
@@ -335,6 +344,16 @@ if (!("__TAURI_INTERNALS__" in window)) {
       }
       demoTools.ytdlpPath = "C:\\Users\\demo\\AppData\\Roaming\\com.apex.download-manager\\tools\\yt-dlp.exe";
       demoTools.ytdlpVersion = "2026.10.01";
+      return { ...demoTools };
+    },
+    install_deno: async () => {
+      const total = 42 * 1024 * 1024;
+      for (let i = 1; i <= 8; i++) {
+        await new Promise((r) => setTimeout(r, 250));
+        emit("tools:progress", { tool: "deno", downloaded: Math.round((total * i) / 8), total });
+      }
+      demoTools.denoPath = "C:\\Users\\demo\\AppData\\Roaming\\com.apex.download-manager\\tools\\deno.exe";
+      demoTools.denoVersion = "2.5.6";
       return { ...demoTools };
     },
     disk_free: () => Math.round(195 * GB),

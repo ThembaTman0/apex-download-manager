@@ -453,6 +453,7 @@ pub fn run() {
             commands::ytdlp_check_update,
             commands::install_ytdlp,
             commands::install_ffmpeg,
+            commands::install_deno,
             commands::probe_video,
             commands::add_video,
             commands::signal_frontend_ready,

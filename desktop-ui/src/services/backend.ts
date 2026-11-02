@@ -92,6 +92,7 @@ export const backend = {
   ytdlpCheckUpdate: () => invoke<YtdlpUpdateCheck>("ytdlp_check_update"),
   installYtdlp: () => invoke<ToolsStatus>("install_ytdlp"),
   installFfmpeg: () => invoke<ToolsStatus>("install_ffmpeg"),
+  installDeno: () => invoke<ToolsStatus>("install_deno"),
   probeVideo: (url: string, useBrowserCookies = false) =>
     invoke<VideoProbe>("probe_video", { url, useBrowserCookies }),
   async addVideo(

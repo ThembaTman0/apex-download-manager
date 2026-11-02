@@ -663,7 +663,7 @@ const FFMPEG_PACKAGE_COMMANDS = [
 /** yt-dlp / ffmpeg status with one-click installers. */
 function VideoGrabberSection() {
   const [tools, setTools] = useState<ToolsStatus | null>(null);
-  const [installing, setInstalling] = useState<"yt-dlp" | "ffmpeg" | null>(null);
+  const [installing, setInstalling] = useState<"yt-dlp" | "ffmpeg" | "deno" | null>(null);
   const [progress, setProgress] = useState<{ downloaded: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [updateAvailable, setUpdateAvailable] = useState<string | null>(null);
@@ -702,12 +702,17 @@ function VideoGrabberSection() {
     return () => unlisten?.();
   }, []);
 
-  const install = async (tool: "yt-dlp" | "ffmpeg") => {
+  const install = async (tool: "yt-dlp" | "ffmpeg" | "deno") => {
     setInstalling(tool);
     setProgress(null);
     setError(null);
     try {
-      const s = tool === "yt-dlp" ? await backend.installYtdlp() : await backend.installFfmpeg();
+      const s =
+        tool === "yt-dlp"
+          ? await backend.installYtdlp()
+          : tool === "deno"
+            ? await backend.installDeno()
+            : await backend.installFfmpeg();
       setTools(s);
       if (tool === "yt-dlp") setUpdateAvailable(null);
     } catch (e) {
@@ -728,7 +733,7 @@ function VideoGrabberSection() {
         “Grab Video” downloads video/audio from YouTube and 1000+ other sites
         using <code className="text-ink-mid">yt-dlp</code>. FFmpeg is optional;
         it unlocks the highest resolutions by merging separate video and audio
-        streams.
+        streams. Deno lets yt-dlp see YouTube's full list of qualities.
       </p>
 
       <ToolRow
@@ -762,6 +767,20 @@ function VideoGrabberSection() {
         installLabel={IS_LINUX ? "Check again" : tools?.ffmpegPath ? "Reinstall" : "Install (~180 MB)"}
         busyLabel={IS_LINUX ? "Checking…" : undefined}
         icon={IS_LINUX ? <RefreshCw className="w-3.5 h-3.5" /> : undefined}
+        disabled={installing !== null || checking}
+      />
+      <ToolRow
+        name="Deno"
+        status={
+          tools?.denoPath
+            ? `Installed${tools.denoVersion ? ` · v${tools.denoVersion}` : ""}`
+            : "Not installed · YouTube may offer fewer qualities"
+        }
+        ok={!!tools?.denoPath}
+        installing={installing === "deno"}
+        progress={installing === "deno" ? progress : null}
+        onInstall={() => install("deno")}
+        installLabel={tools?.denoPath ? "Reinstall" : "Install (~45 MB)"}
         disabled={installing !== null || checking}
       />
       {IS_LINUX && tools && !tools.ffmpegPath && (

@@ -191,6 +191,11 @@ pub async fn install_ffmpeg(app: tauri::AppHandle) -> Result<crate::ytdlp::Tools
 }
 
 #[tauri::command]
+pub async fn install_deno(app: tauri::AppHandle) -> Result<crate::ytdlp::ToolsStatus, String> {
+    crate::ytdlp::install_deno(&app).await
+}
+
+#[tauri::command]
 pub async fn probe_video(
     app: tauri::AppHandle,
     url: String,
