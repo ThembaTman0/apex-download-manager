@@ -10,7 +10,7 @@ import {
 import AppMockup from "./AppMockup";
 import Checksum from "./Checksum";
 import CaptureCard from "./CaptureCard";
-import { ArrowRight, DownloadIcon } from "./icons";
+import { ArrowRight, DownloadIcon, LinuxIcon, WindowsIcon } from "./icons";
 
 export default function Hero() {
   const { version, sizeMb } = useLatestRelease();
@@ -41,12 +41,15 @@ export default function Hero() {
               {platform === "linux" ? (
                 <>
                   <a className="btn btn-primary" href="/dl?os=linux">
-                    <DownloadIcon size={15} />
+                    <LinuxIcon size={15} />
                     Download for Linux
                   </a>
                   <span className="hero-meta hero-linux mono">
                     AppImage, any distro · <a className="text-link" href="/dl?os=deb">.deb</a> ·{" "}
-                    <a className="text-link" href="/dl">Windows</a>
+                    <a className="text-link" href="/dl">
+                      <WindowsIcon size={12} />
+                      Windows
+                    </a>
                   </span>
                 </>
               ) : platform === "mobile" ? (
@@ -57,10 +60,11 @@ export default function Hero() {
               ) : (
                 <>
                   <a className="btn btn-primary" href="/dl">
-                    <DownloadIcon size={15} />
+                    <WindowsIcon size={15} />
                     Download for Windows
                   </a>
                   <span className="hero-meta hero-linux mono">
+                    <LinuxIcon size={13} />
                     Linux: <a className="text-link" href="/dl?os=linux">AppImage</a> ·{" "}
                     <a className="text-link" href="/dl?os=deb">.deb</a> (x64)
                   </span>

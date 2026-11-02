@@ -9,7 +9,7 @@ import {
   useLatestRelease,
 } from "../lib/latestRelease";
 import Checksum from "./Checksum";
-import { ArrowRight, DownloadIcon } from "./icons";
+import { ArrowRight, LinuxIcon, WindowsIcon } from "./icons";
 
 // Below this, a counter reads as an absence of users rather than proof.
 const COUNTER_MIN = 1000;
@@ -32,7 +32,7 @@ export default function DownloadCta() {
             {platform === "linux" ? (
               <>
                 <a className="btn btn-primary" href="/dl?os=linux">
-                  <DownloadIcon size={15} />
+                  <LinuxIcon size={15} />
                   Download for Linux
                 </a>
                 <p className="cta-meta mono">
@@ -40,7 +40,11 @@ export default function DownloadCta() {
                 </p>
                 <p className="cta-meta mono">
                   Also: <a className="text-link" href="/dl?os=deb">.deb</a> for Ubuntu and
-                  Debian · <a className="text-link" href="/dl">Windows</a> installer
+                  Debian · <a className="text-link" href="/dl">
+                    <WindowsIcon size={12} />
+                    Windows
+                  </a>{" "}
+                  installer
                 </p>
               </>
             ) : (
@@ -48,13 +52,14 @@ export default function DownloadCta() {
                 {/* On a phone this section is where the hero sends you; the
                     links still work, for sending them on to a computer. */}
                 <a className="btn btn-primary" href="/dl">
-                  <DownloadIcon size={15} />
+                  <WindowsIcon size={15} />
                   Download for Windows
                 </a>
                 <p className="cta-meta mono">
                   v{version ?? FALLBACK_VERSION} · {sizeMb ?? FALLBACK_SIZE_MB} MB · Windows 10/11 x64 installer
                 </p>
                 <p className="cta-meta mono">
+                  <LinuxIcon size={13} />
                   Linux: <a className="text-link" href="/dl?os=linux">AppImage</a> ·{" "}
                   <a className="text-link" href="/dl?os=deb">.deb</a> (x64)
                 </p>

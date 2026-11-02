@@ -421,6 +421,16 @@ ol {
   white-space: nowrap;
 }
 
+/* Platform marks in front of the other-platform links sit on the text's
+   baseline instead of floating above it. */
+.hero-meta > svg,
+.cta-meta > svg {
+  /* The base reset makes svg a block, which put it on its own line. */
+  display: inline-block;
+  vertical-align: -2px;
+  margin-right: 6px;
+}
+
 /* Links inside grey metadata lines: colour alone was 1.27:1 against the
    surrounding text, so they get the body colour and an underline. */
 .hero-meta .text-link,
