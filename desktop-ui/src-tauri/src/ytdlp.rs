@@ -5,6 +5,11 @@
 //! live in `<app-data>/tools/`. They can also be picked up from PATH if the
 //! user already has them installed.
 
+// The one-click yt-dlp installer covers Windows and Linux, FFmpeg's only
+// Windows (Linux users get it from their package manager), so on other
+// platforms the download and checksum helpers go unused.
+#![cfg_attr(not(any(windows, target_os = "linux")), allow(dead_code))]
+
 use crate::engine::{TaskCtx, EVENT_CHANGED};
 use crate::models::{file_type_from_name, now_millis, Download};
 use futures_util::StreamExt;
@@ -21,7 +26,9 @@ const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 /// yt-dlp is fetched from an explicit release tag so the binary and the
 /// SHA2-256SUMS it is checked against always come from the same release.
 const YTDLP_RELEASE_BASE: &str = "https://github.com/yt-dlp/yt-dlp/releases/download";
+#[cfg_attr(not(windows), allow(dead_code))]
 const FFMPEG_ZIP_NAME: &str = "ffmpeg-master-latest-win64-gpl.zip";
+#[cfg_attr(not(windows), allow(dead_code))]
 const FFMPEG_RELEASE_BASE: &str =
     "https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download";
 
@@ -33,6 +40,39 @@ const YTDLP_EXE: &str = "yt-dlp";
 const FFMPEG_EXE: &str = "ffmpeg.exe";
 #[cfg(not(windows))]
 const FFMPEG_EXE: &str = "ffmpeg";
+
+/// The yt-dlp release asset for this platform. On Linux it is the standalone
+/// build (no system Python needed), saved locally as plain `yt-dlp`.
+#[cfg(windows)]
+const YTDLP_ASSET: Option<&str> = Some("yt-dlp.exe");
+#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+const YTDLP_ASSET: Option<&str> = Some("yt-dlp_linux");
+#[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+const YTDLP_ASSET: Option<&str> = Some("yt-dlp_linux_aarch64");
+#[cfg(not(any(
+    windows,
+    all(target_os = "linux", any(target_arch = "x86_64", target_arch = "aarch64"))
+)))]
+const YTDLP_ASSET: Option<&str> = None;
+
+/// Deno is the JavaScript runtime yt-dlp needs to unlock YouTube's full
+/// format list; without one YouTube often hands out only a few formats.
+const DENO_RELEASE_BASE: &str = "https://github.com/denoland/deno/releases/download";
+#[cfg(windows)]
+const DENO_EXE: &str = "deno.exe";
+#[cfg(not(windows))]
+const DENO_EXE: &str = "deno";
+#[cfg(all(windows, target_arch = "x86_64"))]
+const DENO_ASSET: Option<&str> = Some("deno-x86_64-pc-windows-msvc.zip");
+#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+const DENO_ASSET: Option<&str> = Some("deno-x86_64-unknown-linux-gnu.zip");
+#[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+const DENO_ASSET: Option<&str> = Some("deno-aarch64-unknown-linux-gnu.zip");
+#[cfg(not(any(
+    all(windows, target_arch = "x86_64"),
+    all(target_os = "linux", any(target_arch = "x86_64", target_arch = "aarch64"))
+)))]
+const DENO_ASSET: Option<&str> = None;
 
 pub fn tools_dir(app: &AppHandle) -> PathBuf {
     app.path()
@@ -61,13 +101,36 @@ pub fn find_ffmpeg(app: &AppHandle) -> Option<PathBuf> {
     find_tool(app, FFMPEG_EXE)
 }
 
+pub fn find_deno(app: &AppHandle) -> Option<PathBuf> {
+    find_tool(app, DENO_EXE)
+}
+
+/// Point yt-dlp at Deno explicitly: ours lives in the tools dir, which is
+/// not on PATH, so yt-dlp would not find it by itself.
+fn push_js_runtime_arg(app: &AppHandle, cmd: &mut tokio::process::Command) {
+    if let Some(deno) = find_deno(app) {
+        cmd.arg("--js-runtimes").arg(format!("deno:{}", deno.display()));
+    }
+}
+
 fn command(program: &Path) -> tokio::process::Command {
     let mut cmd = tokio::process::Command::new(program);
     cmd.stdin(Stdio::null());
     #[cfg(windows)]
     cmd.creation_flags(CREATE_NO_WINDOW);
+    // The AppImage runtime points these at its bundled libraries, and the
+    // system Python inside yt-dlp then dies with <no-python-frame>.
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("APPIMAGE").is_some() {
+        for var in APPIMAGE_LEAKED_ENV {
+            cmd.env_remove(var);
+        }
+    }
     cmd
 }
+
+#[cfg(target_os = "linux")]
+const APPIMAGE_LEAKED_ENV: [&str; 3] = ["LD_LIBRARY_PATH", "PYTHONHOME", "PYTHONPATH"];
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -76,6 +139,13 @@ pub struct ToolsStatus {
     pub ytdlp_version: Option<String>,
     pub ffmpeg_path: Option<String>,
     pub ffmpeg_version: Option<String>,
+    pub deno_path: Option<String>,
+    pub deno_version: Option<String>,
+}
+
+/// "deno 2.5.6 (stable, release, x86_64-pc-windows-msvc)" becomes "2.5.6".
+fn parse_deno_version(first_line: &str) -> Option<String> {
+    first_line.strip_prefix("deno ")?.split_whitespace().next().map(str::to_string)
 }
 
 /// "ffmpeg version 7.1.1-essentials_build-www.gyan.dev Copyright ..." becomes
@@ -121,11 +191,27 @@ pub async fn status(app: &AppHandle) -> ToolsStatus {
             }),
         None => None,
     };
+    let deno = find_deno(app);
+    let deno_version = match &deno {
+        Some(p) => command(p)
+            .arg("--version")
+            .output()
+            .await
+            .ok()
+            .filter(|o| o.status.success())
+            .and_then(|o| {
+                let out = String::from_utf8_lossy(&o.stdout);
+                out.lines().next().and_then(parse_deno_version)
+            }),
+        None => None,
+    };
     ToolsStatus {
         ytdlp_path: ytdlp.map(|p| p.to_string_lossy().to_string()),
         ytdlp_version: version,
         ffmpeg_path: ffmpeg.map(|p| p.to_string_lossy().to_string()),
         ffmpeg_version,
+        deno_path: deno.map(|p| p.to_string_lossy().to_string()),
+        deno_version,
     }
 }
 
@@ -154,8 +240,12 @@ pub async fn check_update(app: &AppHandle) -> UpdateCheck {
     }
 }
 
-/// Latest release tag, read from the releases/latest redirect (no API quota).
 async fn latest_ytdlp_version() -> Option<String> {
+    latest_release_tag("https://github.com/yt-dlp/yt-dlp/releases/latest").await
+}
+
+/// Latest release tag, read from the releases/latest redirect (no API quota).
+async fn latest_release_tag(latest_url: &str) -> Option<String> {
     let client = reqwest::Client::builder()
         .user_agent("ApexDownloadManager/1.0")
         .redirect(reqwest::redirect::Policy::none())
@@ -163,7 +253,7 @@ async fn latest_ytdlp_version() -> Option<String> {
         .build()
         .ok()?;
     let resp = client
-        .get("https://github.com/yt-dlp/yt-dlp/releases/latest")
+        .get(latest_url)
         .send()
         .await
         .ok()?;
@@ -298,25 +388,31 @@ fn removed_after_download(tool: &str, dir: &Path) -> String {
 }
 
 pub async fn install_ytdlp(app: &AppHandle) -> Result<ToolsStatus, String> {
-    #[cfg(not(windows))]
-    return Err("Automatic install is only supported on Windows; install yt-dlp from your package manager".into());
-    #[cfg(windows)]
+    let Some(asset) = YTDLP_ASSET else {
+        return Err("Automatic install isn't available on this system; install yt-dlp from your package manager".into());
+    };
     {
         let dir = tools_dir(app);
         let dest = dir.join(YTDLP_EXE);
-        let tmp = dest.with_extension("exe.tmp");
+        let tmp = dir.join(format!("{YTDLP_EXE}.tmp"));
         let tag = latest_ytdlp_version()
             .await
             .ok_or("cannot find the latest yt-dlp release. Check your connection and try again.")?;
         let sums = fetch_text(app, &format!("{YTDLP_RELEASE_BASE}/{tag}/SHA2-256SUMS")).await?;
         let actual =
-            fetch_to_file(app, &format!("{YTDLP_RELEASE_BASE}/{tag}/{YTDLP_EXE}"), &tmp, "yt-dlp")
+            fetch_to_file(app, &format!("{YTDLP_RELEASE_BASE}/{tag}/{asset}"), &tmp, "yt-dlp")
                 .await?;
         if !tmp.exists() {
             return Err(removed_after_download("yt-dlp", &dir));
         }
-        verify_sha256("yt-dlp", &tmp, &actual, &sums, YTDLP_EXE)?;
-        // Replace atomically so a running yt-dlp.exe never gets half a binary.
+        verify_sha256("yt-dlp", &tmp, &actual, &sums, asset)?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(0o755))
+                .map_err(|e| format!("cannot install yt-dlp: {e}"))?;
+        }
+        // Replace atomically so a running yt-dlp never gets half a binary.
         std::fs::rename(&tmp, &dest).map_err(|e| {
             if e.kind() == std::io::ErrorKind::NotFound {
                 removed_after_download("yt-dlp", &dir)
@@ -332,8 +428,9 @@ pub async fn install_ytdlp(app: &AppHandle) -> Result<ToolsStatus, String> {
 }
 
 pub async fn install_ffmpeg(app: &AppHandle) -> Result<ToolsStatus, String> {
+    // Every Linux distro packages a current FFmpeg, so Settings points there.
     #[cfg(not(windows))]
-    return Err("Automatic install is only supported on Windows; install ffmpeg from your package manager".into());
+    return Err("Install FFmpeg from your package manager, for example: sudo apt install ffmpeg".into());
     #[cfg(windows)]
     {
         let dir = tools_dir(app);
@@ -377,6 +474,75 @@ pub async fn install_ffmpeg(app: &AppHandle) -> Result<ToolsStatus, String> {
         let _ = std::fs::remove_file(&zip_path);
         Ok(status(app).await)
     }
+}
+
+/// Deno's Linux checksum files are sha256sum lines, but the Windows one is
+/// PowerShell `Get-FileHash` output ("Hash : CBA8..."). Normalize the latter
+/// to a sha256sum line so `verify_sha256` reads both.
+fn deno_sums(raw: &str, asset: &str) -> String {
+    if expected_sha256(raw, asset).is_some() {
+        return raw.to_string();
+    }
+    raw.lines()
+        .find_map(|l| {
+            let (key, value) = l.split_once(':')?;
+            (key.trim() == "Hash").then(|| format!("{}  {asset}", value.trim()))
+        })
+        .unwrap_or_default()
+}
+
+/// Install Deno into the tools dir from the official release zip, checked
+/// against the `.sha256sum` published next to it in the same release.
+pub async fn install_deno(app: &AppHandle) -> Result<ToolsStatus, String> {
+    let Some(asset) = DENO_ASSET else {
+        return Err("Automatic install isn't available on this system; install Deno from deno.com".into());
+    };
+    let dir = tools_dir(app);
+    let zip_path = dir.join("deno.zip.tmp");
+    let tag = latest_release_tag("https://github.com/denoland/deno/releases/latest")
+        .await
+        .ok_or("cannot find the latest Deno release. Check your connection and try again.")?;
+    let sums = deno_sums(
+        &fetch_text(app, &format!("{DENO_RELEASE_BASE}/{tag}/{asset}.sha256sum")).await?,
+        asset,
+    );
+    let actual =
+        fetch_to_file(app, &format!("{DENO_RELEASE_BASE}/{tag}/{asset}"), &zip_path, "deno").await?;
+    if !zip_path.exists() {
+        return Err(removed_after_download("Deno", &dir));
+    }
+    verify_sha256("Deno", &zip_path, &actual, &sums, asset)?;
+    let dest = dir.join(DENO_EXE);
+    let tmp = dir.join(format!("{DENO_EXE}.tmp"));
+    let zip2 = zip_path.clone();
+    let tmp2 = tmp.clone();
+    tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
+        let file = std::fs::File::open(&zip2).map_err(|e| e.to_string())?;
+        let mut archive = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
+        let mut entry = archive
+            .by_name(DENO_EXE)
+            .map_err(|_| format!("{DENO_EXE} not found in the downloaded archive"))?;
+        let mut out = std::fs::File::create(&tmp2).map_err(|e| e.to_string())?;
+        std::io::copy(&mut entry, &mut out).map_err(|e| e.to_string())?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+    let _ = std::fs::remove_file(&zip_path);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(0o755))
+            .map_err(|e| format!("cannot install Deno: {e}"))?;
+    }
+    std::fs::rename(&tmp, &dest).map_err(|e| {
+        if e.kind() == std::io::ErrorKind::NotFound {
+            removed_after_download("Deno", &dir)
+        } else {
+            format!("cannot install Deno: {e}")
+        }
+    })?;
+    Ok(status(app).await)
 }
 
 // ---------------------------------------------------------------------------
@@ -665,6 +831,7 @@ pub async fn probe(
     // video (fast); plain video URLs still return full format data.
     let mut cmd = command(&ytdlp);
     cmd.args(["-J", "--flat-playlist", "--no-warnings"]);
+    push_js_runtime_arg(app, &mut cmd);
     if !proxy_url.is_empty() {
         cmd.arg("--proxy").arg(&proxy_url);
     }
@@ -1069,6 +1236,7 @@ pub(crate) async fn drive_video(ctx: &TaskCtx, d: &mut Download) -> Result<bool,
     if speed_limit > 0 {
         cmd.arg("-r").arg(format!("{speed_limit}K"));
     }
+    push_js_runtime_arg(&ctx.app, &mut cmd);
     if !proxy_url.is_empty() {
         cmd.arg("--proxy").arg(&proxy_url);
     }
@@ -1300,6 +1468,31 @@ mod tests {
         assert_eq!(expected_sha256(&sums, "yt-dlp.exe").as_deref(), Some(HASH));
         let starred = format!("{}  *ffmpeg.zip\n", HASH.to_uppercase());
         assert_eq!(expected_sha256(&starred, "ffmpeg.zip").as_deref(), Some(HASH));
+    }
+
+    #[test]
+    fn deno_sums_reads_both_checksum_layouts() {
+        let linux = format!("{HASH}  deno-x86_64-unknown-linux-gnu.zip\n");
+        let asset = "deno-x86_64-unknown-linux-gnu.zip";
+        assert_eq!(expected_sha256(&deno_sums(&linux, asset), asset).as_deref(), Some(HASH));
+
+        let windows = format!(
+            "\r\nAlgorithm : SHA256\r\nHash      : {}\r\nPath      : D:\\a\\deno\\deno-x86_64-pc-windows-msvc.zip\r\n",
+            HASH.to_uppercase()
+        );
+        let asset = "deno-x86_64-pc-windows-msvc.zip";
+        assert_eq!(expected_sha256(&deno_sums(&windows, asset), asset).as_deref(), Some(HASH));
+
+        assert_eq!(expected_sha256(&deno_sums("garbage", asset), asset), None);
+    }
+
+    #[test]
+    fn parse_deno_version_takes_the_number() {
+        assert_eq!(
+            parse_deno_version("deno 2.5.6 (stable, release, x86_64-pc-windows-msvc)").as_deref(),
+            Some("2.5.6")
+        );
+        assert_eq!(parse_deno_version("v8 13.0"), None);
     }
 
     #[test]

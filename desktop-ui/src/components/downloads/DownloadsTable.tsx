@@ -38,6 +38,7 @@ import { useDownloadsStore, useFilteredDownloads } from "@/stores/downloadsStore
 import { StatusBadge } from "./StatusBadge";
 import { ProgressCell } from "./ProgressCell";
 import type { Download } from "@/types";
+import { Checkbox } from "@/components/ui/Checkbox";
 
 const helper = createColumnHelper<Download>();
 
@@ -83,22 +84,20 @@ export function DownloadsTable() {
         id: "select",
         size: 40,
         header: () => (
-          <input
-            type="checkbox"
+          <Checkbox
             checked={allSelected}
             onChange={allSelected ? clearSelection : selectAll}
             aria-label={allSelected ? "Deselect all downloads" : "Select all downloads"}
-            className="accent-accent cursor-pointer"
+            size="sm"
           />
         ),
         cell: ({ row }) => (
-          <input
-            type="checkbox"
+          <Checkbox
             checked={selectedIds.has(row.original.id)}
             onChange={() => toggleSelect(row.original.id)}
             onClick={(e) => e.stopPropagation()}
             aria-label={`Select ${row.original.name}`}
-            className="accent-accent cursor-pointer"
+            size="sm"
           />
         ),
       }),

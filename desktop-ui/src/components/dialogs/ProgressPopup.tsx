@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { CircleCheck, Clock, FolderOpen, Pause, Play, X } from "lucide-react";
+import {
+  ArrowDownToLine,
+  CircleCheck,
+  Clock,
+  FolderOpen,
+  Hourglass,
+  Pause,
+  Play,
+  X,
+} from "lucide-react";
 import { backend } from "@/services/backend";
 import { cn, formatBytes, formatSpeed } from "@/lib/utils";
 import type { Download } from "@/types";
@@ -174,15 +183,26 @@ function Pill({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Half-filled ring: "in progress", in the status-pill style. */
-function ProgressRing({ paused }: { paused?: boolean }) {
-  const c = paused ? "var(--color-ink-muted)" : "var(--color-accent)";
-  return (
-    <svg width="12" height="12" viewBox="0 0 14 14" aria-hidden="true">
-      <circle cx="7" cy="7" r="5.5" fill="none" stroke={c} strokeWidth="1.6" />
-      <path d="M7 1.5 A5.5 5.5 0 0 1 7 12.5 Z" fill={c} />
-    </svg>
-  );
+/** Pill icons sit beside 12px text; Lucide's default 2px stroke reads thin
+ * that small, so they are a size up and a little heavier. */
+const PILL_ICON = "w-3.5 h-3.5 shrink-0";
+const PILL_ICON_STROKE = 2.5;
+
+type PillStatus ="downloading" | "waiting" | "paused" | "done";
+
+/** The status pill's icon: one glyph per state instead of a generic ring. */
+function StatusIcon({ status }: { status: PillStatus }) {
+  const props = { strokeWidth: PILL_ICON_STROKE, "aria-hidden": true } as const;
+  switch (status) {
+    case "downloading":
+      return <ArrowDownToLine className={cn(PILL_ICON, "text-accent")} {...props} />;
+    case "waiting":
+      return <Hourglass className={cn(PILL_ICON, "text-ink-muted")} {...props} />;
+    case "paused":
+      return <Pause className={cn(PILL_ICON, "text-ink-muted")} {...props} />;
+    case "done":
+      return <CircleCheck className={cn(PILL_ICON, "text-success")} {...props} />;
+  }
 }
 
 function Bar({ d }: { d: Download }) {
@@ -287,12 +307,14 @@ function SingleView({
       </div>
       <div className="grid grid-cols-2 w-fit gap-1.5 mt-2.5">
         <Pill>
-          <ProgressRing paused={paused} />
+          <StatusIcon
+            status={paused ? "paused" : d.status === "queued" ? "waiting" : "downloading"}
+          />
           {paused ? "Paused" : d.status === "queued" ? "Waiting" : "Downloading"}
         </Pill>
         {!paused && (
           <Pill>
-            <Clock className="w-3 h-3" />
+            <Clock className={PILL_ICON} strokeWidth={PILL_ICON_STROKE} />
             {timeLeft(d.etaSeconds)}
           </Pill>
         )}
@@ -430,7 +452,9 @@ function ListView({ rows, onClose }: { rows: Download[]; onClose: () => void }) 
       </div>
       <div className="grid grid-cols-2 w-fit gap-1.5 mt-2.5">
         <Pill>
-          <ProgressRing paused={active.length === 0} />
+          <StatusIcon
+            status={active.length > 0 ? "downloading" : paused > 0 ? "paused" : "done"}
+          />
           {active.length > 0
             ? `${active.length} downloading`
             : paused > 0
@@ -439,7 +463,7 @@ function ListView({ rows, onClose }: { rows: Download[]; onClose: () => void }) 
         </Pill>
         {active.length > 0 && (
           <Pill>
-            <Clock className="w-3 h-3" />
+            <Clock className={PILL_ICON} strokeWidth={PILL_ICON_STROKE} />
             {timeLeft(longest)}
           </Pill>
         )}

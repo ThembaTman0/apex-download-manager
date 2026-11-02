@@ -18,6 +18,11 @@ import { SettingsPage } from "@/pages/Settings";
 import { backend } from "@/services/backend";
 import { useDownloadsStore } from "@/stores/downloadsStore";
 
+// WebKitGTK only shows a transparent window when the compositor plays along
+// (KDE often doesn't), and then the rounded corners sit on opaque squares.
+// Square corners are the native look on Linux anyway.
+const ROUNDED_WINDOW = !navigator.userAgent.includes("Linux");
+
 const pageMap: Record<string, React.ReactNode> = {
   dashboard: <DashboardPage />,
   downloads: <DownloadsPage />,
@@ -41,13 +46,20 @@ export default function App() {
   // WebView2's opaque-white first paint never flashes through the
   // transparent, rounded-corner window before this dark theme is up.
   // Two rAFs guarantee the browser has actually painted this frame
-  // before we tell Rust to reveal it.
+  // before we tell Rust to reveal it. WebKitGTK (Linux) runs no rAF
+  // callbacks for a window that isn't shown, so there a hidden window
+  // would wait forever; the timer reveals it anyway. Revealing twice is
+  // harmless, and on Windows the rAFs win long before the timer.
   useEffect(() => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        backend.signalFrontendReady();
-      });
-    });
+    let sent = false;
+    const reveal = () => {
+      if (sent) return;
+      sent = true;
+      backend.signalFrontendReady();
+    };
+    requestAnimationFrame(() => requestAnimationFrame(reveal));
+    const t = setTimeout(reveal, 500);
+    return () => clearTimeout(t);
   }, []);
 
   // Quiet update check shortly after launch, then every 6 hours - Apex is
@@ -56,6 +68,7 @@ export default function App() {
   useEffect(() => {
     const quietCheck = async () => {
       try {
+        if (!(await backend.updaterEnabled())) return;
         const { check } = await import("@tauri-apps/plugin-updater");
         const update = await check();
         if (update) {
@@ -183,7 +196,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-bg overflow-hidden rounded-[10px]">
+    <div className={`flex flex-col h-screen bg-bg overflow-hidden ${ROUNDED_WINDOW ? "rounded-[10px]" : ""}`}>
       <TopBar />
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar column */}

@@ -34,6 +34,7 @@ import type {
   Settings,
   ToolsStatus,
 } from "@/types";
+import { Checkbox } from "@/components/ui/Checkbox";
 
 /** The built-in categories, in the order the panel lists them. */
 const CATEGORIES: Category[] = [
@@ -170,11 +171,9 @@ export function SettingsPage() {
           hint="Full speed inside the off-peak window; outside it a lower cap applies automatically"
         >
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={form.schedulerEnabled}
               onChange={(e) => update({ schedulerEnabled: e.target.checked })}
-              className="accent-accent w-4 h-4"
             />
             <span className="text-sm text-ink-mid">
               Limit speed outside off-peak hours
@@ -239,11 +238,9 @@ export function SettingsPage() {
 
         <Field icon={Bell} label="Notifications" hint="">
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={form.notifyOnComplete}
               onChange={(e) => update({ notifyOnComplete: e.target.checked })}
-              className="accent-accent w-4 h-4"
             />
             <span className="text-sm text-ink-mid">
               Notify when a download completes
@@ -257,11 +254,9 @@ export function SettingsPage() {
           hint="Only the list entry is removed, never the file. Removed downloads no longer trigger the warning when you download the same file again."
         >
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={form.removeCompleted}
               onChange={(e) => update({ removeCompleted: e.target.checked })}
-              className="accent-accent w-4 h-4"
             />
             <span className="text-sm text-ink-mid">
               Remove downloads from the list when they finish
@@ -275,11 +270,9 @@ export function SettingsPage() {
           hint="Offers to grab download links the moment you copy them"
         >
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={form.watchClipboard}
               onChange={(e) => update({ watchClipboard: e.target.checked })}
-              className="accent-accent w-4 h-4"
             />
             <span className="text-sm text-ink-mid">
               Watch clipboard for download URLs
@@ -293,11 +286,9 @@ export function SettingsPage() {
           hint="Saves into Video, Music, Programs… subfolders. Each category can have its own folder, even on another drive, and take extra file types."
         >
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={form.autoOrganize}
               onChange={(e) => update({ autoOrganize: e.target.checked })}
-              className="accent-accent w-4 h-4"
             />
             <span className="text-sm text-ink-mid">
               Sort downloads into category folders
@@ -328,11 +319,9 @@ export function SettingsPage() {
           hint="Starts hidden in the tray at sign-in, so browser downloads are captured even before you open Apex"
         >
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={form.launchAtStartup}
               onChange={(e) => update({ launchAtStartup: e.target.checked })}
-              className="accent-accent w-4 h-4"
             />
             <span className="text-sm text-ink-mid">
               Launch Apex when I sign in
@@ -381,35 +370,29 @@ export function SettingsPage() {
 
         <Field icon={ClipboardCopy} label="Capture" hint="">
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={form.captureEnabled}
               onChange={(e) => update({ captureEnabled: e.target.checked })}
-              className="accent-accent w-4 h-4"
             />
             <span className="text-sm text-ink-mid">
               Accept downloads from the browser extension
             </span>
           </label>
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={form.captureConfirm}
               disabled={!form.captureEnabled}
               onChange={(e) => update({ captureConfirm: e.target.checked })}
-              className="accent-accent w-4 h-4 disabled:opacity-40"
             />
             <span className="text-sm text-ink-mid disabled:opacity-40">
               Ask me to approve each capture before it downloads
             </span>
           </label>
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={form.showProgressWindow}
               disabled={!form.captureEnabled}
               onChange={(e) => update({ showProgressWindow: e.target.checked })}
-              className="accent-accent w-4 h-4 disabled:opacity-40"
             />
             <span className="text-sm text-ink-mid disabled:opacity-40">
               Show a progress window when a captured download or video starts
@@ -552,8 +535,10 @@ function AppUpdatesSection() {
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showWhatsNew, setShowWhatsNewState] = useState(getShowWhatsNew);
+  const [selfUpdates, setSelfUpdates] = useState(true);
 
   useEffect(() => {
+    backend.updaterEnabled().then(setSelfUpdates).catch(() => {});
     import("@tauri-apps/api/app")
       .then(({ getVersion }) => getVersion())
       .then(setVersion)
@@ -614,10 +599,12 @@ function AppUpdatesSection() {
         Updates
       </h2>
       <p className="text-[11px] text-ink-muted mb-4 leading-relaxed">
-        Apex {version ? `v${version}` : ""}. Updates are downloaded from GitHub
-        Releases and verified before installing.
+        Apex {version ? `v${version}` : ""}.{" "}
+        {selfUpdates
+          ? "Updates are downloaded from GitHub Releases and verified before installing."
+          : "This copy is updated by your package manager."}
       </p>
-      <div className="flex items-center gap-3 mb-5">
+      <div className={selfUpdates ? "flex items-center gap-3 mb-5" : "hidden"}>
         <button
           onClick={available ? installNow : checkNow}
           disabled={state === "checking" || state === "installing"}
@@ -644,14 +631,12 @@ function AppUpdatesSection() {
         )}
       </div>
       <label className="flex items-center gap-2.5 cursor-pointer select-none mb-5">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={showWhatsNew}
           onChange={(e) => {
             setShowWhatsNew(e.target.checked);
             setShowWhatsNewState(e.target.checked);
           }}
-          className="accent-accent w-4 h-4"
         />
         <span className="text-sm text-ink-mid">Show what's new after updates</span>
       </label>
@@ -660,13 +645,42 @@ function AppUpdatesSection() {
   );
 }
 
+// Linux users get FFmpeg from their package manager instead of a download.
+const IS_LINUX = navigator.userAgent.includes("Linux");
+const FFMPEG_PACKAGE_COMMANDS = [
+  { distro: "Ubuntu / Debian", cmd: "sudo apt install ffmpeg" },
+  { distro: "Fedora", cmd: "sudo dnf install ffmpeg" },
+  { distro: "Arch", cmd: "sudo pacman -S ffmpeg" },
+];
+
 /** yt-dlp / ffmpeg status with one-click installers. */
 function VideoGrabberSection() {
   const [tools, setTools] = useState<ToolsStatus | null>(null);
-  const [installing, setInstalling] = useState<"yt-dlp" | "ffmpeg" | null>(null);
+  const [installing, setInstalling] = useState<"yt-dlp" | "ffmpeg" | "deno" | null>(null);
   const [progress, setProgress] = useState<{ downloaded: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [updateAvailable, setUpdateAvailable] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [copiedCmd, setCopiedCmd] = useState<string | null>(null);
+
+  const recheck = async () => {
+    setChecking(true);
+    setError(null);
+    try {
+      setTools(await backend.ytdlpStatus());
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const copyCmd = async (cmd: string) => {
+    const { writeText } = await import("@tauri-apps/plugin-clipboard-manager");
+    await writeText(cmd);
+    setCopiedCmd(cmd);
+    setTimeout(() => setCopiedCmd(null), 1500);
+  };
 
   useEffect(() => {
     backend.ytdlpStatus().then(setTools).catch(() => {});
@@ -681,12 +695,17 @@ function VideoGrabberSection() {
     return () => unlisten?.();
   }, []);
 
-  const install = async (tool: "yt-dlp" | "ffmpeg") => {
+  const install = async (tool: "yt-dlp" | "ffmpeg" | "deno") => {
     setInstalling(tool);
     setProgress(null);
     setError(null);
     try {
-      const s = tool === "yt-dlp" ? await backend.installYtdlp() : await backend.installFfmpeg();
+      const s =
+        tool === "yt-dlp"
+          ? await backend.installYtdlp()
+          : tool === "deno"
+            ? await backend.installDeno()
+            : await backend.installFfmpeg();
       setTools(s);
       if (tool === "yt-dlp") setUpdateAvailable(null);
     } catch (e) {
@@ -707,7 +726,7 @@ function VideoGrabberSection() {
         “Grab Video” downloads video/audio from YouTube and 1000+ other sites
         using <code className="text-ink-mid">yt-dlp</code>. FFmpeg is optional;
         it unlocks the highest resolutions by merging separate video and audio
-        streams.
+        streams. Deno lets yt-dlp see YouTube's full list of qualities.
       </p>
 
       <ToolRow
@@ -735,12 +754,52 @@ function VideoGrabberSection() {
             : "Not installed · best quality limited"
         }
         ok={!!tools?.ffmpegPath}
-        installing={installing === "ffmpeg"}
+        installing={IS_LINUX ? checking : installing === "ffmpeg"}
         progress={installing === "ffmpeg" ? progress : null}
-        onInstall={() => install("ffmpeg")}
-        installLabel={tools?.ffmpegPath ? "Reinstall" : "Install (~180 MB)"}
-        disabled={installing !== null}
+        onInstall={IS_LINUX ? recheck : () => install("ffmpeg")}
+        installLabel={IS_LINUX ? "Check again" : tools?.ffmpegPath ? "Reinstall" : "Install (~180 MB)"}
+        busyLabel={IS_LINUX ? "Checking…" : undefined}
+        icon={IS_LINUX ? <RefreshCw className="w-3.5 h-3.5" /> : undefined}
+        disabled={installing !== null || checking}
       />
+      <ToolRow
+        name="Deno"
+        status={
+          tools?.denoPath
+            ? `Installed${tools.denoVersion ? ` · v${tools.denoVersion}` : ""}`
+            : "Not installed · YouTube may offer fewer qualities"
+        }
+        ok={!!tools?.denoPath}
+        installing={installing === "deno"}
+        progress={installing === "deno" ? progress : null}
+        onInstall={() => install("deno")}
+        installLabel={tools?.denoPath ? "Reinstall" : "Install (~45 MB)"}
+        disabled={installing !== null || checking}
+      />
+      {IS_LINUX && tools && !tools.ffmpegPath && (
+        <div className="-mt-1 mb-3 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
+          <p className="text-[11px] text-ink-muted mb-2">
+            Install FFmpeg with your package manager, then press Check again:
+          </p>
+          {FFMPEG_PACKAGE_COMMANDS.map(({ distro, cmd }) => (
+            <div key={cmd} className="flex items-center gap-2 py-0.5">
+              <span className="text-[11px] text-ink-muted w-28 shrink-0">{distro}</span>
+              <code className="flex-1 min-w-0 truncate text-[11px] text-ink-mid">{cmd}</code>
+              <button
+                onClick={() => copyCmd(cmd)}
+                aria-label={`Copy ${cmd}`}
+                className="text-ink-muted hover:text-ink transition-colors shrink-0"
+              >
+                {copiedCmd === cmd ? (
+                  <Check className="w-3.5 h-3.5 text-success" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       {error && <p className="text-xs text-error-soft mb-4 break-all">{error}</p>}
     </>
   );
@@ -755,6 +814,8 @@ function ToolRow({
   progress,
   onInstall,
   installLabel,
+  busyLabel = "Installing…",
+  icon,
   disabled,
 }: {
   name: string;
@@ -765,6 +826,8 @@ function ToolRow({
   progress: { downloaded: number; total: number } | null;
   onInstall: () => void;
   installLabel: string;
+  busyLabel?: string;
+  icon?: React.ReactNode;
   disabled: boolean;
 }) {
   return (
@@ -791,9 +854,9 @@ function ToolRow({
         {installing ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
         ) : (
-          <Download className="w-3.5 h-3.5" />
+          (icon ?? <Download className="w-3.5 h-3.5" />)
         )}
-        {installing ? "Installing…" : installLabel}
+        {installing ? busyLabel : installLabel}
       </button>
     </div>
   );

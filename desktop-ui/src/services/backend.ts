@@ -86,6 +86,8 @@ export const backend = {
   resumeAll: () => invoke<void>("resume_all"),
   retryFailed: () => invoke<void>("retry_failed"),
   missingFiles: () => invoke<string[]>("missing_files"),
+  updaterEnabled: () => invoke<boolean>("updater_enabled"),
+  extensionPaired: () => invoke<boolean>("extension_paired"),
   openDownload: (id: string) => invoke<void>("open_download", { id }),
   showInFolder: (id: string) => invoke<void>("show_in_folder", { id }),
 
@@ -94,6 +96,7 @@ export const backend = {
   ytdlpCheckUpdate: () => invoke<YtdlpUpdateCheck>("ytdlp_check_update"),
   installYtdlp: () => invoke<ToolsStatus>("install_ytdlp"),
   installFfmpeg: () => invoke<ToolsStatus>("install_ffmpeg"),
+  installDeno: () => invoke<ToolsStatus>("install_deno"),
   probeVideo: (url: string, useBrowserCookies = false) =>
     invoke<VideoProbe>("probe_video", { url, useBrowserCookies }),
   async addVideo(
@@ -137,6 +140,10 @@ export const backend = {
 
   onClipboardUrl(cb: (url: string) => void): Promise<UnlistenFn> {
     return listen<string>("clipboard:url", (e) => cb(e.payload));
+  },
+
+  onExtensionPaired(cb: () => void): Promise<UnlistenFn> {
+    return listen("extension:paired", () => cb());
   },
 
   /** Extension "grab video from this page" hand-off (capture server /grab). */
