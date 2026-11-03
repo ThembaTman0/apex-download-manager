@@ -33,7 +33,7 @@ export function categoryForType(
   if (claimed) return claimed.category;
   if (["MP4", "MKV", "AVI", "MOV", "WEBM", "WMV", "FLV", "M4V"].includes(t)) return "Video";
   if (["MP3", "FLAC", "WAV", "M4A", "AAC", "OGG", "WMA"].includes(t)) return "Music";
-  if (["EXE", "MSI", "DMG", "PKG", "DEB", "RPM", "APK", "ISO", "IMG", "MSU"].includes(t)) return "Programs";
+  if (["EXE", "MSI", "DMG", "PKG", "DEB", "RPM", "APK", "ISO", "IMG", "MSU", "APPIMAGE"].includes(t)) return "Programs";
   if (["ZIP", "RAR", "7Z", "TAR", "GZ", "BZ2", "XZ", "CAB"].includes(t)) return "Archives";
   if (["PDF", "DOC", "DOCX", "XLS", "XLSX", "PPT", "PPTX", "TXT", "EPUB", "CSV", "MD"].includes(t)) return "Documents";
   if (["JPG", "JPEG", "PNG", "GIF", "WEBP", "SVG", "BMP", "TIFF"].includes(t)) return "Images";

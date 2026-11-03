@@ -48,7 +48,7 @@ const typeIcon = (type: string) => {
   if (["MKV", "MP4", "AVI", "MOV", "WEBM"].includes(t)) return <FileVideo className={cls} />;
   if (["ZIP", "RAR", "7Z", "TAR", "GZ"].includes(t)) return <FileArchive className={cls} />;
   if (["PNG", "JPG", "JPEG", "GIF", "WEBP"].includes(t)) return <FileImage className={cls} />;
-  if (["ISO", "EXE", "MSI", "DMG"].includes(t)) return <FileDown className={cls} />;
+  if (["ISO", "EXE", "MSI", "DMG", "DEB", "RPM", "APPIMAGE"].includes(t)) return <FileDown className={cls} />;
   return <File className={cls} />;
 };
 
@@ -129,7 +129,7 @@ export function DownloadsTable() {
       }),
       helper.accessor("type", {
         header: "Type",
-        size: 60,
+        size: 80, // fits APPIMAGE
         cell: (info) => (
           <span className="text-xs text-ink-muted font-mono">{info.getValue()}</span>
         ),

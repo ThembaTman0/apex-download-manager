@@ -319,7 +319,9 @@ pub fn file_type_from_name(name: &str) -> String {
     std::path::Path::new(name)
         .extension()
         .map(|e| e.to_string_lossy().to_uppercase())
-        .filter(|e| e.len() <= 5)
+        // Long "extensions" are usually version suffixes (app.v2-final);
+        // AppImage is the one real long one people download.
+        .filter(|e| e.len() <= 5 || e == "APPIMAGE")
         .unwrap_or_else(|| "FILE".into())
 }
 
@@ -328,7 +330,7 @@ pub fn category_for_type(t: &str) -> &'static str {
     match t {
         "MP4" | "MKV" | "AVI" | "MOV" | "WEBM" | "WMV" | "FLV" | "M4V" => "Video",
         "MP3" | "FLAC" | "WAV" | "M4A" | "AAC" | "OGG" | "WMA" => "Music",
-        "EXE" | "MSI" | "DMG" | "PKG" | "DEB" | "RPM" | "APK" | "ISO" | "IMG" | "MSU" => "Programs",
+        "EXE" | "MSI" | "DMG" | "PKG" | "DEB" | "RPM" | "APK" | "ISO" | "IMG" | "MSU" | "APPIMAGE" => "Programs",
         "ZIP" | "RAR" | "7Z" | "TAR" | "GZ" | "BZ2" | "XZ" | "CAB" => "Archives",
         "PDF" | "DOC" | "DOCX" | "XLS" | "XLSX" | "PPT" | "PPTX" | "TXT" | "EPUB" | "CSV" | "MD" => "Documents",
         "JPG" | "JPEG" | "PNG" | "GIF" | "WEBP" | "SVG" | "BMP" | "TIFF" => "Images",
@@ -365,6 +367,13 @@ mod tests {
             auto_organize: true,
             ..Settings::default()
         }
+    }
+
+    #[test]
+    fn appimage_is_a_program_type() {
+        assert_eq!(file_type_from_name("GIMP-3.2.6-x86_64.AppImage"), "APPIMAGE");
+        assert_eq!(category_for_type("APPIMAGE"), "Programs");
+        assert_eq!(file_type_from_name("tool.version2"), "FILE");
     }
 
     fn rule(category: &str, folder: &str, extensions: &[&str]) -> CategoryRule {
