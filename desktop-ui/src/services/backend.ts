@@ -27,6 +27,9 @@ function toDownload(raw: RawDownload): Download {
   };
 }
 
+/** UI flags kept in the backend DB (see get_ui_value in commands.rs). */
+export type UiKey = "lastSeenVersion" | "showWhatsNew";
+
 export const backend = {
   async listDownloads(): Promise<Download[]> {
     const raw = await invoke<RawDownload[]>("list_downloads");
@@ -129,6 +132,9 @@ export const backend = {
   updateSettings: (settings: Settings) =>
     invoke<Settings>("update_settings", { settings }),
   getDiskUsage: () => invoke<DiskUsage>("get_disk_usage"),
+  getUiValue: (key: UiKey) => invoke<string | null>("get_ui_value", { key }),
+  setUiValue: (key: UiKey, value: string | null) =>
+    invoke<void>("set_ui_value", { key, value }),
 
   onDownloadChanged(cb: (d: Download) => void): Promise<UnlistenFn> {
     return listen<RawDownload>("download:changed", (e) => cb(toDownload(e.payload)));

@@ -227,6 +227,36 @@ impl Db {
             .map_err(|e| e.to_string())?;
         Ok(())
     }
+
+    /// Small UI flags (e.g. last version whose notes were shown), stored as
+    /// their own rows beside the settings blob. They lived in the webview's
+    /// localStorage before 1.1.1, which a corrupted WebView2 log could wipe
+    /// on every launch.
+    pub fn get_ui_value(&self, key: &str) -> Option<String> {
+        self.conn
+            .query_row(
+                "SELECT value FROM settings WHERE key = ?1",
+                params![format!("ui.{key}")],
+                |row| row.get(0),
+            )
+            .ok()
+    }
+
+    pub fn set_ui_value(&self, key: &str, value: Option<&str>) -> Result<(), String> {
+        let key = format!("ui.{key}");
+        match value {
+            Some(v) => self.conn.execute(
+                "INSERT INTO settings (key, value) VALUES (?1, ?2)
+                 ON CONFLICT(key) DO UPDATE SET value = ?2",
+                params![key, v],
+            ),
+            None => self
+                .conn
+                .execute("DELETE FROM settings WHERE key = ?1", params![key]),
+        }
+        .map_err(|e| e.to_string())?;
+        Ok(())
+    }
 }
 
 fn row_to_download(row: &rusqlite::Row) -> rusqlite::Result<Download> {

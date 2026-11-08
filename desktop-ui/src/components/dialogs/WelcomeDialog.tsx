@@ -4,13 +4,16 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Check, Clapperboard, FolderTree, Globe, PartyPopper, Sparkles, X } from "lucide-react";
 import { backend } from "@/services/backend";
 import { useDownloadsStore } from "@/stores/downloadsStore";
-import { getShowWhatsNew, setShowWhatsNew } from "@/lib/whatsNew";
+import {
+  getLastSeenVersion,
+  getShowWhatsNew,
+  setLastSeenVersion,
+  setShowWhatsNew,
+} from "@/lib/whatsNew";
 // The notes for the version being built, bundled so "What's new" works
 // offline and the app makes no extra network request.
 import releaseNotes from "../../../../RELEASE_NOTES.md?raw";
 import { Checkbox } from "@/components/ui/Checkbox";
-
-const LAST_SEEN_KEY = "apex.lastSeenVersion";
 
 const STORES = [
   { name: "Chrome", url: "https://chromewebstore.google.com/detail/apex-download-manager/gopdilekdjnfekbmhedjidlmaahnnhco" },
@@ -19,22 +22,6 @@ const STORES = [
 ];
 
 type Mode = "welcome" | "whatsnew";
-
-function readLastSeen(): string | null {
-  try {
-    return localStorage.getItem(LAST_SEEN_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function writeLastSeen(version: string) {
-  try {
-    localStorage.setItem(LAST_SEEN_KEY, version);
-  } catch {
-    // storage unavailable: the dialog may simply show again next launch
-  }
-}
 
 async function appVersion(): Promise<string | null> {
   try {
@@ -160,15 +147,16 @@ export function WelcomeDialog() {
         return;
       }
       setVersion(current);
-      const lastSeen = readLastSeen();
-      writeLastSeen(current);
-      if (lastSeen === current) return;
+      const lastSeen = await getLastSeenVersion();
+      if (cancelled || lastSeen === current) return;
+      await setLastSeenVersion(current);
       // No record yet: someone with downloads is updating from a version
       // before this dialog existed; nobody else has used Apex before.
       // (downloads and settings arrive in the same store update.)
       const next: Mode = lastSeen === null && !hasDownloads ? "welcome" : "whatsnew";
       // Someone who opted out of release notes still gets the one-time tour.
-      if (next === "whatsnew" && !getShowWhatsNew()) return;
+      if (next === "whatsnew" && !(await getShowWhatsNew())) return;
+      if (cancelled) return;
       setMode(next);
     })();
     return () => {
@@ -181,7 +169,7 @@ export function WelcomeDialog() {
   const [optOut, setOptOut] = useState(false);
   const open = mode !== null;
   const close = () => {
-    if (mode === "whatsnew" && optOut) setShowWhatsNew(false);
+    if (mode === "whatsnew" && optOut) void setShowWhatsNew(false);
     setMode(null);
   };
 

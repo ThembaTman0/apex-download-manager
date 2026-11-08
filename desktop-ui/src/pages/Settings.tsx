@@ -534,10 +534,11 @@ function AppUpdatesSection() {
   const [available, setAvailable] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showWhatsNew, setShowWhatsNewState] = useState(getShowWhatsNew);
+  const [showWhatsNew, setShowWhatsNewState] = useState(true);
   const [selfUpdates, setSelfUpdates] = useState(true);
 
   useEffect(() => {
+    getShowWhatsNew().then(setShowWhatsNewState);
     backend.updaterEnabled().then(setSelfUpdates).catch(() => {});
     import("@tauri-apps/api/app")
       .then(({ getVersion }) => getVersion())
@@ -634,7 +635,7 @@ function AppUpdatesSection() {
         <Checkbox
           checked={showWhatsNew}
           onChange={(e) => {
-            setShowWhatsNew(e.target.checked);
+            void setShowWhatsNew(e.target.checked);
             setShowWhatsNewState(e.target.checked);
           }}
         />

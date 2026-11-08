@@ -239,6 +239,14 @@ impl DownloadManager {
         Ok(s)
     }
 
+    pub fn get_ui_value(&self, key: &str) -> Option<String> {
+        self.db.lock().unwrap().get_ui_value(key)
+    }
+
+    pub fn set_ui_value(&self, key: &str, value: Option<&str>) -> Result<(), String> {
+        self.db.lock().unwrap().set_ui_value(key, value)
+    }
+
     /// Point the global limiter at whatever cap should be in force right now
     /// (scheduler-aware). Called on settings changes and by the periodic tick
     /// so window boundaries take effect without any user action.

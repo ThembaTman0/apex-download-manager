@@ -324,10 +324,16 @@ if (!("__TAURI_INTERNALS__" in window)) {
     }
   };
 
+  const uiValues = new Map<string, string>();
   const commands: Record<string, (args: any) => unknown> = {
     list_downloads: () => [...state.values()],
     get_settings: () => demoSettings,
     update_settings: (a) => Object.assign(demoSettings, a?.settings),
+    get_ui_value: (a) => uiValues.get(a?.key) ?? null,
+    set_ui_value: (a) => {
+      if (a?.value == null) uiValues.delete(a?.key);
+      else uiValues.set(a.key, a.value);
+    },
     get_disk_usage: () => ({
       usedBytes: Math.round(317 * GB),
       totalBytes: Math.round(512 * GB),

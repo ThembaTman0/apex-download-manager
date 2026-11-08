@@ -458,6 +458,8 @@ pub fn run() {
             commands::show_in_folder,
             commands::get_settings,
             commands::update_settings,
+            commands::get_ui_value,
+            commands::set_ui_value,
             commands::get_disk_usage,
             commands::compute_checksum,
             commands::execute_queue_action,

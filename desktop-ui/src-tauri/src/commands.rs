@@ -373,6 +373,36 @@ pub async fn update_settings(
     Ok(saved)
 }
 
+/// UI flags the frontend may read and write; anything else is refused.
+const UI_KEYS: [&str; 2] = ["lastSeenVersion", "showWhatsNew"];
+
+fn check_ui_key(key: &str) -> Result<(), String> {
+    if UI_KEYS.contains(&key) {
+        Ok(())
+    } else {
+        Err(format!("unknown UI key: {key}"))
+    }
+}
+
+#[tauri::command]
+pub async fn get_ui_value(
+    mgr: State<'_, DownloadManager>,
+    key: String,
+) -> Result<Option<String>, String> {
+    check_ui_key(&key)?;
+    Ok(mgr.get_ui_value(&key))
+}
+
+#[tauri::command]
+pub async fn set_ui_value(
+    mgr: State<'_, DownloadManager>,
+    key: String,
+    value: Option<String>,
+) -> Result<(), String> {
+    check_ui_key(&key)?;
+    mgr.set_ui_value(&key, value.as_deref())
+}
+
 #[tauri::command]
 pub async fn get_disk_usage(mgr: State<'_, DownloadManager>) -> Result<DiskUsage, String> {
     let dir = mgr.get_settings().download_dir;
