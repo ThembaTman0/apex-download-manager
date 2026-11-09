@@ -63,9 +63,6 @@ Java. GPL v3.
 - **winget:** `winget install ThembaTman0.ApexDownloadManager`
 - **Chocolatey:** `choco install apex-download-manager`
 
-The winget package is waiting for approval and the Chocolatey package is not
-published yet; until they are, those two commands won't find Apex.
-
 **Linux (x64)**
 
 - **AppImage:** [download](https://apexdownloadmanager.com/dl?os=linux), make it
@@ -135,8 +132,8 @@ apex-download-manager/
 ├── desktop-ui/            # Tauri v2 app
 │   ├── src/               # React 19 + TypeScript + Tailwind v4 frontend
 │   └── src-tauri/         # Rust: download engine, SQLite, capture server
-├── browser-extension/     # Chrome MV3 extension (capture + context menu)
-└── website/               # Landing page (static, self-contained)
+├── browser-extension/     # Chrome/Edge/Firefox extension (capture + context menu)
+└── website/               # Landing page (Vite + React) and /dl download links
 ```
 
 ## Building from source
@@ -163,7 +160,8 @@ npm run tauri build    # produces MSI / NSIS installers
 
 - The engine probes each URL with a ranged request, plans segments, and writes
   all connections into one preallocated temp file (`.adm`), renamed on completion.
-- State lives in SQLite (WAL) under `%APPDATA%/com.apex.download-manager/`.
+- State lives in SQLite (WAL) under `%APPDATA%/com.apex.download-manager/`
+  (on Linux, `~/.local/share/com.apex.download-manager/`).
 - The extension talks to a token-gated HTTP endpoint bound to `127.0.0.1:43666`.
   Interception is cancel-then-hand-off: the browser download is cancelled
   immediately (before any Save As dialog), then handed to Apex - and restarted
@@ -180,7 +178,7 @@ npm run tauri build    # produces MSI / NSIS installers
 - [ ] Code signing
 - [x] Extension store publishing (Chrome Web Store / Edge Add-ons / AMO)
 - [x] Bandwidth scheduler (off-peak speed profiles)
-- [ ] Package managers: Scoop (own bucket, available now), winget (submitted, awaiting approval), Chocolatey (package ready, not yet published)
+- [x] Package managers: Scoop (own bucket), winget, Chocolatey
 - [x] Linux build: AppImage and .deb (thanks to [@YofaGh](https://github.com/YofaGh) for testing, [#1](https://github.com/ThembaTman0/apex-download-manager/issues/1))
 
 ## Support Apex
