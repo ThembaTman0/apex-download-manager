@@ -1,20 +1,40 @@
 # Apex Download Manager
 
-**A free, open source download manager for Windows and Linux.**
+<h3 align="center">A free, open source alternative to IDM. No trial, no ads, no account.</h3>
 
-A native Rust engine splits every download across up to 32 parallel connections
-and resumes from the exact byte after pauses, restarts and network drops, so a
-transfer uses the whole connection instead of one stream. No account, no ads, no
-telemetry, and every line is yours to read. GPL v3.
+<p align="center">
+  <a href="https://apexdownloadmanager.com/dl"><img src="https://img.shields.io/badge/Download%20for-Windows-e8b84a?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows" height="34"></a>
+  <a href="https://apexdownloadmanager.com/dl?os=linux"><img src="https://img.shields.io/badge/Linux-AppImage-e8b84a?style=for-the-badge&logo=linux&logoColor=white" alt="Download the Linux AppImage" height="34"></a>
+  <a href="https://apexdownloadmanager.com/dl?os=deb"><img src="https://img.shields.io/badge/Linux-.deb-e8b84a?style=for-the-badge&logo=debian&logoColor=white" alt="Download the Linux .deb" height="34"></a>
+</p>
 
-> ⚡ Single native binary (Tauri v2 + Rust). No Electron, no JVM, no bloat.
+<p align="center">
+  <b>Browser extension:</b>
+  <a href="https://chromewebstore.google.com/detail/apex-download-manager/gopdilekdjnfekbmhedjidlmaahnnhco">Chrome</a> ·
+  <a href="https://microsoftedge.microsoft.com/addons/detail/apex-download-manager/bjpggfmgbhafacbcmhpncjaapdknohjg">Edge</a> ·
+  <a href="https://addons.mozilla.org/en-US/firefox/addon/apex-download-manager/">Firefox</a> ·
+  <a href="https://apexdownloadmanager.com/">Website</a>
+</p>
 
-**[Download for Windows](https://apexdownloadmanager.com/dl)** ·
-**Linux: [AppImage](https://apexdownloadmanager.com/dl?os=linux), [.deb](https://apexdownloadmanager.com/dl?os=deb)** · also on
-[Chrome](https://chromewebstore.google.com/detail/apex-download-manager/gopdilekdjnfekbmhedjidlmaahnnhco),
-[Edge](https://microsoftedge.microsoft.com/addons/detail/apex-download-manager/bjpggfmgbhafacbcmhpncjaapdknohjg) and
-[Firefox](https://addons.mozilla.org/en-US/firefox/addon/apex-download-manager/) for browser capture ·
-[Website](https://apexdownloadmanager.com/)
+<p align="center">
+  <a href="https://github.com/ThembaTman0/apex-download-manager/stargazers"><img src="https://img.shields.io/github/stars/ThembaTman0/apex-download-manager?style=social" alt="Star Apex on GitHub"></a><br>
+  <sub>⭐ Find Apex useful? A star helps other people find it. Apex has no ads and no marketing budget.</sub>
+</p>
+
+Apex splits every download across up to 32 connections, resumes from the exact
+byte after a pause, a reboot or a dropped connection, and takes over downloads
+from your browser. A native Rust engine in a small Tauri app: no Electron, no
+Java. GPL v3.
+
+| | Apex | IDM |
+| --- | --- | --- |
+| Price | **Free** | Paid, after a 30-day trial |
+| Open source | **Yes** (GPL v3) | No |
+| Runs on | **Windows and Linux** | Windows |
+| Browser extension's website access | **None**: it can't read your pages | Reads every page to add its buttons |
+| Ads, sign-up, telemetry | **None** | Registration reminders |
+| Resume after a reboot | Yes, checked against the server's ETag | Yes |
+| Video grabbing | yt-dlp, with the full YouTube quality list | Built in |
 
 ![Apex downloading two files over parallel connections, with live speed, per-segment progress, queue positions and a paused download](docs/screenshots/hero.gif)
 
@@ -67,6 +87,8 @@ tagging, taskbar progress and the one-click yt-dlp/FFmpeg install.
   scheduled downloads keep their time and start on their own
 - Resume integrity: `ETag`/`If-Range` validation prevents silently corrupted files
 - Automatic retry with backoff on stalls and dropped connections
+- Refresh an expired link: paste a fresh address (right-click → Refresh
+  Address…) and the download carries on from the bytes already on disk
 - Download queue with a concurrency limit and global speed limiting
 - Per-download speed caps, adjustable live while the download runs
 - Proxy support (HTTP / HTTPS / SOCKS5, with authentication)
