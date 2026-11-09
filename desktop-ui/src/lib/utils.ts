@@ -40,6 +40,13 @@ export function categoryForType(
   return "Other";
 }
 
+// Errors that usually mean the address stopped working (signed links that
+// expired, a session that ended) rather than a network problem. Matches
+// both "server returned 403 Forbidden" and reqwest's "(410 Gone)" wording.
+export function looksLikeExpiredLink(error: string | null | undefined): boolean {
+  return !!error && /\b(401|403|404|410)\b/.test(error);
+}
+
 export function formatETA(seconds: number): string {
   if (seconds <= 0) return "--";
   if (seconds < 60) return `${seconds}s`;

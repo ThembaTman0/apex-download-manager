@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Copy, FolderOpen, Link2, ShieldAlert, X } from "lucide-react";
 import { useDownloadsStore } from "@/stores/downloadsStore";
-import { formatBytes, formatETA, formatSpeed } from "@/lib/utils";
+import { formatBytes, formatETA, formatSpeed, looksLikeExpiredLink } from "@/lib/utils";
 import { StatusBadge } from "./StatusBadge";
 import { SegmentMap } from "./SegmentMap";
 import type { DownloadStatus, Segment } from "@/types";
@@ -15,6 +15,7 @@ export function DetailsPanel() {
   );
   const showInFolder = useDownloadsStore((s) => s.showInFolder);
   const copyUrls = useDownloadsStore((s) => s.copyUrls);
+  const editDownloadUrl = useDownloadsStore((s) => s.editDownloadUrl);
 
   // Live layout rides along on every download:changed event.
   const segments: Segment[] = download?.segmentStates ?? [];
@@ -52,6 +53,15 @@ export function DetailsPanel() {
               </div>
               {download.error && (
                 <p className="text-xs text-error-soft mt-2 break-all">{download.error}</p>
+              )}
+              {download.status === "failed" && looksLikeExpiredLink(download.error) && (
+                <button
+                  onClick={() => editDownloadUrl(download.id)}
+                  className="mt-2 text-[11px] px-2 py-1 rounded-md bg-accent/15 text-accent hover:bg-accent/25 transition-colors flex items-center gap-1.5"
+                >
+                  <Link2 className="w-3 h-3" />
+                  Link expired? Paste a new address
+                </button>
               )}
             </div>
 
@@ -152,6 +162,23 @@ function UrlBlock({
     setError(null);
   }, [id, url]);
 
+  // "Refresh Address…" from the row menu, or the expired-link hint above.
+  const fieldRef = useRef<HTMLTextAreaElement>(null);
+  const urlEditId = useDownloadsStore((s) => s.urlEditId);
+  const editDownloadUrl = useDownloadsStore((s) => s.editDownloadUrl);
+  useEffect(() => {
+    if (urlEditId !== id) return;
+    if (canEdit) setEditing(true);
+    // The row menu is still closing and takes focus with it; grab it after.
+    // (Clearing the request here, not before, keeps this effect from
+    // re-running and cancelling the timer.)
+    const t = setTimeout(() => {
+      fieldRef.current?.focus();
+      editDownloadUrl(null);
+    }, 0);
+    return () => clearTimeout(t);
+  }, [urlEditId, id, canEdit, editDownloadUrl]);
+
   const submit = async () => {
     setBusy(true);
     setError(null);
@@ -192,8 +219,11 @@ function UrlBlock({
       {editing ? (
         <>
           <textarea
+            ref={fieldRef}
             value={value}
             autoFocus
+            // Old address selected, so a paste replaces it in one go.
+            onFocus={(e) => e.currentTarget.select()}
             rows={3}
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={(e) => {

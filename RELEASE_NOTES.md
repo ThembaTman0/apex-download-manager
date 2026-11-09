@@ -1,18 +1,15 @@
-Apex now runs on Linux, and a small progress window keeps your downloads in view while you work.
+When a download link expires, paste a fresh one and Apex carries on where it left off.
 
 **New**
 
-- Apex for Linux, as an AppImage or a .deb for Ubuntu, Debian and similar. Everything works as on Windows: the browser extension, the tray, starting at sign-in, and the video grabber. The AppImage updates itself; with the .deb, install the new version when one comes out.
-- A progress window appears in the corner when a download from your browser or a grabbed video starts, and whenever you minimize Apex. With one download it shows the time left and a live speed chart; with several, a simple list. Pause and resume from it, open finished files, and click the Apex logo to bring the app back. It never takes focus, stays where you drag it, and closes itself once everything is done. Turn it off in Settings > Browser capture.
-- YouTube offers its full range of qualities again. YouTube now needs a small helper called Deno for that, and you can install it with one click in Settings > Video Grabber. Without it, YouTube may only offer a few qualities, and Apex tells you so when you grab a YouTube video.
-- The welcome screen shows whether the browser extension is paired.
+- Refresh Address: right-click a paused or failed download and choose "Refresh Address…" to paste a new link. Apex continues from the part already downloaded instead of starting over. When a download fails because its link expired, Properties offers the same thing right under the error. If the new address turns out to serve a different file, the download starts over so it never mixes two files.
 
 **Fixes**
 
-- Video downloads no longer reach 100% and then drop back to around 60%. Videos that arrive as separate picture and sound files now show one steady bar for the whole download, and pausing and resuming keeps the size and progress where they were.
-- The Grab Video window no longer keeps showing "yt-dlp is not installed" after you install it from there.
+- "What's new" no longer opens every time your PC starts. On some PCs the record of which version you had already seen was lost at every launch; Apex now keeps it with the rest of its settings.
+- The "already downloaded" warning no longer flashes for a moment after you click Start Download.
+- AppImage downloads now show as APPIMAGE and are filed under Programs.
 
 **Under the hood**
 
-- Updated the certificate libraries Apex uses for secure connections, so it no longer trusts certificates that browsers have stopped trusting.
-- The progress window can only do the few things it needs, nothing else in Apex.
+- Updated the libraries Apex is built on, including the notification, dialog and updater components.

@@ -25,6 +25,7 @@ import {
   File,
   FolderOpen,
   Info,
+  Link2,
   Pause,
   Play,
   RotateCcw,
@@ -438,12 +439,16 @@ function TableRow({
     setChecksumTarget,
     setScheduleTarget,
     setDetailsId,
+    editDownloadUrl,
     moveInQueue,
   } = useDownloadsStore();
 
   const canPause = d.status === "downloading" || d.status === "queued";
   const canResume = d.status === "paused" || d.status === "failed";
   const canSchedule = d.status !== "completed" && d.status !== "merging";
+  // Same rule as the replace button in Properties: not while it's running.
+  const canRefreshUrl =
+    d.status !== "completed" && d.status !== "downloading" && d.status !== "merging";
 
   return (
     <ContextMenu.Root>
@@ -474,7 +479,11 @@ function TableRow({
         </tr>
       </ContextMenu.Trigger>
       <ContextMenu.Portal>
-        <ContextMenu.Content className="z-50 min-w-[190px] rounded-xl bg-raised border border-white/[0.08] shadow-2xl shadow-black/50 p-1.5 text-sm">
+        <ContextMenu.Content
+          // Leave focus where the chosen action put it (e.g. the address
+          // field Refresh Address opens) instead of returning it to the row.
+          onCloseAutoFocus={(e) => e.preventDefault()}
+          className="z-50 min-w-[190px] rounded-xl bg-raised border border-white/[0.08] shadow-2xl shadow-black/50 p-1.5 text-sm">
           <MenuItem
             icon={ExternalLink}
             label="Open"
@@ -488,6 +497,13 @@ function TableRow({
           />
           <MenuItem icon={Copy} label="Copy URL" onSelect={() => copyUrls([d.id])} />
           <MenuItem icon={Info} label="Properties" onSelect={() => setDetailsId(d.id)} />
+          {canRefreshUrl && (
+            <MenuItem
+              icon={Link2}
+              label="Refresh Address…"
+              onSelect={() => editDownloadUrl(d.id)}
+            />
+          )}
           {d.status === "completed" && (
             <MenuItem
               icon={ShieldCheck}

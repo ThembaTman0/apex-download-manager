@@ -56,6 +56,10 @@ interface DownloadsState {
   setScheduleTarget: (d: Download | null) => void;
   setChecksumTarget: (d: Download | null) => void;
   setDetailsId: (id: string | null) => void;
+  /** Download whose address field Properties should open in edit mode. */
+  urlEditId: string | null;
+  /** Open Properties for `id` with the replace-address field ready. */
+  editDownloadUrl: (id: string | null) => void;
   setStatusFilter: (
     f: "all" | "active" | "scheduled" | "completed" | "failed"
   ) => void;
@@ -125,6 +129,7 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
   scheduleTarget: null,
   checksumTarget: null,
   detailsId: null,
+  urlEditId: null,
   statusFilter: "all",
   categoryFilter: "all",
   queueEmptyAction: null,
@@ -224,6 +229,8 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
   setScheduleTarget: (d) => set({ scheduleTarget: d }),
   setChecksumTarget: (d) => set({ checksumTarget: d }),
   setDetailsId: (id) => set({ detailsId: id }),
+  editDownloadUrl: (id) =>
+    set(id ? { detailsId: id, urlEditId: id } : { urlEditId: null }),
   setStatusFilter: (f) => set({ statusFilter: f, selectedIds: new Set() }),
   setCategoryFilter: (f) => set({ categoryFilter: f, selectedIds: new Set() }),
   setQueueEmptyAction: (a) => set({ queueEmptyAction: a }),
