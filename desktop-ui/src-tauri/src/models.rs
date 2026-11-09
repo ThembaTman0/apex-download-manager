@@ -4,6 +4,9 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "lowercase")]
 pub enum DownloadStatus {
     Downloading,
+    /// Pause was requested and the connections are still winding down.
+    /// Never survives a restart: from_str reads it back as Paused.
+    Pausing,
     Paused,
     Completed,
     Failed,
@@ -15,6 +18,7 @@ impl DownloadStatus {
     pub fn as_str(&self) -> &'static str {
         match self {
             DownloadStatus::Downloading => "downloading",
+            DownloadStatus::Pausing => "pausing",
             DownloadStatus::Paused => "paused",
             DownloadStatus::Completed => "completed",
             DownloadStatus::Failed => "failed",

@@ -18,7 +18,9 @@ export function StatusBar() {
   // Only ids still in the list (one may have been removed meanwhile).
   const missing = missingIds.filter((id) => downloads.some((d) => d.id === id));
 
-  const active = downloads.filter((d) => d.status === "downloading");
+  const active = downloads.filter(
+    (d) => d.status === "downloading" || d.status === "pausing"
+  );
   const queued = downloads.filter((d) => d.status === "queued");
   const failed = downloads.filter((d) => d.status === "failed");
   const totalSpeed = active.reduce((acc, d) => acc + d.speedBytesPerSec, 0);

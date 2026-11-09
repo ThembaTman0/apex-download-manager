@@ -465,7 +465,7 @@ export function filterDownloads(
         d.status === "queued" && d.startAt && d.startAt > Date.now();
       if (
         scheduledForLater ||
-        !["downloading", "queued", "merging", "paused"].includes(d.status)
+        !["downloading", "pausing", "queued", "merging", "paused"].includes(d.status)
       ) {
         return false;
       }

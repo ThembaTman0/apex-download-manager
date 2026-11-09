@@ -15,7 +15,7 @@ export function ProgressCell({ progress, status, segments }: Props) {
       ? "bg-success"
       : status === "failed"
       ? "bg-error"
-      : status === "paused"
+      : status === "paused" || status === "pausing"
       ? "bg-warning"
       : "bg-accent";
 

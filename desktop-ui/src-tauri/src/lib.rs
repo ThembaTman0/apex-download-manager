@@ -82,7 +82,7 @@ impl QueueSummary {
         let mut s = Self::default();
         for d in list {
             match d.status {
-                Downloading | Merging => s.active += 1,
+                Downloading | Pausing | Merging => s.active += 1,
                 Queued => {
                     s.queued += 1;
                     continue;

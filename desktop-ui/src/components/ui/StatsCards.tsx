@@ -5,7 +5,9 @@ import { formatBytes, formatSpeed } from "@/lib/utils";
 
 export function StatsCards() {
   const downloads = useDownloadsStore((s) => s.downloads);
-  const active = downloads.filter((d) => d.status === "downloading");
+  const active = downloads.filter(
+    (d) => d.status === "downloading" || d.status === "pausing"
+  );
   const completed = downloads.filter((d) => d.status === "completed");
   const totalSpeed = active.reduce((a, d) => a + d.speedBytesPerSec, 0);
   const totalDownloaded = downloads.reduce((a, d) => a + d.downloadedBytes, 0);

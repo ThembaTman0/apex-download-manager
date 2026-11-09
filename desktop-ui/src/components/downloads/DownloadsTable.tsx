@@ -448,7 +448,10 @@ function TableRow({
   const canSchedule = d.status !== "completed" && d.status !== "merging";
   // Same rule as the replace button in Properties: not while it's running.
   const canRefreshUrl =
-    d.status !== "completed" && d.status !== "downloading" && d.status !== "merging";
+    d.status !== "completed" &&
+    d.status !== "downloading" &&
+    d.status !== "pausing" &&
+    d.status !== "merging";
 
   return (
     <ContextMenu.Root>

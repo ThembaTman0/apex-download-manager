@@ -170,7 +170,10 @@ function UrlBlock({
   // A finished file has nothing left to fetch, and a running one would have
   // to be torn down mid-flight - the engine rejects both.
   const canEdit =
-    status !== "completed" && status !== "downloading" && status !== "merging";
+    status !== "completed" &&
+    status !== "downloading" &&
+    status !== "pausing" &&
+    status !== "merging";
 
   // Switching downloads (or the backend confirming a change) resets the field.
   useEffect(() => {

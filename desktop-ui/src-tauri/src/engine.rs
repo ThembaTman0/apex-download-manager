@@ -27,6 +27,7 @@ const EVENT_REMOVED: &str = "download:removed";
 struct ActiveHandle {
     cancel: CancellationToken,
     removing: Arc<AtomicBool>,
+    pausing: Arc<AtomicBool>,
     join: Option<tauri::async_runtime::JoinHandle<()>>,
 }
 
@@ -407,6 +408,7 @@ impl DownloadManager {
             }
             match d.status {
                 DownloadStatus::Downloading
+                | DownloadStatus::Pausing
                 | DownloadStatus::Queued
                 | DownloadStatus::Merging
                 | DownloadStatus::Paused => return DupStatus::Active(d.name),
@@ -865,12 +867,20 @@ impl DownloadManager {
     }
 
     pub fn pause(&self, id: &str) -> Result<(), String> {
-        let token = {
+        let handle = {
             let map = self.active.lock().unwrap();
-            map.get(id).map(|h| h.cancel.clone())
+            map.get(id).map(|h| (h.cancel.clone(), h.pausing.clone()))
         };
-        if let Some(token) = token {
+        if let Some((token, pausing)) = handle {
+            // Show "Pausing" until the connections have actually stopped
+            // (idea from iiAhmedYT, #53); the task itself writes Paused.
+            pausing.store(true, Ordering::SeqCst);
             token.cancel();
+            if let Ok(Some(mut d)) = self.db.lock().unwrap().get_download(id) {
+                d.status = DownloadStatus::Pausing;
+                d.speed_bytes_per_sec = 0;
+                self.emit_changed(&d);
+            }
             return Ok(());
         }
         // Not running (e.g. queued): flip it to paused directly.
@@ -937,9 +947,10 @@ impl DownloadManager {
             .get_download(id)?
             .ok_or("download not found")?;
         match d.status {
-            DownloadStatus::Completed | DownloadStatus::Downloading | DownloadStatus::Merging => {
-                Ok(())
-            }
+            DownloadStatus::Completed
+            | DownloadStatus::Downloading
+            | DownloadStatus::Pausing
+            | DownloadStatus::Merging => Ok(()),
             _ => self.try_start(id),
         }
     }
@@ -1099,6 +1110,7 @@ impl DownloadManager {
 
         let cancel = CancellationToken::new();
         let removing = Arc::new(AtomicBool::new(false));
+        let pausing = Arc::new(AtomicBool::new(false));
         let task_limiter = Arc::new(RateLimiter::new(d.speed_limit_kbps * 1024));
         self.task_limiters
             .lock()
@@ -1113,6 +1125,7 @@ impl DownloadManager {
             client: self.client.lock().unwrap().clone(),
             cancel: cancel.clone(),
             removing: removing.clone(),
+            pausing: pausing.clone(),
         };
         let mgr = self.clone_ref();
 
@@ -1131,6 +1144,7 @@ impl DownloadManager {
             ActiveHandle {
                 cancel,
                 removing,
+                pausing,
                 join: Some(join),
             },
         );
@@ -1203,6 +1217,8 @@ pub(crate) struct TaskCtx {
     pub(crate) client: reqwest::Client,
     pub(crate) cancel: CancellationToken,
     pub(crate) removing: Arc<AtomicBool>,
+    /// Set by pause(): progress reports say Pausing until the task stops.
+    pub(crate) pausing: Arc<AtomicBool>,
 }
 
 /// Whole-download retry attempts after a failure (on top of the per-segment
@@ -1595,6 +1611,9 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
                 last_bytes = total;
                 last_time = now;
                 sync_progress(d, segs, total, speed_ema);
+                if ctx.pausing.load(Ordering::SeqCst) {
+                    d.status = DownloadStatus::Pausing;
+                }
                 if tick_n % 4 == 0 {
                     let _ = ctx.db.lock().unwrap().upsert_download(d);
                 }
