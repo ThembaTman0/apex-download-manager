@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
-use tokio::io::{AsyncSeekExt, AsyncWriteExt};
+use tokio::io::{AsyncSeekExt, AsyncWriteExt, BufWriter};
 use tokio_util::sync::CancellationToken;
 
 /// Sound for the "Download complete" toast. Apex ships no audio file: it asks
@@ -26,6 +26,7 @@ const COMPLETE_SOUND: &str = "Default";
 const COMPLETE_SOUND: &str = "complete";
 
 const MIN_SEGMENT_BYTES: u64 = 256 * 1024;
+const WRITE_BUFFER_BYTES: usize = 256 * 1024;
 const TEMP_SUFFIX: &str = ".adm";
 /// Windows caps a path component at 255 chars; stay well under so the
 /// save dir + name + ".adm" suffix still fit (tokenized CDN URLs can put
@@ -2109,11 +2110,12 @@ async fn download_segment(
             body_expected = resp.content_length().filter(|cl| *cl > 0);
         }
 
-        let mut file = tokio::fs::OpenOptions::new()
+        let file = tokio::fs::OpenOptions::new()
             .write(true)
             .open(&tmp)
             .await
             .map_err(|e| format!("cannot open file: {e}"))?;
+        let mut file = BufWriter::with_capacity(WRITE_BUFFER_BYTES, file);
         file.seek(SeekFrom::Start(cell.start + done))
             .await
             .map_err(|e| e.to_string())?;
@@ -2129,12 +2131,14 @@ async fn download_segment(
             let chunk = match chunk {
                 Err(_) => {
                     // Stalled for 60s - retry from the current offset.
+                    let _ = file.flush().await;
                     if attempts >= 4 {
                         return Err(format!("segment {index}: connection stalled"));
                     }
                     continue 'attempt;
                 }
                 Ok(Err(e)) => {
+                    let _ = file.flush().await;
                     if attempts >= 4 {
                         return Err(format!("segment {index}: {e}"));
                     }
@@ -2199,7 +2203,7 @@ async fn download_segment(
                             if !supports_ranges {
                                 // Preallocation used the probe's size; cut
                                 // any stale tail past the real body.
-                                let _ = file.set_len(done).await;
+                                let _ = file.get_mut().set_len(done).await;
                             }
                             return Ok(());
                         }
@@ -2221,7 +2225,7 @@ async fn download_segment(
                         }
                         _ => {
                             if !supports_ranges {
-                                let _ = file.set_len(done).await;
+                                let _ = file.get_mut().set_len(done).await;
                             }
                             return Ok(());
                         }
