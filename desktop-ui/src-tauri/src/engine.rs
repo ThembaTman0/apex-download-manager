@@ -1613,6 +1613,11 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
                 last_bytes = total;
                 last_time = now;
                 sync_progress(d, segs, total, speed_ema);
+                if ctx.cancel.is_cancelled() && first_err.is_none() {
+                    d.status = DownloadStatus::Pausing;
+                    d.speed_bytes_per_sec = 0;
+                    d.eta_seconds = 0;
+                }
                 if tick_n % 4 == 0 {
                     let _ = ctx.db.lock().unwrap().upsert_download(d);
                 }
