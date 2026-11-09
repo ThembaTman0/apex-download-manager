@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "lowercase")]
 pub enum DownloadStatus {
     Downloading,
+    Pausing,
     Paused,
     Completed,
     Failed,
@@ -15,6 +16,7 @@ impl DownloadStatus {
     pub fn as_str(&self) -> &'static str {
         match self {
             DownloadStatus::Downloading => "downloading",
+            DownloadStatus::Pausing => "pausing",
             DownloadStatus::Paused => "paused",
             DownloadStatus::Completed => "completed",
             DownloadStatus::Failed => "failed",
@@ -26,6 +28,7 @@ impl DownloadStatus {
     pub fn from_str(s: &str) -> DownloadStatus {
         match s {
             "downloading" => DownloadStatus::Downloading,
+            "pausing" => DownloadStatus::Paused,
             "completed" => DownloadStatus::Completed,
             "failed" => DownloadStatus::Failed,
             "queued" => DownloadStatus::Queued,

@@ -22,7 +22,8 @@ const SAMPLE_MS = 2_000;
 const SAMPLES = 30;
 
 const isFinished = (d: Download) => d.status === "completed" || d.status === "failed";
-const isActive = (d: Download) => d.status === "downloading" || d.status === "queued";
+const isActive = (d: Download) =>
+  d.status === "downloading" || d.status === "pausing" || d.status === "queued";
 
 function hostOf(url: string): string {
   try {
@@ -188,7 +189,7 @@ function Pill({ children }: { children: React.ReactNode }) {
 const PILL_ICON = "w-3.5 h-3.5 shrink-0";
 const PILL_ICON_STROKE = 2.5;
 
-type PillStatus ="downloading" | "waiting" | "paused" | "done";
+type PillStatus = "downloading" | "pausing" | "waiting" | "paused" | "done";
 
 /** The status pill's icon: one glyph per state instead of a generic ring. */
 function StatusIcon({ status }: { status: PillStatus }) {
@@ -196,6 +197,8 @@ function StatusIcon({ status }: { status: PillStatus }) {
   switch (status) {
     case "downloading":
       return <ArrowDownToLine className={cn(PILL_ICON, "text-accent")} {...props} />;
+    case "pausing":
+      return <Hourglass className={cn(PILL_ICON, "text-warning")} {...props} />;
     case "waiting":
       return <Hourglass className={cn(PILL_ICON, "text-ink-muted")} {...props} />;
     case "paused":
@@ -217,6 +220,8 @@ function Bar({ d }: { d: Download }) {
               ? "bg-error"
               : d.status === "paused"
                 ? "bg-ink-muted"
+                : d.status === "pausing"
+                  ? "bg-warning"
                 : "bg-accent"
         )}
         style={{ width: `${d.status === "completed" ? 100 : d.progress}%` }}
@@ -250,7 +255,7 @@ function IconButton({
  * group hover). No cancel here on purpose: a stray click in a corner window
  * must never cost a download; removing one stays in the main app. */
 function Controls({ d }: { d: Download }) {
-  if (isFinished(d)) return null;
+  if (isFinished(d) || d.status === "pausing") return null;
   return (
     <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
       {d.status === "paused" ? (
@@ -295,6 +300,7 @@ function SingleView({
 }) {
   const host = hostOf(d.url);
   const paused = d.status === "paused";
+  const pausing = d.status === "pausing";
   return (
     <div className="group">
       <div className="relative flex items-center gap-2.5">
@@ -308,9 +314,23 @@ function SingleView({
       <div className="grid grid-cols-2 w-fit gap-1.5 mt-2.5">
         <Pill>
           <StatusIcon
-            status={paused ? "paused" : d.status === "queued" ? "waiting" : "downloading"}
+            status={
+              paused
+                ? "paused"
+                : pausing
+                  ? "pausing"
+                  : d.status === "queued"
+                    ? "waiting"
+                    : "downloading"
+            }
           />
-          {paused ? "Paused" : d.status === "queued" ? "Waiting" : "Downloading"}
+          {paused
+            ? "Paused"
+            : pausing
+              ? "Pausing"
+              : d.status === "queued"
+                ? "Waiting"
+                : "Downloading"}
         </Pill>
         {!paused && (
           <Pill>
@@ -505,6 +525,8 @@ function ListRow({ d }: { d: Download }) {
       ? "Failed"
       : d.status === "paused"
         ? "Paused"
+        : d.status === "pausing"
+          ? "Pausing"
         : d.status === "queued"
           ? "Waiting"
           : `${Math.round(d.progress)}%`;

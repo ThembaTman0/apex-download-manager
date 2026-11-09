@@ -19,7 +19,7 @@ pub async fn add_download(
 
 #[tauri::command]
 pub async fn pause_download(mgr: State<'_, DownloadManager>, id: String) -> Result<(), String> {
-    mgr.pause(&id)
+    mgr.pause(&id).await
 }
 
 #[tauri::command]
@@ -297,7 +297,7 @@ pub async fn pause_all(mgr: State<'_, DownloadManager>) -> Result<(), String> {
             d.status,
             crate::models::DownloadStatus::Downloading | crate::models::DownloadStatus::Queued
         ) {
-            let _ = mgr.pause(&d.id);
+            let _ = mgr.pause(&d.id).await;
         }
     }
     Ok(())

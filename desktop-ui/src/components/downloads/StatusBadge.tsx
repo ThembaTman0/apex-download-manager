@@ -4,6 +4,7 @@ import type { DownloadStatus } from "@/types";
 
 const config: Record<DownloadStatus, { label: string; dot: string }> = {
   downloading: { label: "Downloading", dot: "bg-info" },
+  pausing: { label: "Pausing", dot: "bg-warning" },
   paused: { label: "Paused", dot: "bg-warning" },
   completed: { label: "Completed", dot: "bg-success" },
   failed: { label: "Failed", dot: "bg-error-soft" },

@@ -17,6 +17,8 @@ export function ProgressCell({ progress, status, segments }: Props) {
       ? "bg-error"
       : status === "paused"
       ? "bg-warning"
+      : status === "pausing"
+      ? "bg-warning"
       : "bg-accent";
 
   const showMap =

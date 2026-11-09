@@ -82,7 +82,7 @@ impl QueueSummary {
         let mut s = Self::default();
         for d in list {
             match d.status {
-                Downloading | Merging => s.active += 1,
+                Downloading | Pausing | Merging => s.active += 1,
                 Queued => {
                     s.queued += 1;
                     continue;
@@ -302,17 +302,20 @@ pub fn run() {
                     match event.id.as_ref() {
                         "show" => show_main_window(app),
                         "pause_all" => {
-                            if let Ok(list) = mgr.list() {
-                                for d in list {
-                                    if matches!(
-                                        d.status,
-                                        models::DownloadStatus::Downloading
-                                            | models::DownloadStatus::Queued
-                                    ) {
-                                        let _ = mgr.pause(&d.id);
+                            let mgr = mgr.clone_ref();
+                            tauri::async_runtime::spawn(async move {
+                                if let Ok(list) = mgr.list() {
+                                    for d in list {
+                                        if matches!(
+                                            d.status,
+                                            models::DownloadStatus::Downloading
+                                                | models::DownloadStatus::Queued
+                                        ) {
+                                            let _ = mgr.pause(&d.id).await;
+                                        }
                                     }
                                 }
-                            }
+                            });
                         }
                         "resume_all" => {
                             if let Ok(list) = mgr.list() {

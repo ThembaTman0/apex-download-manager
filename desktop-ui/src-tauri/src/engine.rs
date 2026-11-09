@@ -407,6 +407,7 @@ impl DownloadManager {
             }
             match d.status {
                 DownloadStatus::Downloading
+                | DownloadStatus::Pausing
                 | DownloadStatus::Queued
                 | DownloadStatus::Merging
                 | DownloadStatus::Paused => return DupStatus::Active(d.name),
@@ -864,26 +865,40 @@ impl DownloadManager {
         Ok(())
     }
 
-    pub fn pause(&self, id: &str) -> Result<(), String> {
-        let token = {
-            let map = self.active.lock().unwrap();
-            map.get(id).map(|h| h.cancel.clone())
-        };
-        if let Some(token) = token {
-            token.cancel();
+    pub async fn pause(&self, id: &str) -> Result<(), String> {
+        if self.active.lock().unwrap().contains_key(id) {
+            let changed = {
+                let db = self.db.lock().unwrap();
+                let mut d = db.get_download(id)?.ok_or("download not found")?;
+                if d.status == DownloadStatus::Downloading {
+                    d.status = DownloadStatus::Pausing;
+                    d.modified_at = now_millis();
+                    db.upsert_download(&d)?;
+                    Some(d)
+                } else {
+                    None
+                }
+            };
+            if let Some(d) = changed {
+                self.emit_changed(&d);
+            }
+            self.stop_and_join(id, false).await;
             return Ok(());
         }
         // Not running (e.g. queued): flip it to paused directly.
-        let mut d = self
-            .db
-            .lock()
-            .unwrap()
-            .get_download(id)?
-            .ok_or("download not found")?;
-        if matches!(d.status, DownloadStatus::Queued | DownloadStatus::Downloading) {
-            d.status = DownloadStatus::Paused;
-            d.modified_at = now_millis();
-            self.db.lock().unwrap().upsert_download(&d)?;
+        let changed = {
+            let db = self.db.lock().unwrap();
+            let mut d = db.get_download(id)?.ok_or("download not found")?;
+            if matches!(d.status, DownloadStatus::Queued | DownloadStatus::Downloading) {
+                d.status = DownloadStatus::Paused;
+                d.modified_at = now_millis();
+                db.upsert_download(&d)?;
+                Some(d)
+            } else {
+                None
+            }
+        };
+        if let Some(d) = changed {
             self.emit_changed(&d);
         }
         Ok(())
@@ -937,7 +952,10 @@ impl DownloadManager {
             .get_download(id)?
             .ok_or("download not found")?;
         match d.status {
-            DownloadStatus::Completed | DownloadStatus::Downloading | DownloadStatus::Merging => {
+            DownloadStatus::Completed
+            | DownloadStatus::Downloading
+            | DownloadStatus::Pausing
+            | DownloadStatus::Merging => {
                 Ok(())
             }
             _ => self.try_start(id),
