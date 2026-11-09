@@ -184,6 +184,8 @@ const demoSettings = {
   speedLimitKbps: 0,
   proxyUrl: "",
   notifyOnComplete: true,
+  soundOnComplete: true,
+  globalHotkeys: false,
   watchClipboard: true,
   removeCompleted: false,
   autoOrganize: true,

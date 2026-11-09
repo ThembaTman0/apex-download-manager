@@ -175,6 +175,13 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
       set({ clipboardUrl: url });
     });
 
+    await backend.onHotkeyAddUrl(() => {
+      // The backend already brought the window up. With no pending URL the
+      // dialog pre-fills from the clipboard itself.
+      if (get().addDialogOpen) return;
+      set({ pendingUrl: null, clipboardUrl: null, addDialogOpen: true });
+    });
+
     await backend.onGrabVideo(({ url, hasCookies }) => {
       // Re-fire while the dialog is up just refreshes the pre-fill; the
       // dialog effect keys on pendingVideoUrl.

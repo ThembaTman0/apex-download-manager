@@ -12,6 +12,7 @@ import {
   FolderTree,
   Gauge,
   Globe,
+  Keyboard,
   Layers,
   ListOrdered,
   Loader2,
@@ -246,6 +247,44 @@ export function SettingsPage() {
               Notify when a download completes
             </span>
           </label>
+          <label
+            className={`flex items-center gap-2.5 select-none py-1 ${
+              form.notifyOnComplete ? "cursor-pointer" : "opacity-50"
+            }`}
+          >
+            <Checkbox
+              checked={form.soundOnComplete}
+              disabled={!form.notifyOnComplete}
+              onChange={(e) => update({ soundOnComplete: e.target.checked })}
+            />
+            <span className="text-sm text-ink-mid">
+              Play your system's notification sound
+            </span>
+          </label>
+        </Field>
+
+        <Field
+          icon={Keyboard}
+          label="Keyboard shortcuts"
+          hint="Work from any app, even while Apex is in the tray. Off by default because other apps can't use these keys while they're on."
+        >
+          <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
+            <Checkbox
+              checked={form.globalHotkeys}
+              onChange={(e) => update({ globalHotkeys: e.target.checked })}
+            />
+            <span className="text-sm text-ink-mid">Turn on global shortcuts</span>
+          </label>
+          <div className="mt-1.5 space-y-1 text-[11px] text-ink-muted">
+            <p>
+              <Kbd>Ctrl</Kbd> + <Kbd>Shift</Kbd> + <Kbd>Alt</Kbd> + <Kbd>P</Kbd>{" "}
+              Pause everything, or resume if all is paused
+            </p>
+            <p>
+              <Kbd>Ctrl</Kbd> + <Kbd>Shift</Kbd> + <Kbd>Alt</Kbd> + <Kbd>A</Kbd>{" "}
+              Open Add URL with a copied link filled in
+            </p>
+          </div>
         </Field>
 
         <Field
@@ -657,6 +696,8 @@ const FFMPEG_PACKAGE_COMMANDS = [
 /** yt-dlp / ffmpeg status with one-click installers. */
 function VideoGrabberSection() {
   const [tools, setTools] = useState<ToolsStatus | null>(null);
+  // False until the first status check answers (it runs each tool, so it takes a moment).
+  const [statusKnown, setStatusKnown] = useState(false);
   const [installing, setInstalling] = useState<"yt-dlp" | "ffmpeg" | "deno" | null>(null);
   const [progress, setProgress] = useState<{ downloaded: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -684,7 +725,11 @@ function VideoGrabberSection() {
   };
 
   useEffect(() => {
-    backend.ytdlpStatus().then(setTools).catch(() => {});
+    backend
+      .ytdlpStatus()
+      .then(setTools)
+      .catch(() => {})
+      .finally(() => setStatusKnown(true));
     backend
       .ytdlpCheckUpdate()
       .then((u) => setUpdateAvailable(u.outdated ? u.latest : null))
@@ -746,6 +791,7 @@ function VideoGrabberSection() {
         onInstall={() => install("yt-dlp")}
         installLabel={tools?.ytdlpPath ? "Update" : "Install"}
         disabled={installing !== null}
+        loading={!statusKnown}
       />
       <ToolRow
         name="FFmpeg"
@@ -762,6 +808,7 @@ function VideoGrabberSection() {
         busyLabel={IS_LINUX ? "Checking…" : undefined}
         icon={IS_LINUX ? <RefreshCw className="w-3.5 h-3.5" /> : undefined}
         disabled={installing !== null || checking}
+        loading={!statusKnown}
       />
       <ToolRow
         name="Deno"
@@ -776,6 +823,7 @@ function VideoGrabberSection() {
         onInstall={() => install("deno")}
         installLabel={tools?.denoPath ? "Reinstall" : "Install (~45 MB)"}
         disabled={installing !== null || checking}
+        loading={!statusKnown}
       />
       {IS_LINUX && tools && !tools.ffmpegPath && (
         <div className="-mt-1 mb-3 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
@@ -818,6 +866,7 @@ function ToolRow({
   busyLabel = "Installing…",
   icon,
   disabled,
+  loading,
 }: {
   name: string;
   required?: boolean;
@@ -830,11 +879,19 @@ function ToolRow({
   busyLabel?: string;
   icon?: React.ReactNode;
   disabled: boolean;
+  /** Status not known yet: neutral dot and "Checking…" instead of a false "Not installed". */
+  loading?: boolean;
 }) {
+  if (loading) {
+    status = "Checking…";
+    disabled = true;
+  }
   return (
     <div className="flex items-center gap-3 mb-3 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
       <span
-        className={`w-2 h-2 rounded-full shrink-0 ${ok ? "bg-success" : "bg-warning"}`}
+        className={`w-2 h-2 rounded-full shrink-0 ${
+          loading ? "bg-ink-faint" : ok ? "bg-success" : "bg-warning"
+        }`}
       />
       <div className="flex-1 min-w-0">
         <p className="text-sm text-ink font-medium">
@@ -860,6 +917,14 @@ function ToolRow({
         {installing ? busyLabel : installLabel}
       </button>
     </div>
+  );
+}
+
+function Kbd({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/[0.08] font-mono text-[10px] text-ink-mid">
+      {children}
+    </kbd>
   );
 }
 

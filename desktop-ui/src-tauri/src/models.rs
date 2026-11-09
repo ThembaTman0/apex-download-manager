@@ -145,6 +145,13 @@ pub struct Settings {
     /// optional user:pass@ credentials. Also passed to yt-dlp.
     pub proxy_url: String,
     pub notify_on_complete: bool,
+    /// Play the system's notification sound with the "Download complete"
+    /// toast. Only applies while `notify_on_complete` is on.
+    pub sound_on_complete: bool,
+    /// System-wide shortcuts: Ctrl+Shift+Alt+P pauses or resumes everything,
+    /// Ctrl+Shift+Alt+A opens Add URL. Off by default: they claim keys in
+    /// every other app too.
+    pub global_hotkeys: bool,
     /// Take finished downloads off the list (never the file) as they
     /// complete (#33). Off by default: completed entries also power the
     /// "already downloaded" warning, which removed ones no longer get.
@@ -201,6 +208,8 @@ impl Default for Settings {
             speed_limit_kbps: 0,
             proxy_url: String::new(),
             notify_on_complete: true,
+            sound_on_complete: true,
+            global_hotkeys: false,
             remove_completed: false,
             watch_clipboard: true,
             auto_organize: false,

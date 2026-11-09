@@ -24,6 +24,74 @@ pub(crate) fn show_main_window(app: &tauri::AppHandle) {
     }
 }
 
+/// Ctrl+Shift+Alt+P: pause everything running, or resume everything paused.
+/// Three modifiers on purpose: Ctrl+Alt alone is AltGr on many keyboard
+/// layouts, where it types characters.
+fn hotkey_pause() -> tauri_plugin_global_shortcut::Shortcut {
+    use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut};
+    Shortcut::new(
+        Some(Modifiers::CONTROL | Modifiers::SHIFT | Modifiers::ALT),
+        Code::KeyP,
+    )
+}
+
+/// Ctrl+Shift+Alt+A: bring Apex up with Add URL open (it pre-fills a copied link).
+fn hotkey_add() -> tauri_plugin_global_shortcut::Shortcut {
+    use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut};
+    Shortcut::new(
+        Some(Modifiers::CONTROL | Modifiers::SHIFT | Modifiers::ALT),
+        Code::KeyA,
+    )
+}
+
+/// Register or drop the global hotkeys to match the setting. A key another
+/// app already owns just fails to register; Apex carries on without it.
+pub(crate) fn apply_hotkeys(app: &tauri::AppHandle, enabled: bool) {
+    use tauri_plugin_global_shortcut::GlobalShortcutExt;
+    let gs = app.global_shortcut();
+    for key in [hotkey_pause(), hotkey_add()] {
+        let registered = gs.is_registered(key);
+        let _ = match (enabled, registered) {
+            (true, false) => gs.register(key),
+            (false, true) => gs.unregister(key),
+            _ => Ok(()),
+        };
+    }
+}
+
+/// Pause if anything is running or waiting, otherwise resume what's paused.
+fn toggle_pause_all(app: &tauri::AppHandle) {
+    use models::DownloadStatus as S;
+    let mgr = app.state::<DownloadManager>();
+    let Ok(list) = mgr.list() else { return };
+    let busy = list
+        .iter()
+        .any(|d| matches!(d.status, S::Downloading | S::Queued));
+    for d in list {
+        if busy && matches!(d.status, S::Downloading | S::Queued) {
+            let _ = mgr.pause(&d.id);
+        } else if !busy && matches!(d.status, S::Paused | S::Failed) {
+            let _ = mgr.resume(&d.id);
+        }
+    }
+}
+
+fn on_hotkey(
+    app: &tauri::AppHandle,
+    key: &tauri_plugin_global_shortcut::Shortcut,
+    event: tauri_plugin_global_shortcut::ShortcutEvent,
+) {
+    if event.state() != tauri_plugin_global_shortcut::ShortcutState::Pressed {
+        return;
+    }
+    if *key == hotkey_pause() {
+        toggle_pause_all(app);
+    } else if *key == hotkey_add() {
+        show_main_window(app);
+        let _ = app.emit("hotkey:add-url", ());
+    }
+}
+
 /// Decides when a clipboard change is a new download link worth offering
 /// (#37). The old loop treated launch, and any failed read (the clipboard is
 /// briefly locked while a browser closes, or under Remote Desktop), as a
@@ -255,6 +323,11 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(on_hotkey)
+                .build(),
+        )
         .setup(|app| {
             let manager = DownloadManager::new(app.handle().clone())
                 .map_err(|e| format!("failed to init download engine: {e}"))?;
@@ -276,6 +349,10 @@ pub fn run() {
             apply_autostart(
                 app.handle(),
                 app.state::<DownloadManager>().get_settings().launch_at_startup,
+            );
+            apply_hotkeys(
+                app.handle(),
+                app.state::<DownloadManager>().get_settings().global_hotkeys,
             );
 
             // Old MSI installs left taskbar pins pointing at an icon each

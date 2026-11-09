@@ -61,6 +61,10 @@ export interface Settings {
   /** "" = direct connection; http://, https:// or socks5:// URL otherwise. */
   proxyUrl: string;
   notifyOnComplete: boolean;
+  /** System notification sound with the "Download complete" toast. */
+  soundOnComplete: boolean;
+  /** Ctrl+Shift+Alt+P (pause/resume all) and Ctrl+Shift+Alt+A (Add URL). */
+  globalHotkeys: boolean;
   watchClipboard: boolean;
   removeCompleted: boolean;
   autoOrganize: boolean;

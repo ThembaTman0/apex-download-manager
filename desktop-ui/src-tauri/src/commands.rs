@@ -370,6 +370,7 @@ pub async fn update_settings(
 ) -> Result<Settings, String> {
     let saved = mgr.update_settings(settings)?;
     crate::apply_autostart(&app, saved.launch_at_startup);
+    crate::apply_hotkeys(&app, saved.global_hotkeys);
     Ok(saved)
 }
 

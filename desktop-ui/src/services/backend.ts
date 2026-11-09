@@ -148,6 +148,11 @@ export const backend = {
     return listen<string>("clipboard:url", (e) => cb(e.payload));
   },
 
+  /** The Add URL global hotkey (Ctrl+Shift+Alt+A) was pressed. */
+  onHotkeyAddUrl(cb: () => void): Promise<UnlistenFn> {
+    return listen("hotkey:add-url", () => cb());
+  },
+
   onExtensionPaired(cb: () => void): Promise<UnlistenFn> {
     return listen("extension:paired", () => cb());
   },

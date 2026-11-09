@@ -15,6 +15,16 @@ use tauri_plugin_notification::NotificationExt;
 use tokio::io::{AsyncSeekExt, AsyncWriteExt};
 use tokio_util::sync::CancellationToken;
 
+/// Sound for the "Download complete" toast. Apex ships no audio file: it asks
+/// the system for its own notification sound, so it follows the user's
+/// sound scheme, volume and Do Not Disturb. Windows: the default toast chime.
+/// Linux: the freedesktop sound-theme name for a finished task (played by
+/// desktops whose notification server supports sounds, e.g. KDE).
+#[cfg(windows)]
+const COMPLETE_SOUND: &str = "Default";
+#[cfg(not(windows))]
+const COMPLETE_SOUND: &str = "complete";
+
 const MIN_SEGMENT_BYTES: u64 = 256 * 1024;
 const TEMP_SUFFIX: &str = ".adm";
 /// Windows caps a path component at 255 chars; stay well under so the
@@ -1303,14 +1313,21 @@ async fn run_download(ctx: TaskCtx, mgr: DownloadManager, mut d: Download) {
                 // them outlive the download in the on-disk database.
                 d.request_headers
                     .retain(|(k, _)| !k.eq_ignore_ascii_case("cookie"));
-                if ctx.settings.lock().unwrap().notify_on_complete {
-                    let _ = ctx
+                let (notify, sound) = {
+                    let s = ctx.settings.lock().unwrap();
+                    (s.notify_on_complete, s.sound_on_complete)
+                };
+                if notify {
+                    let mut toast = ctx
                         .app
                         .notification()
                         .builder()
                         .title("Download complete")
-                        .body(&d.name)
-                        .show();
+                        .body(&d.name);
+                    if sound {
+                        toast = toast.sound(COMPLETE_SOUND);
+                    }
+                    let _ = toast.show();
                 }
             }
             Ok(false) => {
