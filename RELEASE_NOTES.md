@@ -6,6 +6,7 @@ When a download link expires, paste a fresh one and Apex carries on where it lef
 
 **Fixes**
 
+- Pausing a very large download on Windows works right away again. At the start of a big download, Windows could spend minutes preparing the file, and during that time neither Pause nor Task Manager could stop Apex. Thanks to iiAhmedYT for reporting it.
 - "What's new" no longer opens every time your PC starts. On some PCs the record of which version you had already seen was lost at every launch; Apex now keeps it with the rest of its settings.
 - The "already downloaded" warning no longer flashes for a moment after you click Start Download.
 - AppImage downloads now show as APPIMAGE and are filed under Programs.

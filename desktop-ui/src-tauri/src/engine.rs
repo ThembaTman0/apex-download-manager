@@ -1457,6 +1457,7 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
                     ));
                 }
             }
+            mark_sparse(&file);
             file.set_len(d.size_bytes)
                 .map_err(|e| format!("cannot allocate file: {e}"))?;
         }
@@ -2251,6 +2252,39 @@ pub fn final_path(d: &Download) -> PathBuf {
     Path::new(&d.save_path).join(&d.name)
 }
 
+/// Mark the temp file sparse before it is sized (#52). NTFS otherwise zero-
+/// fills everything below a write past the data written so far, inside that
+/// one write call: the connection starting near the end of a 20 GB file
+/// blocks for minutes on a hard drive, and the blocked write holds up pause
+/// and even Task Manager's End task. Sparse files skip the zero-fill.
+/// Best effort: on a file system without sparse support it just stays slow.
+/// (Linux file systems already leave the gap unwritten.)
+#[cfg(windows)]
+fn mark_sparse(file: &std::fs::File) {
+    use std::os::windows::io::AsRawHandle;
+    use windows::Win32::Foundation::HANDLE;
+    use windows::Win32::System::Ioctl::FSCTL_SET_SPARSE;
+    use windows::Win32::System::IO::DeviceIoControl;
+    let mut returned = 0u32;
+    // SAFETY: a valid open handle and no in/out buffers (the default
+    // FILE_SET_SPARSE_BUFFER means "make sparse").
+    let _ = unsafe {
+        DeviceIoControl(
+            HANDLE(file.as_raw_handle()),
+            FSCTL_SET_SPARSE,
+            None,
+            0,
+            None,
+            0,
+            Some(&mut returned),
+            None,
+        )
+    };
+}
+
+#[cfg(not(windows))]
+fn mark_sparse(_file: &std::fs::File) {}
+
 pub fn temp_path(d: &Download) -> PathBuf {
     Path::new(&d.save_path).join(format!("{}{}", d.name, TEMP_SUFFIX))
 }
@@ -2488,5 +2522,36 @@ mod tests {
             "My File.zip"
         );
         assert_eq!(filename_from_url("https://x.com/"), "download");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn preallocated_temp_file_is_sparse_and_far_writes_are_fast() {
+        use std::io::{Seek, SeekFrom, Write};
+        use std::os::windows::fs::MetadataExt;
+        const FILE_ATTRIBUTE_SPARSE_FILE: u32 = 0x200;
+        let size = 8u64 << 30;
+        let path = std::env::temp_dir().join(format!("apex-sparse-{}.adm", std::process::id()));
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .open(&path)
+            .unwrap();
+        super::mark_sparse(&file);
+        file.set_len(size).unwrap();
+        let sparse = file.metadata().unwrap().file_attributes() & FILE_ATTRIBUTE_SPARSE_FILE != 0;
+
+        // The last connection's first write: without the sparse flag NTFS
+        // zero-fills ~8 GB inside this call (seconds on NVMe, minutes on HDD).
+        let started = std::time::Instant::now();
+        file.seek(SeekFrom::Start(size - 4096)).unwrap();
+        file.write_all(&[1u8; 4096]).unwrap();
+        file.sync_all().unwrap();
+        let took = started.elapsed();
+        drop(file);
+        let _ = std::fs::remove_file(&path);
+
+        assert!(sparse, "temp file should carry the sparse attribute");
+        assert!(took < std::time::Duration::from_millis(500), "far write took {took:?}");
     }
 }
