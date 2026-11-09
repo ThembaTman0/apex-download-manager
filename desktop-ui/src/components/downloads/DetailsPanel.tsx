@@ -173,7 +173,10 @@ function UrlBlock({
     // (Clearing the request here, not before, keeps this effect from
     // re-running and cancelling the timer.)
     const t = setTimeout(() => {
+      // select() too: focus() on an already-focused field fires no focus
+      // event, so onFocus wouldn't select the old address for a paste.
       fieldRef.current?.focus();
+      fieldRef.current?.select();
       editDownloadUrl(null);
     }, 0);
     return () => clearTimeout(t);
