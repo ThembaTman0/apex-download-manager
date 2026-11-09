@@ -16,6 +16,22 @@ export function DetailsPanel() {
   const showInFolder = useDownloadsStore((s) => s.showInFolder);
   const copyUrls = useDownloadsStore((s) => s.copyUrls);
   const editDownloadUrl = useDownloadsStore((s) => s.editDownloadUrl);
+  const pauseDownload = useDownloadsStore((s) => s.pauseDownload);
+
+  // A dead link is noticed while Apex is still retrying it (status stays
+  // "downloading" for minutes). The address can only change once it has
+  // stopped, so pause first and open the field when the pause lands.
+  const refreshExpired = async (id: string, status: DownloadStatus) => {
+    if (status === "downloading") {
+      await pauseDownload(id);
+      for (let i = 0; i < 30; i++) {
+        const cur = useDownloadsStore.getState().downloads.find((d) => d.id === id);
+        if (!cur || cur.status !== "downloading") break;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+    }
+    editDownloadUrl(id);
+  };
 
   // Live layout rides along on every download:changed event.
   const segments: Segment[] = download?.segmentStates ?? [];
@@ -54,9 +70,10 @@ export function DetailsPanel() {
               {download.error && (
                 <p className="text-xs text-error-soft mt-2 break-all">{download.error}</p>
               )}
-              {download.status === "failed" && looksLikeExpiredLink(download.error) && (
+              {(download.status === "failed" || download.status === "downloading") &&
+                looksLikeExpiredLink(download.error) && (
                 <button
-                  onClick={() => editDownloadUrl(download.id)}
+                  onClick={() => refreshExpired(download.id, download.status)}
                   className="mt-2 text-[11px] px-2 py-1 rounded-md bg-accent/15 text-accent hover:bg-accent/25 transition-colors flex items-center gap-1.5"
                 >
                   <Link2 className="w-3 h-3" />
