@@ -16,7 +16,7 @@ depends=(
 makedepends=('dpkg')
 
 source=(
-    "apex-${pkgver}.deb::https://apexdownloadmanager.com/dl?os=deb"
+    "apexdownloadmanager.com/dl?os=deb"
 )
 
 noextract=("apex-${pkgver}.deb")
