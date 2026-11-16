@@ -21,7 +21,7 @@ source=(
 
 noextract=("apex-${pkgver}.deb")
 
-sha256sums=('SKIP')
+sha256sums=('4d26ce592fd7c1bb5006256271ac5f0c6bc01fad14f3f11c96da74615fa2f31f')
 
 package() {
     dpkg-deb -x "$srcdir/apex-${pkgver}.deb" "$pkgdir"
