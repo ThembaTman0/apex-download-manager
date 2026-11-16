@@ -24,14 +24,14 @@
 Apex splits every download across up to 32 connections, resumes from the exact
 byte after a pause, a reboot or a dropped connection, and takes over downloads
 from your browser. A native Rust engine in a small Tauri app: no Electron, no
-Java. GPL v3.
+Java. The Windows installer is about 4 MB. GPL v3.
 
 | | Apex | IDM |
 | --- | --- | --- |
 | Price | **Free** | Paid, after a 30-day trial |
 | Open source | **Yes** (GPL v3) | No |
 | Runs on | **Windows and Linux** | Windows |
-| Browser extension's website access | **None**: it can't read your pages | Reads every page to add its buttons |
+| Browser extension reading your pages | **Can't**: it has no content scripts | Reads every page to add its buttons |
 | Ads, sign-up, telemetry | **None** | Registration reminders |
 | Resume after a reboot | Yes, checked against the server's ETag | Yes |
 | Video grabbing | yt-dlp, with the full YouTube quality list | Built in |
@@ -53,7 +53,9 @@ Java. GPL v3.
 
 ## Install
 
-- **Installer:** [download for Windows 10/11 (x64)](https://apexdownloadmanager.com/dl).
+**Windows 10/11 (x64)**
+
+- **Installer:** [download](https://apexdownloadmanager.com/dl) (about 4 MB).
   Apex updates itself from then on.
 - **Scoop:**
   ```powershell
@@ -115,7 +117,10 @@ tagging, taskbar progress and the one-click yt-dlp/FFmpeg install.
 - Every completed file is tagged with Mark-of-the-Web so Windows SmartScreen
   and Defender scan it like a browser download
 - Built-in SHA-256 checksum verification against publisher-provided hashes
-- The extension requests **zero website permissions** - it cannot read your pages
+- The extension has **no content scripts**: it cannot read or change your pages.
+  It asks for site access only to pass a download's cookies to Apex and, on
+  Firefox and Edge, to spot video stream addresses. It talks only to Apex on
+  your own machine
 - Local-only: no accounts, no telemetry, nothing leaves your machine
 
 **Interface**
@@ -123,6 +128,10 @@ tagging, taskbar progress and the one-click yt-dlp/FFmpeg install.
   per-download properties panel with live segment view
 - Keyboard-first: `Ctrl+N` new download, `Ctrl+F` search, `Space` pause/resume,
   `Del` delete, `Enter` open
+- Global shortcuts that work from any app (off by default): `Ctrl+Shift+Alt+P`
+  pauses everything and resumes it again, `Ctrl+Shift+Alt+A` opens Add URL
+  with the copied link filled in. On Linux these need X11
+- Optional sound when a download finishes
 - System tray: close the window, keep downloading
 
 ## Project layout
@@ -133,12 +142,15 @@ apex-download-manager/
 │   ├── src/               # React 19 + TypeScript + Tailwind v4 frontend
 │   └── src-tauri/         # Rust: download engine, SQLite, capture server
 ├── browser-extension/     # Chrome/Edge/Firefox extension (capture + context menu)
-└── website/               # Landing page (Vite + React) and /dl download links
+├── website/               # Landing page (Vite + React) and /dl download links
+├── bucket/                # Scoop manifest
+├── packaging/             # Chocolatey package
+└── winget/                # First winget manifest (later ones are generated)
 ```
 
 ## Building from source
 
-Prerequisites: [Rust](https://rustup.rs) (stable, MSVC toolchain),
+**Windows:** [Rust](https://rustup.rs) (stable, MSVC toolchain),
 [Node.js](https://nodejs.org) ≥ 20, and the Visual Studio Build Tools
 (C++ workload + Windows SDK).
 
@@ -147,6 +159,17 @@ cd desktop-ui
 npm install
 npm run tauri dev      # development
 npm run tauri build    # produces MSI / NSIS installers
+```
+
+**Linux** (Debian/Ubuntu package names): Rust (stable), Node.js ≥ 20, and the
+system libraries Tauri needs.
+
+```bash
+sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+cd desktop-ui
+npm install
+npm run tauri dev
+npm run tauri build -- --bundles appimage,deb
 ```
 
 ### Browser extension
@@ -174,12 +197,22 @@ npm run tauri build    # produces MSI / NSIS installers
 - [x] Proxy support
 - [x] Firefox extension
 - [x] Auto-updates (GitHub Releases)
-- [x] Dynamic segment re-splitting (finished connections take over the tail of slow ones)
+- [x] Dynamic segment re-splitting (a finished connection takes over half of the largest remaining piece)
 - [ ] Code signing
 - [x] Extension store publishing (Chrome Web Store / Edge Add-ons / AMO)
 - [x] Bandwidth scheduler (off-peak speed profiles)
 - [x] Package managers: Scoop (own bucket), winget, Chocolatey
 - [x] Linux build: AppImage and .deb (thanks to [@YofaGh](https://github.com/YofaGh) for testing, [#1](https://github.com/ThembaTman0/apex-download-manager/issues/1))
+- [x] Refresh Address for expired links, completion sound, global shortcuts
+- [ ] Portable zip for Windows
+- [ ] Settings grouped into categories
+- [ ] Arch Linux package ([#55](https://github.com/ThembaTman0/apex-download-manager/pull/55))
+
+## Contributing
+
+Bug reports, ideas and pull requests are welcome. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for how to build, test and send a change,
+and [SECURITY.md](SECURITY.md) for reporting a security problem.
 
 ## Support Apex
 
