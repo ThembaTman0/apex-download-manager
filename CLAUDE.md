@@ -66,5 +66,5 @@ Static landing page plus Vercel serverless functions in `api/`: `dl.js` (302 to 
 ## Privacy constraints (product invariants)
 
 - The desktop app is local-only: no accounts, no telemetry. Measurement lives only on the website: the download counter (aggregate counts, no per-user data) and cookieless Vercel Web Analytics, both disclosed on the privacy page.
-- The extension requests zero website content permissions; the capture server must stay bound to 127.0.0.1 and token-gated.
+- The extension has no content scripts and reads no page content; its host permissions (`http://*/*`, `https://*/*`) exist only for cookie handoff and stream sniffing. Never describe it as having "zero website permissions". The capture server must stay bound to 127.0.0.1 and token-gated.
 - Completed files get Mark-of-the-Web so SmartScreen/Defender treat them like browser downloads.

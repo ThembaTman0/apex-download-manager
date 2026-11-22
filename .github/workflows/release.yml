@@ -23,9 +23,14 @@
 #   (the default GITHUB_TOKEN cannot write to another repo)
 #
 # Optional:
-#   WINGET_TOKEN - CLASSIC PAT with the public_repo scope, for the winget
-#   step (komac forks microsoft/winget-pkgs and opens the PR from that fork;
-#   fine-grained tokens cannot open that PR). Unset = step is skipped.
+#   WINGET_TOKEN - CLASSIC PAT with the public_repo and workflow scopes, for
+#   the winget step (komac forks microsoft/winget-pkgs and opens the PR from
+#   that fork; fine-grained tokens cannot open that PR). Unset = step is
+#   skipped. Without workflow, the submission fails with a `CreateRef`
+#   permissions error whenever the fork is behind upstream and upstream has
+#   changed its workflow files (this broke 1.1.1). Manual fallback: run
+#   `gh repo sync ThembaTman0/winget-pkgs`, then re-run this workflow by hand
+#   with the tag.
 #   CHOCO_API_KEY - API key from community.chocolatey.org (Account > API
 #   Keys), for the Chocolatey push. Unset = step is skipped.
 #
@@ -380,5 +385,5 @@ jobs:
 
           .\komac.exe update ThembaTman0.ApexDownloadManager --version $version --urls $url --submit --token $env:WINGET_TOKEN
           if ($LASTEXITCODE -ne 0) {
-            throw "komac could not submit $version to winget-pkgs. Check that WINGET_TOKEN is a classic PAT with public_repo."
+            throw "komac could not submit $version to winget-pkgs. Check that WINGET_TOKEN is a classic PAT with the public_repo and workflow scopes and has not expired. If the error mentions CreateRef, the fork is behind upstream: run 'gh repo sync ThembaTman0/winget-pkgs', then re-run this workflow by hand with the tag."
           }
