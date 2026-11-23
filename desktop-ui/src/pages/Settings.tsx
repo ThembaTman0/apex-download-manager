@@ -805,15 +805,31 @@ const FFMPEG_PACKAGE_COMMANDS = [
   { distro: "Arch", cmd: "sudo pacman -S ffmpeg" },
 ];
 
+// The status check runs each tool (a few seconds), and Settings now remounts
+// this panel every time its page is opened. Keep the last answers for the
+// session; Recheck and installs refresh them.
+let cachedTools: ToolsStatus | null = null;
+let cachedUpdate: string | null | undefined; // undefined = not checked yet
+
 /** yt-dlp / ffmpeg status with one-click installers. */
 function VideoGrabberSection() {
-  const [tools, setTools] = useState<ToolsStatus | null>(null);
+  const [tools, setToolsState] = useState<ToolsStatus | null>(cachedTools);
+  const setTools = (s: ToolsStatus) => {
+    cachedTools = s;
+    setToolsState(s);
+  };
   // False until the first status check answers (it runs each tool, so it takes a moment).
-  const [statusKnown, setStatusKnown] = useState(false);
+  const [statusKnown, setStatusKnown] = useState(cachedTools !== null);
   const [installing, setInstalling] = useState<"yt-dlp" | "ffmpeg" | "deno" | null>(null);
   const [progress, setProgress] = useState<{ downloaded: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [updateAvailable, setUpdateAvailable] = useState<string | null>(null);
+  const [updateAvailable, setUpdateAvailableState] = useState<string | null>(
+    cachedUpdate ?? null
+  );
+  const setUpdateAvailable = (v: string | null) => {
+    cachedUpdate = v;
+    setUpdateAvailableState(v);
+  };
   const [checking, setChecking] = useState(false);
   const [copiedCmd, setCopiedCmd] = useState<string | null>(null);
 
@@ -837,15 +853,19 @@ function VideoGrabberSection() {
   };
 
   useEffect(() => {
-    backend
-      .ytdlpStatus()
-      .then(setTools)
-      .catch(() => {})
-      .finally(() => setStatusKnown(true));
-    backend
-      .ytdlpCheckUpdate()
-      .then((u) => setUpdateAvailable(u.outdated ? u.latest : null))
-      .catch(() => {});
+    if (cachedTools === null) {
+      backend
+        .ytdlpStatus()
+        .then(setTools)
+        .catch(() => {})
+        .finally(() => setStatusKnown(true));
+    }
+    if (cachedUpdate === undefined) {
+      backend
+        .ytdlpCheckUpdate()
+        .then((u) => setUpdateAvailable(u.outdated ? u.latest : null))
+        .catch(() => {});
+    }
     let unlisten: (() => void) | undefined;
     backend
       .onToolsProgress((p) => setProgress({ downloaded: p.downloaded, total: p.total }))
