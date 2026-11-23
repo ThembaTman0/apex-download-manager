@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { DownloadsTable } from "@/components/downloads/DownloadsTable";
 import { DetailsPanel } from "@/components/downloads/DetailsPanel";
 import { useDownloadsStore } from "@/stores/downloadsStore";
@@ -31,24 +32,43 @@ export function DownloadsPage() {
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      <div className="flex items-center gap-1.5 px-4 py-3 flex-wrap">
-        {STATUS_FILTERS.map((f) => (
-          <Chip
-            key={f.id}
-            label={f.label}
-            active={statusFilter === f.id}
-            onClick={() => setStatusFilter(f.id)}
-          />
-        ))}
-        <div className="w-px h-4 bg-white/[0.08] mx-1.5" />
-        {CATEGORIES.map((c) => (
-          <Chip
-            key={c}
-            label={c === "all" ? "Any type" : c}
-            active={categoryFilter === c}
-            onClick={() => setCategoryFilter(c)}
-          />
-        ))}
+      {/* Status is a segmented control, type a dropdown: one line at any
+          window width (13 chips used to wrap onto a second row). */}
+      <div className="flex items-center gap-3 px-4 py-3">
+        <div
+          role="group"
+          aria-label="Filter by status"
+          className="flex items-center p-0.5 rounded-lg bg-white/[0.03] border border-white/[0.06]"
+        >
+          {STATUS_FILTERS.map((f) => (
+            <Chip
+              key={f.id}
+              label={f.label}
+              active={statusFilter === f.id}
+              onClick={() => setStatusFilter(f.id)}
+            />
+          ))}
+        </div>
+        <div className="flex-1" />
+        <label className="flex items-center gap-2 text-[11px] text-ink-muted">
+          Type
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value as "all" | Category)}
+            className={cn(
+              "rounded-lg border px-2.5 py-1.5 text-[11px] font-medium outline-none transition-colors [color-scheme:dark] focus:border-accent/50",
+              categoryFilter === "all"
+                ? "bg-white/[0.03] border-white/[0.06] text-ink-mid"
+                : "bg-accent/[0.12] border-accent/30 text-accent"
+            )}
+          >
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c} className="bg-raised text-ink">
+                {c === "all" ? "Any type" : c}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
       <div className="flex-1 overflow-hidden mx-4 mb-4 rounded-[10px] bg-card border border-white/[0.06] flex">
         <DownloadsTable />
@@ -72,13 +92,19 @@ function Chip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors",
-        active
-          ? "bg-accent/[0.12] text-accent"
-          : "text-ink-muted hover:text-ink hover:bg-white/[0.05]"
+        "relative px-3 py-1 rounded-md text-[11px] font-medium transition-colors",
+        active ? "text-ink" : "text-ink-muted hover:text-ink"
       )}
     >
-      {label}
+      {/* Same sliding pill as the sidebar, so filters feel like the nav. */}
+      {active && (
+        <motion.span
+          layoutId="status-filter-active"
+          className="absolute inset-0 rounded-md bg-white/[0.08] border border-white/[0.08]"
+          transition={{ type: "spring", bounce: 0, duration: 0.3 }}
+        />
+      )}
+      <span className="relative">{label}</span>
     </button>
   );
 }

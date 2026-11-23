@@ -22,6 +22,8 @@ const CARD = "#0F131A";
 export function SpeedChart() {
   const speedHistory = useDownloadsStore((s) => s.speedHistory);
   const chartData = speedHistory.map((s) => ({ time: s.time, speed: s.speed }));
+  // A flat zero line with "4 B/s" ticks reads as broken; idle gets its own state.
+  const idle = chartData.length < 2 || chartData.every((p) => p.speed === 0);
 
   return (
     <motion.div
@@ -35,9 +37,14 @@ export function SpeedChart() {
         Combined transfer rate · last 2 minutes
       </p>
       <div className="h-48">
-        {chartData.length < 2 ? (
-          <div className="h-full flex items-center justify-center text-xs text-ink-faint">
-            Speed data appears once downloads are running
+        {idle ? (
+          <div className="h-full flex flex-col items-center justify-center gap-3">
+            {/* A resting baseline hints at what will draw here. */}
+            <div className="w-2/3 h-px bg-gradient-to-r from-transparent via-white/[0.12] to-transparent" />
+            <p className="text-xs text-ink-muted">Idle · nothing is downloading</p>
+            <p className="text-[11px] text-ink-faint">
+              The transfer rate draws here while downloads run
+            </p>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
@@ -63,6 +70,9 @@ export function SpeedChart() {
                 minTickGap={40}
               />
               <YAxis
+                // Floor the scale at 1 KB/s so a trickle never labels the
+                // axis in single bytes.
+                domain={[0, (max: number) => Math.max(max, 1024)]}
                 tickFormatter={(v: number) => (v > 0 ? formatSpeed(v) : "0")}
                 stroke="rgba(255,255,255,0.15)"
                 tick={{ fill: GRAY, fontSize: 10 }}
@@ -150,7 +160,9 @@ export function FileTypesCard() {
                   animate={{ width: `${(count / maxTypeCount) * 100}%` }}
                   transition={{ duration: 0.3, ease: "easeOut" }}
                   className="h-3.5 rounded-[4px] min-w-[3px] group-hover:opacity-80 transition-opacity"
-                  style={{ background: GRAY }}
+                  // One series, one hue: the speed chart's cyan, so the
+                  // Dashboard reads as one system.
+                  style={{ background: CYAN, opacity: 0.75 }}
                 />
               </div>
               <span className="w-8 text-xs text-ink tabular-nums shrink-0">
