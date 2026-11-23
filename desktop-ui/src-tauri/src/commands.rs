@@ -189,7 +189,7 @@ pub async fn resolve_capture(
 /// `--autostart` launch stays hidden in the tray instead.
 #[tauri::command]
 pub async fn signal_frontend_ready(app: tauri::AppHandle) -> Result<(), String> {
-    if !std::env::args().any(|a| a == "--autostart") {
+    if !crate::launched_hidden() {
         crate::show_main_window(&app);
     }
     Ok(())
@@ -329,6 +329,11 @@ pub async fn missing_files(mgr: State<'_, DownloadManager>) -> Result<Vec<String
 #[tauri::command]
 pub fn updater_enabled() -> bool {
     if option_env!("APEX_DISABLE_UPDATER").is_some_and(|v| !v.is_empty()) {
+        return false;
+    }
+    // The updater runs an installer, which would leave a portable copy
+    // behind and install a second one; portable updates are manual.
+    if crate::portable_dir().is_some() {
         return false;
     }
     cfg!(not(target_os = "linux")) || std::env::var_os("APPIMAGE").is_some()

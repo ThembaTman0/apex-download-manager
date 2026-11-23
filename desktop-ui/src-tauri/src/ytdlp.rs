@@ -75,8 +75,7 @@ const DENO_ASSET: Option<&str> = Some("deno-aarch64-unknown-linux-gnu.zip");
 const DENO_ASSET: Option<&str> = None;
 
 pub fn tools_dir(app: &AppHandle) -> PathBuf {
-    app.path()
-        .app_data_dir()
+    crate::data_dir(app)
         .unwrap_or_else(|_| std::env::temp_dir())
         .join("tools")
 }

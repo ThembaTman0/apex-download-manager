@@ -279,14 +279,85 @@ fn desktop_exec_arg(arg: &str) -> String {
     out
 }
 
+/// `--autostart` is what the OS passes at sign-in; `--minimized` is the same
+/// behavior for users (shortcuts, scripts, distro packages): start in the
+/// tray without showing the window.
+pub(crate) fn starts_hidden<S: AsRef<str>>(args: &[S]) -> bool {
+    args.iter()
+        .any(|a| matches!(a.as_ref(), "--autostart" | "--minimized"))
+}
+
+pub(crate) fn launched_hidden() -> bool {
+    starts_hidden(&std::env::args().collect::<Vec<_>>())
+}
+
+const HELP: &str = "\
+Apex Download Manager
+
+Usage: apex-download-manager [OPTIONS]
+
+Options:
+  --minimized    Start in the system tray without opening the window
+  --help, -h     Show this help and exit
+  --version, -V  Show the version and exit
+
+Portable mode: put an empty file named 'portable' next to the program
+and Apex keeps its downloads list, settings and tools in a 'data' folder
+beside it. Updates are then manual (download the new zip).
+";
+
+/// Handles `--help`/`--version` before any window or plugin starts. Release
+/// builds on Windows have no console, so attach to the parent's (the shell
+/// that ran us) for the text to show up.
+fn handle_info_flags() {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let text = if args.iter().any(|a| a == "--help" || a == "-h") {
+        HELP.to_string()
+    } else if args.iter().any(|a| a == "--version" || a == "-V") {
+        format!("Apex Download Manager {}\n", env!("CARGO_PKG_VERSION"))
+    } else {
+        return;
+    };
+    #[cfg(windows)]
+    unsafe {
+        use windows::Win32::System::Console::{AttachConsole, ATTACH_PARENT_PROCESS};
+        let _ = AttachConsole(ATTACH_PARENT_PROCESS);
+    }
+    use std::io::Write;
+    let mut out = std::io::stdout();
+    // The shell printed its prompt before we attached; start on a fresh
+    // line so the text doesn't run into it.
+    let _ = write!(out, "\n{text}");
+    let _ = out.flush();
+    std::process::exit(0);
+}
+
+/// `data/` next to the executable, when a `portable` marker file sits
+/// beside it.
+pub(crate) fn portable_dir() -> Option<std::path::PathBuf> {
+    let exe = std::env::current_exe().ok()?;
+    let dir = exe.parent()?;
+    dir.join("portable").is_file().then(|| dir.join("data"))
+}
+
+/// Where the database and tools live: `data/` beside the exe in portable
+/// mode, otherwise the per-user app data folder.
+pub(crate) fn data_dir(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
+    if let Some(dir) = portable_dir() {
+        return Ok(dir);
+    }
+    app.path().app_data_dir().map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    handle_info_flags();
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
             // Second launch: surface the existing window instead. A launch
             // carrying --autostart is the OS starting us at sign-in, not the
             // user asking for the window, so leave it in the tray.
-            if !args.iter().any(|a| a == "--autostart") {
+            if !starts_hidden(&args) {
                 show_main_window(app);
             }
         }))
@@ -566,6 +637,14 @@ pub fn run() {
 mod tests {
     use super::*;
     use models::{Download, DownloadStatus};
+
+    #[test]
+    fn hidden_launch_flags() {
+        assert!(starts_hidden(&["apex", "--autostart"]));
+        assert!(starts_hidden(&["apex", "--minimized"]));
+        assert!(!starts_hidden(&["apex"]));
+        assert!(!starts_hidden(&["apex", "--minimize"]));
+    }
 
     #[test]
     fn desktop_exec_arg_quotes_spaces_and_escapes() {

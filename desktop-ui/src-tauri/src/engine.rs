@@ -172,7 +172,7 @@ pub(crate) fn build_client(proxy_url: &str) -> Result<reqwest::Client, String> {
 
 impl DownloadManager {
     pub fn new(app: AppHandle) -> Result<Self, String> {
-        let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+        let data_dir = crate::data_dir(&app)?;
         let db = Db::open(&data_dir.join("apex.db"))?;
         let mut settings = db.load_settings();
         if settings.capture_token.is_empty() {

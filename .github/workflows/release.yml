@@ -146,6 +146,42 @@ jobs:
           releaseDraft: false
           prerelease: false
 
+      # Portable build: the same exe tauri-action just built, plus a
+      # `portable` marker that makes Apex keep its data in a `data` folder
+      # beside it and turns the updater off. Tauri links the WebView2 loader
+      # statically, so the exe needs nothing else (WebView2 itself ships with
+      # Windows 10/11). Not referenced by latest.json, so the updater and
+      # the website's /dl never pick it up.
+      - name: Build and upload the portable zip
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag.TrimStart('v')
+          $exe = "desktop-ui/src-tauri/target/release/apex-download-manager.exe"
+          if (-not (Test-Path $exe)) { throw "The release exe is missing at $exe." }
+          $stage = Join-Path $env:RUNNER_TEMP "portable/Apex Download Manager"
+          New-Item -ItemType Directory -Force $stage | Out-Null
+          Copy-Item $exe (Join-Path $stage "Apex Download Manager.exe")
+          New-Item -ItemType File (Join-Path $stage "portable") | Out-Null
+          Set-Content -Encoding utf8 (Join-Path $stage "README.txt") @(
+            "Apex Download Manager $version, portable edition",
+            "",
+            "Run 'Apex Download Manager.exe'. Your downloads list, settings and tools",
+            "are kept in the 'data' folder next to it, so the whole folder can live on",
+            "a USB drive. Deleting the 'portable' file switches back to normal mode.",
+            "",
+            "Updates are manual: download the new zip and copy its exe over this one.",
+            "Your data folder is kept.",
+            "",
+            "Requires Windows 10 or 11 (x64) with WebView2, which Windows includes."
+          )
+          $zip = Join-Path $env:RUNNER_TEMP "Apex.Download.Manager_${version}_x64_portable.zip"
+          Compress-Archive -Path $stage -DestinationPath $zip -Force
+          gh release upload $tag $zip --clobber --repo ThembaTman0/apex-download-manager-releases
+          if ($LASTEXITCODE -ne 0) { throw "Could not upload the portable zip to $tag." }
+
       # Mirrors the installers onto this repo's own Releases page. Visitors
       # land here (README, Reddit, HN), and with an empty Releases sidebar
       # they assumed they had to build from source. Installers only:
@@ -161,7 +197,7 @@ jobs:
           $dir = Join-Path $env:RUNNER_TEMP "mirror"
           New-Item -ItemType Directory -Force $dir | Out-Null
           gh release download $tag --repo ThembaTman0/apex-download-manager-releases `
-            --dir $dir --pattern "*-setup.exe" --pattern "*.msi"
+            --dir $dir --pattern "*-setup.exe" --pattern "*.msi" --pattern "*_portable.zip"
           if ($LASTEXITCODE -ne 0) { throw "Could not download the $tag installers from the releases repo." }
           $files = (Get-ChildItem $dir).FullName
           gh release view $tag *> $null
