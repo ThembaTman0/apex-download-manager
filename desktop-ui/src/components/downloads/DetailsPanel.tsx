@@ -4,7 +4,7 @@ import { Copy, FolderOpen, Link2, ShieldAlert, X } from "lucide-react";
 import { useDownloadsStore } from "@/stores/downloadsStore";
 import { formatBytes, formatETA, formatSpeed, looksLikeExpiredLink } from "@/lib/utils";
 import { StatusBadge } from "./StatusBadge";
-import { SegmentMap } from "./SegmentMap";
+import { ConnectionList, SegmentMap } from "./SegmentMap";
 import type { DownloadStatus, Segment } from "@/types";
 
 export function DetailsPanel() {
@@ -82,6 +82,40 @@ export function DetailsPanel() {
               )}
             </div>
 
+            {/* The engine at work, near the top where it's seen: the whole
+                file as one track, then each connection's own range. */}
+            {segments.length > 1 && (
+              <section className="rounded-lg bg-white/[0.02] border border-white/[0.05] p-3">
+                <div className="flex items-baseline justify-between mb-2">
+                  <span className="text-[11px] font-medium text-ink">Connections</span>
+                  <span className="text-[10px] text-ink-faint tabular-nums">
+                    {
+                      segments.filter((s) => s.downloaded < s.end - s.start + 1)
+                        .length
+                    }{" "}
+                    of {segments.length} still working
+                  </span>
+                </div>
+                <SegmentMap segments={segments} className="h-3 mb-3" />
+                <ConnectionList
+                  segments={segments}
+                  running={download.status === "downloading"}
+                />
+                <div className="flex items-center gap-3 mt-2.5 text-[10px] text-ink-faint">
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent" /> downloading
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-success/70" /> done
+                  </span>
+                </div>
+                <p className="text-[10px] text-ink-faint mt-1.5 leading-relaxed">
+                  When a connection finishes, it takes over half of the largest
+                  piece still left, so the end of the file doesn't crawl.
+                </p>
+              </section>
+            )}
+
             <Row label="Size">
               {download.sizeBytes > 0 ? formatBytes(download.sizeBytes) : "Unknown"}
             </Row>
@@ -124,22 +158,6 @@ export function DetailsPanel() {
               </p>
             </div>
 
-            {segments.length > 1 && (
-              <div>
-                <span className="text-[11px] text-ink-muted block mb-2">
-                  Segments
-                </span>
-                <SegmentMap segments={segments} className="h-2" />
-                <p className="text-[10px] text-ink-faint mt-1.5 tabular-nums">
-                  {segments.length} connections ·{" "}
-                  {
-                    segments.filter((s) => s.downloaded < s.end - s.start + 1)
-                      .length
-                  }{" "}
-                  active · colored spans are downloaded byte ranges
-                </p>
-              </div>
-            )}
           </div>
         </motion.aside>
       )}
