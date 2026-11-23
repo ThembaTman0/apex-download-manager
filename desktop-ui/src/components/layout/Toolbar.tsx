@@ -67,7 +67,7 @@ export function Toolbar() {
   }, []);
 
   return (
-    <div className="flex items-center gap-1 px-3 py-1.5 bg-surface border-b border-white/[0.06] shrink-0">
+    <div className="@container/toolbar flex items-center gap-1 px-3 py-1.5 bg-surface border-b border-white/[0.06] shrink-0">
       <button
         onClick={() => setAddDialogOpen(true)}
         title="Add URL"
@@ -75,7 +75,7 @@ export function Toolbar() {
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-accent hover:bg-accent-hover text-on-accent transition-colors whitespace-nowrap"
       >
         <Plus className="w-3.5 h-3.5" />
-        <span className="hidden xl:inline">Add URL</span>
+        <span className="hidden @6xl/toolbar:inline">Add URL</span>
       </button>
 
       <button
@@ -85,7 +85,7 @@ export function Toolbar() {
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.1] text-ink transition-colors ml-1 whitespace-nowrap"
       >
         <Clapperboard className="w-3.5 h-3.5" />
-        <span className="hidden xl:inline">Grab Video</span>
+        <span className="hidden @6xl/toolbar:inline">Grab Video</span>
       </button>
 
       <div className="w-px h-4 bg-white/[0.08] mx-1.5" />
@@ -228,14 +228,14 @@ function QueueSelect({
     <label
       title={title}
       className={cn(
-        "relative flex items-center gap-1.5 pl-2 max-xl:pr-2 max-xl:py-1.5 rounded-md border bg-white/[0.04] cursor-pointer transition-colors",
+        "relative flex items-center gap-1.5 pl-2 @max-6xl/toolbar:pr-2 @max-6xl/toolbar:py-1.5 rounded-md border bg-white/[0.04] cursor-pointer transition-colors",
         active
           ? "border-warning/40 text-warning"
           : "border-white/[0.08] text-ink-muted hover:text-ink"
       )}
     >
       <Icon className="w-3.5 h-3.5 shrink-0" />
-      <ChevronDown className="w-3 h-3 shrink-0 xl:hidden" />
+      <ChevronDown className="w-3 h-3 shrink-0 @6xl/toolbar:hidden" />
       {/* Below xl the select overlays the whole control invisibly so the
           native dropdown still opens from the icon-only trigger. */}
       <select
@@ -243,7 +243,7 @@ function QueueSelect({
         onChange={(e) => onChange(e.target.value)}
         aria-label={title}
         className={cn(
-          "bg-transparent text-xs font-medium outline-none cursor-pointer [color-scheme:dark] xl:py-1.5 xl:pr-1.5 max-xl:absolute max-xl:inset-0 max-xl:w-full max-xl:opacity-0",
+          "bg-transparent text-xs font-medium outline-none cursor-pointer [color-scheme:dark] @6xl/toolbar:py-1.5 @6xl/toolbar:pr-1.5 @max-6xl/toolbar:absolute @max-6xl/toolbar:inset-0 @max-6xl/toolbar:w-full @max-6xl/toolbar:opacity-0",
           active ? "text-warning" : "text-inherit"
         )}
       >
@@ -286,7 +286,7 @@ function GhostButton({
       )}
     >
       <Icon className="w-3.5 h-3.5" />
-      <span className="hidden xl:inline">{label}</span>
+      <span className="hidden @6xl/toolbar:inline">{label}</span>
     </button>
   );
 }
