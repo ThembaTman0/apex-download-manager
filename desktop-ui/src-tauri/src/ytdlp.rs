@@ -456,7 +456,10 @@ pub async fn install_ffmpeg(app: &AppHandle) -> Result<ToolsStatus, String> {
             let mut extracted = 0;
             for i in 0..archive.len() {
                 let mut entry = archive.by_index(i).map_err(|e| e.to_string())?;
-                let name = entry.name().rsplit('/').next().unwrap_or("").to_string();
+                // zip 9 reports names it can't decode as an error; such an
+                // entry can't be one of the two files we want, so skip it.
+                let Ok(full) = entry.name() else { continue };
+                let name = full.rsplit('/').next().unwrap_or("").to_string();
                 if name == "ffmpeg.exe" || name == "ffprobe.exe" {
                     let mut out =
                         std::fs::File::create(dir2.join(&name)).map_err(|e| e.to_string())?;
