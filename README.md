@@ -64,6 +64,10 @@ Java. The Windows installer is about 4 MB. GPL v3.
   ```
 - **winget:** `winget install ThembaTman0.ApexDownloadManager`
 - **Chocolatey:** `choco install apex-download-manager`
+- **Portable** (from 1.2): unzip `Apex.Download.Manager_<version>_x64_portable.zip`
+  from the [releases page](https://github.com/ThembaTman0/apex-download-manager/releases)
+  anywhere, USB drives included. Your downloads list and settings stay in a
+  `data` folder beside the exe. Updates are manual.
 
 **Linux (x64)**
 
@@ -76,6 +80,19 @@ Java. The Windows installer is about 4 MB. GPL v3.
 Video grabbing uses the `yt-dlp` (and optionally `ffmpeg`) from your system:
 install them with your package manager. Windows-only for now: Mark-of-the-Web
 tagging, taskbar progress and the one-click yt-dlp/FFmpeg install.
+
+**Verify a download** (from 1.2). Every installer is built by this repo's
+[release workflow](.github/workflows/release.yml) and carries a signed
+build-provenance attestation, so you can check that the file came from that
+workflow and this source, unmodified:
+
+```
+gh attestation verify <downloaded file> --repo ThembaTman0/apex-download-manager
+```
+
+Each release also lists `SHA256SUMS-windows.txt` and `SHA256SUMS-linux.txt`.
+
+**Command line:** `--minimized` starts Apex in the tray, `--help` lists the options.
 
 ## Features
 
