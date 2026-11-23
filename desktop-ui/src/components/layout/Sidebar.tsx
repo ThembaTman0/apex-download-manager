@@ -1,10 +1,22 @@
-import { motion } from "framer-motion";
+import { useEffect, useRef } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
+  ChevronRight,
   LayoutDashboard,
   Download,
+  Search,
   Settings,
   HardDrive,
+  X,
 } from "lucide-react";
+import {
+  SETTINGS_GROUPS,
+  SETTINGS_TABS,
+  useSettingsNav,
+} from "@/stores/settingsNavStore";
+
+// Critically damped: settles without overshoot (nothing was flicked).
+const SPRING = { type: "spring", bounce: 0, duration: 0.35 } as const;
 import { LogoBadge } from "@/components/ui/LogoMark";
 import { cn, formatBytes } from "@/lib/utils";
 import { useDownloadsStore } from "@/stores/downloadsStore";
@@ -42,26 +54,43 @@ export function Sidebar() {
           const Icon = item.icon;
           const active = activeNav === item.id;
           return (
-            <motion.button
-              key={item.id}
-              onClick={() => setActiveNav(item.id)}
-              className={cn(
-                "relative flex items-center gap-3 px-3 py-1.5 rounded-md text-sm font-medium transition-colors text-left w-full",
-                active
-                  ? "text-ink"
-                  : "text-ink-muted hover:text-ink hover:bg-white/[0.04]"
+            <div key={item.id}>
+              <motion.button
+                onClick={() => setActiveNav(item.id)}
+                aria-expanded={item.id === "settings" ? active : undefined}
+                className={cn(
+                  "relative flex items-center gap-3 px-3 py-1.5 rounded-md text-sm font-medium transition-colors text-left w-full",
+                  active
+                    ? "text-ink"
+                    : "text-ink-muted hover:text-ink hover:bg-white/[0.04]"
+                )}
+              >
+                {/* Settings expands instead of taking the pill: its pages
+                    below carry the "you are here" marker. */}
+                {active && item.id !== "settings" && (
+                  <motion.div
+                    layoutId="sidebar-active"
+                    className="absolute inset-0 rounded-md bg-white/[0.06]"
+                    transition={SPRING}
+                  />
+                )}
+                <Icon className="w-4 h-4 shrink-0 relative z-10" />
+                <span className="relative z-10 flex-1">{item.label}</span>
+                {item.id === "settings" && (
+                  <ChevronRight
+                    className={cn(
+                      "w-3.5 h-3.5 relative z-10 text-ink-faint transition-transform duration-200",
+                      active && "rotate-90"
+                    )}
+                  />
+                )}
+              </motion.button>
+              {item.id === "settings" && (
+                <AnimatePresence initial={false}>
+                  {active && <SettingsSubnav />}
+                </AnimatePresence>
               )}
-            >
-              {active && (
-                <motion.div
-                  layoutId="sidebar-active"
-                  className="absolute inset-0 rounded-md bg-white/[0.06]"
-                  transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
-                />
-              )}
-              <Icon className="w-4 h-4 shrink-0 relative z-10" />
-              <span className="relative z-10">{item.label}</span>
-            </motion.button>
+            </div>
           );
         })}
       </nav>
@@ -69,6 +98,106 @@ export function Sidebar() {
       {/* Disk usage */}
       <DiskUsageWidget />
     </aside>
+  );
+}
+
+/** Settings' own pages, nested under the Settings item while it's open. */
+function SettingsSubnav() {
+  const { tab, query, setTab, setQuery } = useSettingsNav();
+  const searchRef = useRef<HTMLInputElement>(null);
+  const searching = query.trim() !== "";
+
+  // "/" jumps to the settings search; Esc (in the box) clears it.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      const typing =
+        !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
+      if (e.key === "/" && !typing) {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  return (
+    <motion.div
+      initial={{ height: 0, opacity: 0 }}
+      animate={{ height: "auto", opacity: 1 }}
+      exit={{ height: 0, opacity: 0 }}
+      transition={SPRING}
+      className="overflow-hidden"
+    >
+      <div className="pl-3 pr-0.5 pt-2 pb-1">
+        <label className="flex items-center gap-2 mb-1 px-2.5 py-1.5 rounded-md bg-black/25 border border-white/[0.06] focus-within:border-white/[0.14] transition-colors">
+          <Search className="w-3.5 h-3.5 text-ink-muted shrink-0" />
+          <input
+            ref={searchRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setQuery("");
+                e.currentTarget.blur();
+              }
+            }}
+            placeholder="Search settings"
+            aria-label="Search settings"
+            spellCheck={false}
+            className="flex-1 min-w-0 bg-transparent text-[13px] text-ink placeholder:text-ink-muted outline-none"
+          />
+          {searching ? (
+            <button
+              onClick={() => setQuery("")}
+              className="text-ink-muted hover:text-ink"
+              title="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <kbd className="px-1.5 rounded border border-white/[0.1] text-[10px] text-ink-faint font-sans">
+              /
+            </kbd>
+          )}
+        </label>
+
+        {SETTINGS_GROUPS.map((g) => (
+          <div key={g.label} className="mt-2.5">
+            <p className="px-2.5 mb-0.5 text-[10px] uppercase tracking-wide text-ink-faint">
+              {g.label}
+            </p>
+            {g.tabs.map((id) => {
+              const t = SETTINGS_TABS.find((x) => x.id === id)!;
+              const Icon = t.icon;
+              const active = !searching && t.id === tab;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "relative w-full flex items-center gap-2.5 px-2.5 py-[5px] rounded-md text-[13px] text-left transition-colors",
+                    active ? "text-ink" : "text-ink-muted hover:text-ink hover:bg-white/[0.03]"
+                  )}
+                >
+                  {active && (
+                    <motion.div
+                      layoutId="settings-sub-active"
+                      className="absolute inset-0 rounded-md bg-white/[0.07] border border-white/[0.08] shadow-[0_1px_2px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.04)]"
+                      transition={SPRING}
+                    />
+                  )}
+                  <Icon className={cn("w-3.5 h-3.5 relative z-10", active && "text-accent")} />
+                  <span className="relative z-10">{t.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </motion.div>
   );
 }
 

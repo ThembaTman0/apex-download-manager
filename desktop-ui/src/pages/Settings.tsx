@@ -1,9 +1,21 @@
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import { SearchX } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  SETTINGS_TABS,
+  useSettingsNav,
+  type SettingsTab,
+} from "@/stores/settingsNavStore";
 import {
   Bell,
   Check,
-  Clapperboard,
   ClipboardCopy,
   ListX,
   Copy,
@@ -37,6 +49,9 @@ import type {
 } from "@/types";
 import { Checkbox } from "@/components/ui/Checkbox";
 
+/** Lowercased search text; Fields that don't match render nothing. */
+const SearchCtx = createContext("");
+
 /** The built-in categories, in the order the panel lists them. */
 const CATEGORIES: Category[] = [
   "Video",
@@ -57,6 +72,21 @@ export function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [tokenCopied, setTokenCopied] = useState(false);
   const [confirmRegen, setConfirmRegen] = useState(false);
+  // The page and search live in the sidebar (Settings expands there).
+  const tab = useSettingsNav((s) => s.tab);
+  const query = useSettingsNav((s) => s.query);
+  const setQuery = useSettingsNav((s) => s.setQuery);
+
+  // Fields hide themselves when they don't match the search, so whether
+  // anything matched is read from what actually rendered: a setting row
+  // (<section>) or a whole panel (data-panel). No second list to keep in sync.
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [noMatches, setNoMatches] = useState(false);
+  useLayoutEffect(() => {
+    const searching = query.trim() !== "";
+    const found = !!bodyRef.current?.querySelector("section, [data-panel]");
+    setNoMatches(searching && !found);
+  }, [query, tab, form]);
 
   useEffect(() => {
     setForm(settings);
@@ -96,15 +126,66 @@ export function SettingsPage() {
     }
   };
 
+  const dirty = JSON.stringify(form) !== JSON.stringify(settings);
+  const current = SETTINGS_TABS.find((t) => t.id === tab)!;
+  const q = query.trim().toLowerCase();
+  // Searching shows matching settings from every page at once.
+  const show = (t: SettingsTab) => (q ? true : tab === t);
+  // Video and Updates are whole panels, matched on their page name and blurb.
+  const showPanel = (t: SettingsTab) => {
+    if (!q) return tab === t;
+    const meta = SETTINGS_TABS.find((x) => x.id === t)!;
+    return `${meta.label} ${meta.blurb}`.toLowerCase().includes(q);
+  };
+  // Save only matters with something to save (or a result to report).
+  // Video and Updates act on their own (install, check, update) and hold no
+  // form fields, so the pill would offer to save something not on screen.
+  // Changes made elsewhere stay pending and the pill returns on those pages.
+  const actsImmediately = !q && (tab === "updates" || tab === "video");
+  const showSaveBar = !actsImmediately && (dirty || saved || !!error);
+
   return (
-    <div className="flex-1 overflow-auto p-4">
+    <div className="@container/settings relative flex-1 min-h-0 min-w-0 flex flex-col">
+      {/* No frame around the page: content sits on the app surface at a
+          readable width, aligned with the sidebar instead of floating. */}
       <motion.div
+        key={q ? "search" : tab}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="max-w-2xl mx-auto rounded-[10px] bg-card border border-white/[0.06] p-6"
+        transition={{ duration: 0.15 }}
+        className="flex-1 overflow-auto"
       >
-        <h1 className="text-base font-semibold text-ink mb-6">Settings</h1>
+        {/* Same panel as the Dashboard's: one per Settings page, full width,
+            p-4 around it. pb leaves room for the floating save pill. */}
+        <div className="p-4 pb-24">
+          <div className="rounded-[10px] bg-card border border-white/[0.06] overflow-hidden">
+            <div className="px-5 py-4 border-b border-white/[0.06]">
+              <h1 className="text-sm font-semibold text-ink mb-1">
+                {q ? `Results for "${query.trim()}"` : current.label}
+              </h1>
+              <p className="text-[11px] text-ink-muted">
+                {q ? "Matching settings from every page" : current.blurb}
+              </p>
+            </div>
+            <div className="px-5" ref={bodyRef}>
+            {noMatches && (
+              <div className="py-12 flex flex-col items-center gap-2 text-center">
+                <SearchX className="w-6 h-6 text-ink-faint" />
+                <p className="text-sm text-ink">No settings match "{query.trim()}"</p>
+                <p className="text-[11px] text-ink-muted">
+                  Try another word, like "speed", "folder" or "proxy".
+                </p>
+                <button
+                  onClick={() => setQuery("")}
+                  className="mt-2 px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-xs text-ink-muted hover:text-ink hover:bg-white/[0.1] transition-colors"
+                >
+                  Clear search
+                </button>
+              </div>
+            )}
+            <SearchCtx.Provider value={q}>
 
+        {show("downloads") && (<>
         <Field
           icon={FolderOpen}
           label="Default download folder"
@@ -125,7 +206,7 @@ export function SettingsPage() {
           </div>
         </Field>
 
-        <div className="grid grid-cols-2 gap-4">
+        <>
           <Field
             icon={ListOrdered}
             label="Max concurrent downloads"
@@ -151,7 +232,7 @@ export function SettingsPage() {
               onChange={(v) => update({ segmentsPerDownload: v })}
             />
           </Field>
-        </div>
+        </>
 
         <Field
           icon={Gauge}
@@ -236,7 +317,9 @@ export function SettingsPage() {
             className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-ink font-mono placeholder:text-ink-faint placeholder:font-sans px-3 py-2.5 outline-none focus:border-accent/50 transition-colors"
           />
         </Field>
+        </>)}
 
+        {show("general") && (<>
         <Field icon={Bell} label="Notifications" hint="">
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
             <Checkbox
@@ -318,7 +401,9 @@ export function SettingsPage() {
             </span>
           </label>
         </Field>
+        </>)}
 
+        {show("folders") && (<>
         <Field
           icon={FolderTree}
           label="Auto-organize"
@@ -351,7 +436,9 @@ export function SettingsPage() {
             />
           </div>
         </Field>
+        </>)}
 
+        {show("general") && (<>
         <Field
           icon={Rocket}
           label="Start with Windows"
@@ -386,19 +473,22 @@ export function SettingsPage() {
             <option value="shutdown" className="bg-raised text-ink">Shut down</option>
           </select>
         </Field>
+        </>)}
 
-        <div className="border-t border-white/[0.06] my-6" />
-        <AppUpdatesSection />
+        {showPanel("updates") && (
+          <div data-panel className="py-5 border-b border-white/[0.04] last:border-b-0">
+            <AppUpdatesSection />
+          </div>
+        )}
 
-        <div className="border-t border-white/[0.06] my-6" />
-        <VideoGrabberSection />
+        {showPanel("video") && (
+          <div data-panel className="py-5 border-b border-white/[0.04] last:border-b-0">
+            <VideoGrabberSection />
+          </div>
+        )}
 
-        <div className="border-t border-white/[0.06] my-6" />
-        <h2 className="text-sm font-semibold text-ink mb-1 flex items-center gap-2">
-          <Globe className="w-4 h-4 text-ink-muted" />
-          Browser Integration
-        </h2>
-        <p className="text-[11px] text-ink-muted mb-4 leading-relaxed">
+        {show("browser") && (<>
+        <p hidden={!!q} className="text-[11px] text-ink-muted mb-4 leading-relaxed">
           Install the extension from the{" "}
           <code className="text-ink-mid">browser-extension</code> folder
           (Chrome/Edge: chrome://extensions → Load unpacked · Firefox:
@@ -538,28 +628,54 @@ export function SettingsPage() {
             onChange={(v) => update({ capturePort: v })}
           />
         </Field>
-
-        {error && <p className="text-xs text-error-soft mb-4 break-all">{error}</p>}
-
-        <div className="flex items-center gap-3 mt-2">
-          <button
-            onClick={save}
-            className="px-5 py-2.5 rounded-lg bg-accent hover:bg-accent-hover text-on-accent text-sm font-semibold flex items-center gap-2 transition-colors"
-          >
-            <Save className="w-3.5 h-3.5" />
-            Save Settings
-          </button>
-          {saved && (
-            <motion.span
-              initial={{ opacity: 0, x: -6 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="text-xs text-success font-medium"
-            >
-              Saved ✓
-            </motion.span>
-          )}
+        </>)}
+            </SearchCtx.Provider>
+            </div>
+          </div>
         </div>
       </motion.div>
+
+      {/* A floating pill, only while there's something to save. It rises
+          from the bottom edge and drops back the same way. */}
+      <AnimatePresence initial={false}>
+        {showSaveBar && (
+          <motion.div
+            initial={{ y: 24, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 24, opacity: 0 }}
+            transition={{ type: "spring", bounce: 0, duration: 0.3 }}
+            className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 max-w-[calc(100%-2rem)] rounded-xl bg-raised/80 border border-white/[0.08] backdrop-blur-xl shadow-[0_8px_30px_rgba(0,0,0,0.45)]"
+          >
+            <div className="pl-1.5 @md/settings:pl-4 pr-1.5 py-1.5 flex items-center gap-3 whitespace-nowrap">
+              {saved ? (
+                <span className="text-xs text-success font-medium">Saved ✓</span>
+              ) : (
+                <span className="hidden @md/settings:inline text-xs text-ink-mid">
+                  Unsaved changes
+                </span>
+              )}
+              {error && <p className="text-xs text-error-soft max-w-xs truncate">{error}</p>}
+              {dirty && (
+                <>
+                  <button
+                    onClick={() => setForm(settings)}
+                    className="px-3 py-1.5 rounded-lg text-sm text-ink-muted hover:text-ink hover:bg-white/[0.05] transition-colors"
+                  >
+                    Discard
+                  </button>
+                  <button
+                    onClick={save}
+                    className="px-4 py-1.5 rounded-lg bg-accent hover:bg-accent-hover text-on-accent text-sm font-semibold flex items-center gap-2 transition-colors"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    Save
+                  </button>
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -634,10 +750,6 @@ function AppUpdatesSection() {
 
   return (
     <>
-      <h2 className="text-sm font-semibold text-ink mb-1 flex items-center gap-2">
-        <RefreshCw className="w-4 h-4 text-ink-muted" />
-        Updates
-      </h2>
       <p className="text-[11px] text-ink-muted mb-4 leading-relaxed">
         Apex {version ? `v${version}` : ""}.{" "}
         {selfUpdates
@@ -764,10 +876,6 @@ function VideoGrabberSection() {
 
   return (
     <>
-      <h2 className="text-sm font-semibold text-ink mb-1 flex items-center gap-2">
-        <Clapperboard className="w-4 h-4 text-ink-muted" />
-        Video Grabber
-      </h2>
       <p className="text-[11px] text-ink-muted mb-4 leading-relaxed">
         “Grab Video” downloads video/audio from YouTube and 1000+ other sites
         using <code className="text-ink-mid">yt-dlp</code>. FFmpeg is optional;
@@ -1033,15 +1141,26 @@ function Field({
   hint: string;
   children: React.ReactNode;
 }) {
+  const q = useContext(SearchCtx);
+  if (q && !`${label} ${hint}`.toLowerCase().includes(q)) return null;
   return (
-    <div className="mb-5">
-      <div className="flex items-center gap-2 mb-1.5">
-        <Icon className="w-3.5 h-3.5 text-ink-muted" />
-        <span className="text-xs font-medium text-ink">{label}</span>
+    // A full-width row: what it is on the left, the control on the right.
+    // Rows are split by hairlines, not boxed, so the page reads as one list.
+    // Narrow content area (a tiled or small window): stack instead, so
+    // neither column gets crushed. Keyed to the page container, not the
+    // viewport, because the sidebar takes a fixed share of the width.
+    <section className="grid grid-cols-1 @2xl/settings:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-x-10 gap-y-3 py-5 border-b border-white/[0.04] last:border-b-0">
+      <div>
+        <div className="flex items-center gap-2">
+          <Icon className="w-3.5 h-3.5 text-ink-muted" />
+          <span className="text-[13px] font-medium text-ink">{label}</span>
+        </div>
+        {hint && (
+          <p className="text-[11px] text-ink-faint mt-1.5 leading-relaxed">{hint}</p>
+        )}
       </div>
-      {children}
-      {hint && <p className="text-[10px] text-ink-faint mt-1.5">{hint}</p>}
-    </div>
+      <div className="min-w-0">{children}</div>
+    </section>
   );
 }
 
