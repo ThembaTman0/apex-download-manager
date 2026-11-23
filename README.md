@@ -198,6 +198,9 @@ npm run tauri build -- --bundles appimage,deb
 
 ## Architecture notes
 
+[DESIGN.md](DESIGN.md) explains how the engine works, why, and which
+alternatives were turned down. The short version:
+
 - The engine probes each URL with a ranged request, plans segments, and writes
   all connections into one preallocated temp file (`.adm`), renamed on completion.
 - State lives in SQLite (WAL) under `%APPDATA%/com.apex.download-manager/`
