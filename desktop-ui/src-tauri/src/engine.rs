@@ -2174,6 +2174,14 @@ async fn download_segment(
                     file.write_all(&bytes)
                         .await
                         .map_err(|e| format!("write failed: {e}"))?;
+                    // tokio's write_all returns once the bytes are queued for
+                    // a background write, not once the OS has them. Wait for
+                    // that write before counting the bytes: the counter is
+                    // what gets saved for resume, and it must never be ahead
+                    // of the file, or a crash leaves a hole resume skips.
+                    file.flush()
+                        .await
+                        .map_err(|e| format!("write failed: {e}"))?;
                     done += bytes.len() as u64;
                     cell.downloaded.store(done, Ordering::Relaxed);
                     // Data is flowing again - only consecutive dead attempts

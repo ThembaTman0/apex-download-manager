@@ -18,6 +18,11 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
+[features]
+# Test-only hook for scripts/crash-resume-test.mjs: adds/resumes the URL in
+# APEX_CRASH_TEST_URL at startup. Never enabled in release builds.
+crash-test = []
+
 [dependencies]
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-opener = "2"

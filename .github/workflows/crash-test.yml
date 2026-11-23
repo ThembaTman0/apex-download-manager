@@ -1,0 +1,56 @@
+# Crash-resume test: force-kills Apex at random points mid-download, resumes,
+# and checks the finished file's SHA-256 (desktop-ui/scripts/crash-resume-test.mjs).
+# Uses a debug build with the test-only `crash-test` feature; releases never
+# include it. Runs on engine changes and by hand (Actions > Crash-resume test).
+name: Crash-resume test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "desktop-ui/src-tauri/**"
+      - "desktop-ui/scripts/crash-resume-test.mjs"
+      - ".github/workflows/crash-test.yml"
+  pull_request:
+    paths:
+      - "desktop-ui/src-tauri/**"
+      - "desktop-ui/scripts/crash-resume-test.mjs"
+      - ".github/workflows/crash-test.yml"
+
+jobs:
+  crash-resume:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop-ui/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+
+      - uses: swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          workspaces: desktop-ui/src-tauri
+
+      - name: Build the frontend
+        working-directory: desktop-ui
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build Apex with the crash-test hook
+        working-directory: desktop-ui/src-tauri
+        run: cargo build --features crash-test
+
+      - name: Kill and resume 10 times, then verify the file
+        working-directory: desktop-ui
+        run: node scripts/crash-resume-test.mjs --kills 10

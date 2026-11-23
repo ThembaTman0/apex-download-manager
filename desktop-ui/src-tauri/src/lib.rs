@@ -349,6 +349,28 @@ pub(crate) fn data_dir(app: &tauri::AppHandle) -> Result<std::path::PathBuf, Str
     app.path().app_data_dir().map_err(|e| e.to_string())
 }
 
+/// Drives the kill-and-resume test (scripts/crash-resume-test.mjs): the first
+/// start adds the test URL, every later start resumes it, exactly like a user
+/// pressing Resume after a crash. Compiled only with `--features crash-test`.
+#[cfg(feature = "crash-test")]
+fn crash_test_hook(mgr: &DownloadManager) {
+    let Ok(url) = std::env::var("APEX_CRASH_TEST_URL") else { return };
+    let dir = std::env::var("APEX_CRASH_TEST_DIR").ok();
+    let existing = mgr
+        .list()
+        .unwrap_or_default()
+        .into_iter()
+        .find(|d| d.url == url);
+    let result = match existing {
+        Some(d) if d.status == models::DownloadStatus::Completed => Ok(()),
+        Some(d) => mgr.resume(&d.id),
+        None => mgr.add(url, dir, None, Vec::new()).map(|_| ()),
+    };
+    if let Err(e) = result {
+        eprintln!("crash-test hook: {e}");
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     handle_info_flags();
@@ -414,6 +436,9 @@ pub fn run() {
             // The limiter was built from the plain global limit; fold in the
             // bandwidth-scheduler window before anything downloads.
             app.state::<DownloadManager>().apply_scheduler_limit();
+
+            #[cfg(feature = "crash-test")]
+            crash_test_hook(&app.state::<DownloadManager>());
 
             // Keep the OS launch-at-sign-in entry in sync with the setting -
             // also repairs the registry path after the app moves or updates.
