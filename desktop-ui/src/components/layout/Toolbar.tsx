@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
   Clapperboard,
+  Command,
   ListOrdered,
   Pause,
   PauseCircle,
@@ -166,6 +167,20 @@ export function Toolbar() {
       )}
 
       <div className="flex-1" />
+
+      {/* Where Ctrl+K is discovered: a click opens the palette too. */}
+      <button
+        onClick={() => window.dispatchEvent(new Event("apex:open-palette"))}
+        title="Command palette: run actions, open downloads and settings (Ctrl+K)"
+        aria-label="Open command palette"
+        className="flex items-center gap-1.5 mr-2 px-2 py-1.5 rounded-md text-[11px] text-ink-muted hover:text-ink hover:bg-white/[0.05] transition-colors shrink-0"
+      >
+        <Command className="w-3.5 h-3.5" />
+        <span className="hidden @6xl/toolbar:inline">Commands</span>
+        <kbd className="text-[10px] text-ink-faint border border-white/[0.08] rounded px-1 font-sans">
+          Ctrl K
+        </kbd>
+      </button>
 
       {/* Search - scoped to this list */}
       <div

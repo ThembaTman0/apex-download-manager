@@ -70,8 +70,14 @@ export function CommandPalette() {
         setOpen((o) => !o);
       }
     };
+    // The toolbar's "Commands" button opens it too.
+    const onOpen = () => setOpen(true);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("apex:open-palette", onOpen);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("apex:open-palette", onOpen);
+    };
   }, []);
 
   useEffect(() => {
