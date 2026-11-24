@@ -1,5 +1,5 @@
 {
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "Fast, open-source download manager with parallel connections, resumable downloads and browser capture.",
     "homepage": "https://apexdownloadmanager.com/",
     "license": "GPL-3.0-or-later",
@@ -9,8 +9,8 @@
     ],
     "architecture": {
         "64bit": {
-            "url": "https://github.com/ThembaTman0/apex-download-manager-releases/releases/download/v1.2.0/Apex.Download.Manager_1.2.0_x64_en-US.msi",
-            "hash": "0627aad9fcf126835c6c7382d25cc6c2a52c170ca5088a518a512f1a20b6af7c"
+            "url": "https://github.com/ThembaTman0/apex-download-manager-releases/releases/download/v1.2.1/Apex.Download.Manager_1.2.1_x64_en-US.msi",
+            "hash": "00216e4bdac5412b47b8fdbc702ff0fc39198c1c5a9ed26ac37798ca2a1cdbb8"
         }
     },
     "extract_dir": "PFiles\\Apex Download Manager",
