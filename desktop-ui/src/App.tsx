@@ -11,6 +11,7 @@ import { DeleteDialog } from "@/components/dialogs/DeleteDialog";
 import { ChecksumDialog } from "@/components/dialogs/ChecksumDialog";
 import { ScheduleDialog } from "@/components/dialogs/ScheduleDialog";
 import { WelcomeDialog } from "@/components/dialogs/WelcomeDialog";
+import { CommandPalette } from "@/components/dialogs/CommandPalette";
 import { ClipboardToast, QueueActionToast } from "@/components/ui/Toasts";
 import { DashboardPage } from "@/pages/Dashboard";
 import { DownloadsPage } from "@/pages/Downloads";
@@ -230,6 +231,7 @@ export default function App() {
       <ChecksumDialog />
       <ScheduleDialog />
       <WelcomeDialog />
+      <CommandPalette />
       <ClipboardToast />
       <QueueActionToast />
 
