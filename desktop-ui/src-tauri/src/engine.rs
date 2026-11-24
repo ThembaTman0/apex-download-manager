@@ -2051,7 +2051,16 @@ async fn flush_segment<W: AsyncWrite + Unpin>(
         .await
         .map_err(|e| format!("segment {index}: flush failed: {e}"))?;
     *durable = written;
-    cell.downloaded.store(written, Ordering::Relaxed);
+    // A re-split can shrink this segment below bytes already written. Publish
+    // no more than the range length so the summed progress never counts those
+    // bytes twice, once here and once in the segment that took over the tail.
+    let range_len = cell
+        .end
+        .load(Ordering::Relaxed)
+        .saturating_add(1)
+        .saturating_sub(cell.start);
+    cell.downloaded
+        .store(written.min(range_len), Ordering::Relaxed);
     Ok(())
 }
 
@@ -2646,6 +2655,29 @@ mod tests {
             assert!(err.contains("flush failed"), "unexpected error: {err}");
             assert_eq!(durable, 0);
             assert_eq!(cell.downloaded.load(Ordering::Relaxed), 0);
+        });
+    }
+
+    #[test]
+    fn published_progress_never_exceeds_the_split_range() {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .build()
+            .unwrap();
+        rt.block_on(async {
+            // 100..=199 is 100 bytes; `written` is past where a re-split moved
+            // the end, so only the range length may be published.
+            let cell = SegCell {
+                start: 100,
+                end: AtomicU64::new(199),
+                downloaded: AtomicU64::new(0),
+            };
+            let mut file = BufWriter::with_capacity(16, tokio::io::sink());
+            let mut durable = 0;
+            flush_segment(&mut file, &cell, &mut durable, 250, 0)
+                .await
+                .unwrap();
+            assert_eq!(durable, 250);
+            assert_eq!(cell.downloaded.load(Ordering::Relaxed), 100);
         });
     }
 
