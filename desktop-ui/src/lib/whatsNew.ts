@@ -36,6 +36,20 @@ async function write(key: UiKey, value: string) {
 }
 
 export const getLastSeenVersion = () => read("lastSeenVersion");
+
+/**
+ * Whether Apex's own database has a last-seen version, ignoring the legacy
+ * localStorage copy. That copy lives in the WebView2 folder in the Windows
+ * profile, which outlives a wiped database and is shared with a portable
+ * copy, so on its own it doesn't mean this install was used before.
+ */
+export async function hasStoredLastSeen(): Promise<boolean> {
+  try {
+    return (await backend.getUiValue("lastSeenVersion")) !== null;
+  } catch {
+    return false;
+  }
+}
 export const setLastSeenVersion = (version: string) => write("lastSeenVersion", version);
 
 /** Absent means on. */

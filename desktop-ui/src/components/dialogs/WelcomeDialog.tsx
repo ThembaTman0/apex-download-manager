@@ -7,6 +7,7 @@ import { useDownloadsStore } from "@/stores/downloadsStore";
 import {
   getLastSeenVersion,
   getShowWhatsNew,
+  hasStoredLastSeen,
   setLastSeenVersion,
   setShowWhatsNew,
 } from "@/lib/whatsNew";
@@ -148,12 +149,15 @@ export function WelcomeDialog() {
       }
       setVersion(current);
       const lastSeen = await getLastSeenVersion();
+      const stored = await hasStoredLastSeen();
       if (cancelled || lastSeen === current) return;
       await setLastSeenVersion(current);
-      // No record yet: someone with downloads is updating from a version
-      // before this dialog existed; nobody else has used Apex before.
+      // No record in the database and no downloads: nobody has used this
+      // install yet, so tour, even if the old localStorage copy (left in the
+      // Windows profile by an earlier or installed Apex) remembers a version.
+      // With downloads, they're updating from before this dialog existed.
       // (downloads and settings arrive in the same store update.)
-      const next: Mode = lastSeen === null && !hasDownloads ? "welcome" : "whatsnew";
+      const next: Mode = !stored && !hasDownloads ? "welcome" : "whatsnew";
       // Someone who opted out of release notes still gets the one-time tour.
       if (next === "whatsnew" && !(await getShowWhatsNew())) return;
       if (cancelled) return;
