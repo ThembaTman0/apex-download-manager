@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
-use tokio::io::{AsyncSeekExt, AsyncWriteExt};
+use tokio::io::{AsyncSeekExt, AsyncWrite, AsyncWriteExt, BufWriter};
 use tokio_util::sync::CancellationToken;
 
 /// Sound for the "Download complete" toast. Apex ships no audio file: it asks
@@ -26,6 +26,11 @@ const COMPLETE_SOUND: &str = "Default";
 const COMPLETE_SOUND: &str = "complete";
 
 const MIN_SEGMENT_BYTES: u64 = 256 * 1024;
+const WRITE_BUFFER_BYTES: usize = 256 * 1024;
+/// Buffered bytes are only counted as progress once they reach the file, and
+/// the UI ticks every 500 ms. Flushing on that same beat keeps progress moving
+/// on slow connections where a full buffer could take minutes to fill.
+const FLUSH_INTERVAL: Duration = Duration::from_millis(500);
 const TEMP_SUFFIX: &str = ".adm";
 /// Windows caps a path component at 255 chars; stay well under so the
 /// save dir + name + ".adm" suffix still fit (tokenized CDN URLs can put
@@ -1990,6 +1995,10 @@ fn try_split(table: &SegTable) -> Option<Arc<SegCell>> {
     if remaining < 2 * MIN_SEGMENT_BYTES {
         return None;
     }
+    // `downloaded` can trail the worker's buffered write position by up to
+    // WRITE_BUFFER_BYTES, and each half here is at least MIN_SEGMENT_BYTES
+    // (the same size), so the split point never lands behind bytes the donor
+    // has already written.
     let mid = pos + remaining / 2;
     donor.end.store(mid - 1, Ordering::Relaxed);
     let cell = Arc::new(SegCell {
@@ -2025,6 +2034,36 @@ fn plan_segments(size: u64, supports_ranges: bool, wanted: u32) -> Vec<Segment> 
         .collect()
 }
 
+/// Flush buffered bytes to the file and publish the new resumable offset.
+///
+/// `cell.downloaded` is the resume cursor, and the saved segment layout is
+/// built from it, so it must only cover bytes that actually reached the file.
+/// Counting a buffered write would let a hard kill (or a short-lived write
+/// error) leave a hole that the next resume skips over.
+async fn flush_segment<W: AsyncWrite + Unpin>(
+    file: &mut BufWriter<W>,
+    cell: &SegCell,
+    durable: &mut u64,
+    written: u64,
+    index: usize,
+) -> Result<(), String> {
+    file.flush()
+        .await
+        .map_err(|e| format!("segment {index}: flush failed: {e}"))?;
+    *durable = written;
+    // A re-split can shrink this segment below bytes already written. Publish
+    // no more than the range length so the summed progress never counts those
+    // bytes twice, once here and once in the segment that took over the tail.
+    let range_len = cell
+        .end
+        .load(Ordering::Relaxed)
+        .saturating_add(1)
+        .saturating_sub(cell.start);
+    cell.downloaded
+        .store(written.min(range_len), Ordering::Relaxed);
+    Ok(())
+}
+
 #[allow(clippy::too_many_arguments)]
 async fn download_segment(
     client: reqwest::Client,
@@ -2048,6 +2087,9 @@ async fn download_segment(
     let mut body_expected: Option<u64> = None;
 
     let mut done = cell.downloaded.load(Ordering::Relaxed);
+    // Bytes confirmed on disk; `done` may be ahead while they sit in BufWriter.
+    let mut durable = done;
+    let mut last_flush = Instant::now();
     if supports_ranges && done >= ranged_target() {
         return Ok(());
     }
@@ -2081,6 +2123,7 @@ async fn download_segment(
         } else if done > 0 {
             // Can't resume mid-stream on a no-range server: start over.
             done = 0;
+            durable = 0;
             cell.downloaded.store(0, Ordering::Relaxed);
         }
 
@@ -2109,11 +2152,12 @@ async fn download_segment(
             body_expected = resp.content_length().filter(|cl| *cl > 0);
         }
 
-        let mut file = tokio::fs::OpenOptions::new()
+        let file = tokio::fs::OpenOptions::new()
             .write(true)
             .open(&tmp)
             .await
             .map_err(|e| format!("cannot open file: {e}"))?;
+        let mut file = BufWriter::with_capacity(WRITE_BUFFER_BYTES, file);
         file.seek(SeekFrom::Start(cell.start + done))
             .await
             .map_err(|e| e.to_string())?;
@@ -2121,20 +2165,23 @@ async fn download_segment(
         loop {
             let chunk = tokio::select! {
                 _ = token.cancelled() => {
-                    let _ = file.flush().await;
+                    flush_segment(&mut file, &cell, &mut durable, done, index).await?;
                     return Ok(());
                 }
                 c = tokio::time::timeout(Duration::from_secs(60), resp.chunk()) => c,
             };
             let chunk = match chunk {
                 Err(_) => {
-                    // Stalled for 60s - retry from the current offset.
+                    // Stalled for 60s - retry from the current offset. Flush
+                    // first so the retry request starts at bytes we kept.
+                    flush_segment(&mut file, &cell, &mut durable, done, index).await?;
                     if attempts >= 4 {
                         return Err(format!("segment {index}: connection stalled"));
                     }
                     continue 'attempt;
                 }
                 Ok(Err(e)) => {
+                    flush_segment(&mut file, &cell, &mut durable, done, index).await?;
                     if attempts >= 4 {
                         return Err(format!("segment {index}: {e}"));
                     }
@@ -2156,7 +2203,7 @@ async fn download_segment(
                     // and sloppy servers overshoot.
                     let bytes = if let Some(exp) = expected {
                         if done >= exp {
-                            let _ = file.flush().await;
+                            flush_segment(&mut file, &cell, &mut durable, done, index).await?;
                             return Ok(());
                         }
                         let remaining = exp - done;
@@ -2174,16 +2221,16 @@ async fn download_segment(
                     file.write_all(&bytes)
                         .await
                         .map_err(|e| format!("write failed: {e}"))?;
-                    // tokio's write_all returns once the bytes are queued for
-                    // a background write, not once the OS has them. Wait for
-                    // that write before counting the bytes: the counter is
-                    // what gets saved for resume, and it must never be ahead
-                    // of the file, or a crash leaves a hole resume skips.
-                    file.flush()
-                        .await
-                        .map_err(|e| format!("write failed: {e}"))?;
                     done += bytes.len() as u64;
-                    cell.downloaded.store(done, Ordering::Relaxed);
+                    // Batching is worth it only until the buffer fills or the
+                    // UI has waited a beat: flushing here keeps the saved
+                    // resume point within one buffer of what the user sees.
+                    if done - durable >= WRITE_BUFFER_BYTES as u64
+                        || last_flush.elapsed() >= FLUSH_INTERVAL
+                    {
+                        flush_segment(&mut file, &cell, &mut durable, done, index).await?;
+                        last_flush = Instant::now();
+                    }
                     // Data is flowing again - only consecutive dead attempts
                     // should count toward the retry limit, or multi-hour
                     // downloads die from a handful of scattered hiccups.
@@ -2195,18 +2242,18 @@ async fn download_segment(
                     };
                     if let Some(exp) = expected {
                         if done >= exp {
-                            let _ = file.flush().await;
+                            flush_segment(&mut file, &cell, &mut durable, done, index).await?;
                             if !supports_ranges {
                                 // Preallocation used the probe's size; cut
                                 // any stale tail past the real body.
-                                let _ = file.set_len(done).await;
+                                let _ = file.get_mut().set_len(done).await;
                             }
                             return Ok(());
                         }
                     }
                 }
                 None => {
-                    let _ = file.flush().await;
+                    flush_segment(&mut file, &cell, &mut durable, done, index).await?;
                     let expected = if supports_ranges {
                         Some(ranged_target())
                     } else {
@@ -2221,7 +2268,7 @@ async fn download_segment(
                         }
                         _ => {
                             if !supports_ranges {
-                                let _ = file.set_len(done).await;
+                                let _ = file.get_mut().set_len(done).await;
                             }
                             return Ok(());
                         }
@@ -2566,6 +2613,72 @@ mod tests {
             "My File.zip"
         );
         assert_eq!(filename_from_url("https://x.com/"), "download");
+    }
+
+    #[test]
+    fn flush_errors_do_not_advance_the_resume_cursor() {
+        use std::io;
+        use std::pin::Pin;
+        use std::task::{Context, Poll};
+
+        struct FullDisk;
+        impl AsyncWrite for FullDisk {
+            fn poll_write(
+                self: Pin<&mut Self>,
+                _: &mut Context<'_>,
+                _: &[u8],
+            ) -> Poll<io::Result<usize>> {
+                Poll::Ready(Err(io::Error::other("disk full")))
+            }
+            fn poll_flush(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<io::Result<()>> {
+                Poll::Ready(Err(io::Error::other("disk full")))
+            }
+            fn poll_shutdown(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<io::Result<()>> {
+                Poll::Ready(Ok(()))
+            }
+        }
+
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .build()
+            .unwrap();
+        rt.block_on(async {
+            let cell = SegCell {
+                start: 0,
+                end: AtomicU64::new(1024),
+                downloaded: AtomicU64::new(0),
+            };
+            let mut file = BufWriter::with_capacity(WRITE_BUFFER_BYTES, FullDisk);
+            let mut durable = 0;
+            let err = flush_segment(&mut file, &cell, &mut durable, 512, 3)
+                .await
+                .unwrap_err();
+            assert!(err.contains("flush failed"), "unexpected error: {err}");
+            assert_eq!(durable, 0);
+            assert_eq!(cell.downloaded.load(Ordering::Relaxed), 0);
+        });
+    }
+
+    #[test]
+    fn published_progress_never_exceeds_the_split_range() {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .build()
+            .unwrap();
+        rt.block_on(async {
+            // 100..=199 is 100 bytes; `written` is past where a re-split moved
+            // the end, so only the range length may be published.
+            let cell = SegCell {
+                start: 100,
+                end: AtomicU64::new(199),
+                downloaded: AtomicU64::new(0),
+            };
+            let mut file = BufWriter::with_capacity(16, tokio::io::sink());
+            let mut durable = 0;
+            flush_segment(&mut file, &cell, &mut durable, 250, 0)
+                .await
+                .unwrap();
+            assert_eq!(durable, 250);
+            assert_eq!(cell.downloaded.load(Ordering::Relaxed), 100);
+        });
     }
 
     #[cfg(windows)]
