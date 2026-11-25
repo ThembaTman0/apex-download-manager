@@ -1,5 +1,6 @@
 mod capture;
 mod commands;
+mod diag;
 mod db;
 mod engine;
 mod models;
@@ -629,6 +630,7 @@ pub fn run() {
             commands::extension_paired,
             commands::open_download,
             commands::show_in_folder,
+            commands::open_log_folder,
             commands::get_settings,
             commands::update_settings,
             commands::get_ui_value,

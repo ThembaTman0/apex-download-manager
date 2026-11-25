@@ -793,6 +793,21 @@ function AppUpdatesSection() {
         <span className="text-sm text-ink-mid">Show what's new after updates</span>
       </label>
       {error && <p className="text-xs text-error-soft mb-4 break-all">{error}</p>}
+
+      <div className="mt-5 pt-4 border-t border-white/[0.04]">
+        <button
+          onClick={() => void backend.openLogFolder().catch(() => {})}
+          className="px-3 py-2 rounded-lg bg-white/[0.06] border border-white/[0.08] text-xs text-ink-muted hover:text-ink hover:bg-white/[0.1] transition-colors"
+        >
+          Open log folder
+        </button>
+        <p className="text-[11px] text-ink-faint mt-2 leading-relaxed">
+          apex.log records retries and why a download had to start over. It stays
+          on this PC; attach it to a bug report if a download misbehaves. Download
+          links are saved without their query string, so access tokens aren't
+          kept.
+        </p>
+      </div>
     </>
   );
 }

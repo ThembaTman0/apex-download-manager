@@ -540,6 +540,7 @@ if (!("__TAURI_INTERNALS__" in window)) {
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     open_download: () => null,
     show_in_folder: () => null,
+    open_log_folder: () => null,
     execute_queue_action: () => null,
   };
 

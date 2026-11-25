@@ -28,6 +28,12 @@ const args = Object.fromEntries(
     return acc;
   }, []),
 );
+// --flaky-if-range: answer the resume check (Range: bytes=0-0 + If-Range) with
+// a full 200 for the SAME file, like a CDN edge that ignores If-Range. Apex
+// must keep its progress instead of starting over after every kill.
+const FLAKY = process.argv.includes("--flaky-if-range");
+let flakyAnswers = 0;
+let fromZero = 0;
 const KILLS = Number(args.kills ?? 8);
 const SIZE = Number(args["size-mb"] ?? 256) * 1024 * 1024;
 const RATE = Number(args["rate-mb"] ?? 6) * 1024 * 1024; // bytes/s, all connections
@@ -75,7 +81,12 @@ const server = createServer(async (req, res) => {
   let start = 0, end = SIZE - 1, partial = false;
   const range = req.headers.range?.match(/^bytes=(\d+)-(\d*)$/);
   const ifRange = req.headers["if-range"];
-  if (range && (!ifRange || ifRange === ETAG)) {
+  const flakyCheck = FLAKY && ifRange && req.headers.range === "bytes=0-0";
+  if (flakyCheck) flakyAnswers++;
+  // A real data request for the start of the file (not a 1-byte probe or
+  // check). The first run makes one; every progress reset makes another.
+  if (range && Number(range[1]) === 0 && req.headers.range !== "bytes=0-0") fromZero++;
+  if (range && !flakyCheck && (!ifRange || ifRange === ETAG)) {
     start = Number(range[1]);
     end = range[2] ? Math.min(Number(range[2]), SIZE - 1) : SIZE - 1;
     if (start > end) return res.writeHead(416, { "Content-Range": `bytes */${SIZE}` }).end();
@@ -171,6 +182,12 @@ async function main() {
   const got = await sha256File(target);
   if (got !== want) fail(`SHA-256 mismatch\n  want ${want}\n  got  ${got}`);
 
+  if (FLAKY) {
+    // Each progress reset makes Apex ask for the start of the file again.
+    console.log(`flaky If-Range answers: ${flakyAnswers}, downloads started from byte 0: ${fromZero}, served ${((sent / SIZE) * 100).toFixed(0)}% of the file size`);
+    if (flakyAnswers === 0) fail("the resume check was never exercised");
+    if (fromZero > 1) fail(`started from byte 0 ${fromZero} times: progress was thrown away on resume`);
+  }
   console.log(`PASS: survived ${kills} kills, SHA-256 ${got}`);
   rmSync(work, { recursive: true, force: true });
 }

@@ -27,6 +27,11 @@ const COMPLETE_SOUND: &str = "complete";
 
 const MIN_SEGMENT_BYTES: u64 = 256 * 1024;
 const WRITE_BUFFER_BYTES: usize = 256 * 1024;
+// Split safety (#69): `try_split` places a split at least MIN_SEGMENT_BYTES
+// past the donor's published progress, and buffered bytes lag that progress
+// by less than WRITE_BUFFER_BYTES. A bigger buffer could let a split land
+// behind bytes the donor already wrote, so refuse to build if they drift.
+const _: () = assert!(WRITE_BUFFER_BYTES as u64 <= MIN_SEGMENT_BYTES);
 /// Buffered bytes are only counted as progress once they reach the file, and
 /// the UI ticks every 500 ms. Flushing on that same beat keeps progress moving
 /// on slow connections where a full buffer could take minutes to fill.
@@ -178,6 +183,7 @@ pub(crate) fn build_client(proxy_url: &str) -> Result<reqwest::Client, String> {
 impl DownloadManager {
     pub fn new(app: AppHandle) -> Result<Self, String> {
         let data_dir = crate::data_dir(&app)?;
+        crate::diag::init(&data_dir);
         let db = Db::open(&data_dir.join("apex.db"))?;
         let mut settings = db.load_settings();
         if settings.capture_token.is_empty() {
@@ -1286,6 +1292,11 @@ async fn run_download(ctx: TaskCtx, mgr: DownloadManager, mut d: Download) {
             {
                 attempt += 1;
                 let delay = Duration::from_secs(5 * 3u64.pow(attempt - 1));
+                crate::diag::log(&format!(
+                    "retry host={} attempt={attempt}/{MAX_RETRIES} in={}s error={e}",
+                    host_of(&d.url).unwrap_or_default(),
+                    delay.as_secs()
+                ));
                 d.error = Some(format!(
                     "{e}; retrying in {}s ({attempt}/{MAX_RETRIES})",
                     delay.as_secs()
@@ -1393,12 +1404,67 @@ async fn run_download(ctx: TaskCtx, mgr: DownloadManager, mut d: Download) {
     }
 }
 
+/// What the resume check (`Range: bytes=0-0` + `If-Range`) told us.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+enum ResumeVerdict {
+    /// 206 (or no usable answer): keep the progress.
+    Unchanged,
+    /// A 200 that still describes the same file: same total size, and the same
+    /// ETag or Last-Modified. Some servers and CDNs ignore `If-Range` and send
+    /// the whole body anyway; that alone is no reason to throw progress away.
+    IgnoredIfRange,
+    /// A 200 for a different file: start over.
+    Changed,
+}
+
+fn resume_verdict(
+    status: reqwest::StatusCode,
+    body_len: Option<u64>,
+    etag: Option<&str>,
+    last_modified: Option<&str>,
+    d: &Download,
+) -> ResumeVerdict {
+    if status != reqwest::StatusCode::OK {
+        return ResumeVerdict::Unchanged;
+    }
+    // A 200 carries the whole file, so its length is the file size.
+    let same_size = d.size_bytes > 0 && body_len == Some(d.size_bytes);
+    let same_etag = matches!((etag, d.etag.as_deref()), (Some(a), Some(b)) if a == b);
+    let same_date =
+        matches!((last_modified, d.last_modified.as_deref()), (Some(a), Some(b)) if a == b);
+    if same_size && (same_etag || same_date) {
+        ResumeVerdict::IgnoredIfRange
+    } else {
+        ResumeVerdict::Changed
+    }
+}
+
+/// A download that has to start over says so, instead of silently dropping
+/// back to 0%.
+fn notify_restart(ctx: &TaskCtx, name: &str, reason: &str) {
+    let _ = ctx
+        .app
+        .notification()
+        .builder()
+        .title("Download started over")
+        .body(format!("{name}: {reason}, so Apex is downloading it again."))
+        .show();
+}
+
 /// Returns Ok(true) on completion, Ok(false) when cancelled, Err on failure.
 async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String> {
     let tmp = temp_path(d);
 
+    let host = host_of(&d.url).unwrap_or_default();
+    let mut trust_if_range = true;
+
     // If the temp file disappeared, saved segment progress is meaningless.
     if !d.segment_states.is_empty() && d.downloaded_bytes > 0 && !tmp.exists() {
+        crate::diag::log(&format!(
+            "reset host={host} reason=temp-file-missing lost_bytes={}",
+            d.downloaded_bytes
+        ));
+        notify_restart(ctx, &d.name, "its partial file was missing (moved, deleted or quarantined)");
         d.segment_states.clear();
         d.downloaded_bytes = 0;
         d.progress = 0.0;
@@ -1414,15 +1480,47 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
                 .header(header::IF_RANGE, validator)
                 .send()
                 .await;
-            let changed = tokio::select! {
+            let verdict = tokio::select! {
                 _ = ctx.cancel.cancelled() => return Ok(false),
                 r = async { check } => match r {
-                    // 200 to a ranged If-Range request = validator mismatch.
-                    Ok(resp) => resp.status() == reqwest::StatusCode::OK,
-                    Err(_) => false, // network hiccup: let segments retry normally
+                    Ok(resp) => {
+                        let h = resp.headers();
+                        let text = |name: header::HeaderName| {
+                            h.get(name).and_then(|v| v.to_str().ok()).map(str::to_owned)
+                        };
+                        let v = resume_verdict(
+                            resp.status(),
+                            resp.content_length(),
+                            text(header::ETAG).as_deref(),
+                            text(header::LAST_MODIFIED).as_deref(),
+                            d,
+                        );
+                        crate::diag::log(&format!(
+                            "resume-check host={host} status={} verdict={v:?}",
+                            resp.status().as_u16()
+                        ));
+                        v
+                    }
+                    Err(e) => {
+                        // Network hiccup: let the segments retry normally.
+                        crate::diag::log(&format!("resume-check host={host} error={e}"));
+                        ResumeVerdict::Unchanged
+                    }
                 },
             };
-            if changed {
+            if verdict == ResumeVerdict::IgnoredIfRange {
+                // This server answers 200 whenever If-Range is sent, so the
+                // connections must not send it either or every range request
+                // would come back whole. The same-file check above already
+                // did If-Range's job for this run.
+                trust_if_range = false;
+            }
+            if verdict == ResumeVerdict::Changed {
+                crate::diag::log(&format!(
+                    "reset host={host} reason=file-changed lost_bytes={}",
+                    d.downloaded_bytes
+                ));
+                notify_restart(ctx, &d.name, "the file on the server changed");
                 d.segment_states.clear();
                 d.downloaded_bytes = 0;
                 d.progress = 0.0;
@@ -1544,7 +1642,11 @@ async fn drive_download(ctx: &TaskCtx, d: &mut Download) -> Result<bool, String>
         let limiter = ctx.limiter.clone();
         let task_limiter = ctx.task_limiter.clone();
         let token = fail_cancel.clone();
-        let if_range = d.etag.clone().or_else(|| d.last_modified.clone());
+        let if_range = if trust_if_range {
+            d.etag.clone().or_else(|| d.last_modified.clone())
+        } else {
+            None
+        };
         move |set: &mut tokio::task::JoinSet<Result<(), String>>,
               cell: Arc<SegCell>,
               index: usize| {
@@ -2099,6 +2201,12 @@ async fn download_segment(
         if token.is_cancelled() {
             return Ok(());
         }
+        // A split may have shrunk this range to what's already written while
+        // we were retrying; asking for bytes={start+done}-{end} would then be
+        // an empty (416) range (#69).
+        if supports_ranges && done >= ranged_target() {
+            return Ok(());
+        }
         if attempts > 0 {
             tokio::select! {
                 _ = token.cancelled() => return Ok(()),
@@ -2500,6 +2608,75 @@ fn percent_decode(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn resumable(size: u64, etag: Option<&str>, date: Option<&str>) -> Download {
+        Download {
+            id: "id".into(),
+            name: "f.bin".into(),
+            url: "https://example.com/f.bin".into(),
+            file_type: "other".into(),
+            size_bytes: size,
+            downloaded_bytes: size / 4,
+            progress: 25.0,
+            speed_bytes_per_sec: 0,
+            eta_seconds: 0,
+            status: DownloadStatus::Downloading,
+            segments: 8,
+            modified_at: 0,
+            save_path: String::new(),
+            supports_ranges: true,
+            error: None,
+            created_at: 0,
+            start_at: None,
+            kind: "http".into(),
+            speed_limit_kbps: 0,
+            video_format: None,
+            etag: etag.map(Into::into),
+            last_modified: date.map(Into::into),
+            segment_states: Vec::new(),
+            request_headers: Vec::new(),
+            queue_order: None,
+            subtitle_lang: None,
+        }
+    }
+
+    #[test]
+    fn a_206_keeps_progress() {
+        let d = resumable(1000, Some("\"a\""), None);
+        let v = resume_verdict(reqwest::StatusCode::PARTIAL_CONTENT, Some(1), Some("\"a\""), None, &d);
+        assert_eq!(v, ResumeVerdict::Unchanged);
+    }
+
+    #[test]
+    fn a_200_for_the_same_file_keeps_progress() {
+        // Server ignored If-Range: whole body, same size, same ETag.
+        let d = resumable(1000, Some("\"a\""), Some("Sat, 24 Oct 2026 05:12:51 GMT"));
+        let v = resume_verdict(reqwest::StatusCode::OK, Some(1000), Some("\"a\""), None, &d);
+        assert_eq!(v, ResumeVerdict::IgnoredIfRange);
+        // Same size and same date also counts (ETag can differ between CDN edges).
+        let v = resume_verdict(
+            reqwest::StatusCode::OK,
+            Some(1000),
+            Some("\"other-edge\""),
+            Some("Sat, 24 Oct 2026 05:12:51 GMT"),
+            &d,
+        );
+        assert_eq!(v, ResumeVerdict::IgnoredIfRange);
+    }
+
+    #[test]
+    fn a_200_for_a_different_file_resets() {
+        let d = resumable(1000, Some("\"a\""), Some("Sat, 24 Oct 2026 05:12:51 GMT"));
+        // New size.
+        let v = resume_verdict(reqwest::StatusCode::OK, Some(2000), Some("\"a\""), None, &d);
+        assert_eq!(v, ResumeVerdict::Changed);
+        // Same size but new validators.
+        let v = resume_verdict(reqwest::StatusCode::OK, Some(1000), Some("\"b\""), Some("Sun, 25 Oct 2026 00:00:00 GMT"), &d);
+        assert_eq!(v, ResumeVerdict::Changed);
+        // No length to compare: can't prove it's the same file.
+        let v = resume_verdict(reqwest::StatusCode::OK, None, Some("\"a\""), None, &d);
+        assert_eq!(v, ResumeVerdict::Changed);
+    }
 
     fn hdrs() -> Vec<(String, String)> {
         vec![

@@ -93,6 +93,7 @@ export const backend = {
   extensionPaired: () => invoke<boolean>("extension_paired"),
   openDownload: (id: string) => invoke<void>("open_download", { id }),
   showInFolder: (id: string) => invoke<void>("show_in_folder", { id }),
+  openLogFolder: () => invoke<void>("open_log_folder"),
 
   // --- Video grabber (yt-dlp) ---
   ytdlpStatus: () => invoke<ToolsStatus>("ytdlp_status"),

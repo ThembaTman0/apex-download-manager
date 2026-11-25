@@ -362,6 +362,19 @@ pub async fn show_in_folder(mgr: State<'_, DownloadManager>, id: String) -> Resu
     mgr.show_in_folder(&id)
 }
 
+/// Show apex.log in the file manager (for attaching to bug reports), or the
+/// data folder if nothing has been logged yet.
+#[tauri::command]
+pub fn open_log_folder() -> Result<(), String> {
+    let log = crate::diag::path().ok_or("the log isn't set up yet")?;
+    if log.exists() {
+        tauri_plugin_opener::reveal_item_in_dir(log).map_err(|e| e.to_string())
+    } else {
+        let dir = log.parent().ok_or("no data folder")?.to_path_buf();
+        tauri_plugin_opener::open_path(dir, None::<&str>).map_err(|e| e.to_string())
+    }
+}
+
 #[tauri::command]
 pub async fn get_settings(mgr: State<'_, DownloadManager>) -> Result<Settings, String> {
     Ok(mgr.get_settings())

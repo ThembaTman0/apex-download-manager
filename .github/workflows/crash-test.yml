@@ -54,3 +54,10 @@ jobs:
       - name: Kill and resume 10 times, then verify the file
         working-directory: desktop-ui
         run: node scripts/crash-resume-test.mjs --kills 10
+
+      # A server that answers the resume check with a full 200 for the same
+      # file (like a CDN edge ignoring If-Range) must not make Apex throw its
+      # progress away: the 1.2.1 reset bug.
+      - name: Same, against a server that ignores If-Range on the resume check
+        working-directory: desktop-ui
+        run: node scripts/crash-resume-test.mjs --kills 6 --flaky-if-range
