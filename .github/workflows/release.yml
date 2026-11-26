@@ -481,6 +481,15 @@ jobs:
             throw "komac.exe checksum mismatch (expected '$expected', got '$actual'). Not submitting."
           }
 
+          # komac branches from the fork's default branch; once the fork falls
+          # thousands of commits behind upstream, creating that branch fails
+          # with CreateRef. Sync it first (needs the workflow scope, because
+          # upstream commits touch .github/workflows). Non-fatal: komac may
+          # still succeed if the fork is only slightly behind.
+          $env:GH_TOKEN = $env:WINGET_TOKEN
+          gh repo sync ThembaTman0/winget-pkgs --branch master
+          if ($LASTEXITCODE -ne 0) { "::warning::Could not sync the winget-pkgs fork; trying komac anyway." }
+
           .\komac.exe update ThembaTman0.ApexDownloadManager --version $version --urls $url --submit --token $env:WINGET_TOKEN
           if ($LASTEXITCODE -ne 0) {
             throw "komac could not submit $version to winget-pkgs. Check that WINGET_TOKEN is a classic PAT with the public_repo and workflow scopes and has not expired. If the error mentions CreateRef, the fork is behind upstream: run 'gh repo sync ThembaTman0/winget-pkgs', then re-run this workflow by hand with the tag."
