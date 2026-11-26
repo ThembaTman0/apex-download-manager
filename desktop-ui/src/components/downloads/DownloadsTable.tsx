@@ -560,7 +560,15 @@ function TableRow({
           <MenuItem
             icon={RotateCcw}
             label="Restart"
-            onSelect={() => restartDownload(d.id)}
+            onSelect={async () => {
+              // Restart throws the downloaded data away: easy to hit by
+              // accident in this menu, so ask when there's something to lose.
+              if (d.status !== "completed" && d.downloadedBytes > 0) {
+                const ok = await confirmRestart(d.name, d.downloadedBytes);
+                if (!ok) return;
+              }
+              restartDownload(d.id);
+            }}
           />
           <Separator />
           <MenuItem
@@ -615,4 +623,21 @@ function MenuItem({
       {label}
     </ContextMenu.Item>
   );
+}
+
+/** Ask before Restart discards a partial download. Native dialog in the app;
+ *  the browser's confirm box in the demo build if the dialog plugin is absent. */
+async function confirmRestart(name: string, bytes: number): Promise<boolean> {
+  const message = `Restart "${name}"? The ${formatBytes(bytes)} already downloaded will be discarded and it will start again from the beginning.`;
+  try {
+    const { ask } = await import("@tauri-apps/plugin-dialog");
+    return await ask(message, {
+      title: "Restart download",
+      kind: "warning",
+      okLabel: "Restart",
+      cancelLabel: "Keep progress",
+    });
+  } catch {
+    return window.confirm(message);
+  }
 }

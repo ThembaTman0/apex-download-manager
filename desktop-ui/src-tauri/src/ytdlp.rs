@@ -227,7 +227,7 @@ pub struct UpdateCheck {
 /// of grabber failures.
 pub async fn check_update(app: &AppHandle) -> UpdateCheck {
     let s = status(app).await;
-    let latest = latest_ytdlp_version().await;
+    let latest = latest_ytdlp_version(app).await;
     let outdated = matches!(
         (&s.ytdlp_version, &latest),
         (Some(cur), Some(new)) if cur != new
@@ -239,18 +239,28 @@ pub async fn check_update(app: &AppHandle) -> UpdateCheck {
     }
 }
 
-async fn latest_ytdlp_version() -> Option<String> {
-    latest_release_tag("https://github.com/yt-dlp/yt-dlp/releases/latest").await
+async fn latest_ytdlp_version(app: &AppHandle) -> Option<String> {
+    latest_release_tag(app, "https://github.com/yt-dlp/yt-dlp/releases/latest").await
 }
 
 /// Latest release tag, read from the releases/latest redirect (no API quota).
-async fn latest_release_tag(latest_url: &str) -> Option<String> {
-    let client = reqwest::Client::builder()
+/// Goes through the user's proxy like the tool downloads themselves; this
+/// check used to connect directly, so behind a proxy it silently found
+/// nothing and yt-dlp never looked out of date.
+async fn latest_release_tag(app: &AppHandle, latest_url: &str) -> Option<String> {
+    let proxy = app
+        .try_state::<crate::engine::DownloadManager>()
+        .map(|m| m.get_settings().proxy_url)
+        .unwrap_or_default();
+    let mut builder = reqwest::Client::builder()
         .user_agent("ApexDownloadManager/1.0")
+        .use_rustls_tls()
         .redirect(reqwest::redirect::Policy::none())
-        .connect_timeout(Duration::from_secs(10))
-        .build()
-        .ok()?;
+        .connect_timeout(Duration::from_secs(10));
+    if !proxy.trim().is_empty() {
+        builder = builder.proxy(reqwest::Proxy::all(proxy.trim()).ok()?);
+    }
+    let client = builder.build().ok()?;
     let resp = client
         .get(latest_url)
         .send()
@@ -394,7 +404,7 @@ pub async fn install_ytdlp(app: &AppHandle) -> Result<ToolsStatus, String> {
         let dir = tools_dir(app);
         let dest = dir.join(YTDLP_EXE);
         let tmp = dir.join(format!("{YTDLP_EXE}.tmp"));
-        let tag = latest_ytdlp_version()
+        let tag = latest_ytdlp_version(app)
             .await
             .ok_or("cannot find the latest yt-dlp release. Check your connection and try again.")?;
         let sums = fetch_text(app, &format!("{YTDLP_RELEASE_BASE}/{tag}/SHA2-256SUMS")).await?;
@@ -501,7 +511,7 @@ pub async fn install_deno(app: &AppHandle) -> Result<ToolsStatus, String> {
     };
     let dir = tools_dir(app);
     let zip_path = dir.join("deno.zip.tmp");
-    let tag = latest_release_tag("https://github.com/denoland/deno/releases/latest")
+    let tag = latest_release_tag(app, "https://github.com/denoland/deno/releases/latest")
         .await
         .ok_or("cannot find the latest Deno release. Check your connection and try again.")?;
     let sums = deno_sums(

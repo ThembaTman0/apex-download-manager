@@ -541,6 +541,12 @@ if (!("__TAURI_INTERNALS__" in window)) {
     open_download: () => null,
     show_in_folder: () => null,
     open_log_folder: () => null,
+    // ask() and confirm() go through "message" and return the clicked label.
+    "plugin:dialog|message": (a: any) =>
+      // Custom labels arrive as { OkCancelCustom: [ok, cancel] } (buttonsToRust).
+      window.confirm(a?.message ?? "")
+        ? (a?.buttons?.OkCancelCustom?.[0] ?? a?.buttons?.OkCustom ?? "Yes")
+        : (a?.buttons?.OkCancelCustom?.[1] ?? "No"),
     execute_queue_action: () => null,
   };
 

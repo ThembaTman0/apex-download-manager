@@ -1008,6 +1008,11 @@ impl DownloadManager {
             .unwrap()
             .get_download(id)?
             .ok_or("download not found")?;
+        crate::diag::log(&format!(
+            "reset host={} reason=user-restart lost_bytes={}",
+            host_of(&d.url).unwrap_or_default(),
+            d.downloaded_bytes
+        ));
         if d.kind == "video" {
             crate::ytdlp::remove_partials(&d);
         } else {
