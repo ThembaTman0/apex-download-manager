@@ -172,47 +172,14 @@ Re-download it if they redesign the badge:
 
 ## Softpedia
 
-Submit at <https://www.softpedia.com/user/submit.shtml>, "Windows Software",
-then the **Regular submission form** (not the PAD form). No account needed.
-Softpedia says the queue takes up to 30 days and not every submission is
-published. Softpedia commonly marks listings it has scanned as "100% Clean";
-if Apex gets that badge, it is worth linking from the website.
-
-Submit after a release is out, and use that release's number and notes
-below. The values here are for **1.0.9**; swap them when 1.0.10 ships.
-
-| Field | Value |
-|---|---|
-| Developer name | `ThembaTman0` |
-| Developer site | `https://apexdownloadmanager.com/` |
-| Developer email | your email |
-| Program name | `Apex Download Manager` |
-| Program version | `1.0.9` |
-| Category | Internet > **Download Managers** |
-| File size | `4` MB |
-| Price for 1 license | leave empty (it is free) |
-| Supported operating systems | tick **Windows 10 64 bit** and **Windows 11** only (the installer is x64) |
-| License | **GPLv3** |
-| 32x32 Icon URL | `https://raw.githubusercontent.com/ThembaTman0/apex-download-manager/main/desktop-ui/src-tauri/icons/32x32.png` |
-| Screenshot URL | `https://raw.githubusercontent.com/ThembaTman0/apex-download-manager/main/docs/screenshots/downloads.png` |
-| Download link 1 | `https://github.com/ThembaTman0/apex-download-manager-releases/releases/download/v1.0.9/Apex.Download.Manager_1.0.9_x64-setup.exe` |
-| Download link 2 | `https://apexdownloadmanager.com/dl` (always the latest installer) |
-| Limitations | leave empty |
-| Product IDs, buy link, unlock code | leave empty |
-
-**Short description** (128 characters max; this is 119)
-
-    Open-source Windows download manager: parallel connections, resumable downloads, capture from Chrome, Edge and Firefox.
-
-**Long description**: use the AlternativeTo description above, unchanged.
-
-**Special requirements**
-
-    Windows 10 or 11, 64-bit. Uses the Microsoft Edge WebView2 Runtime, which Windows 11 and current Windows 10 already include; the installer downloads it if it is missing. The optional browser extension is free on the Chrome Web Store, Edge Add-ons and Firefox Add-ons.
-
-**Changes**: paste the release notes of the version you submit, from
-`RELEASE_NOTES.md` or the release page. For 1.0.9 that is the v1.0.9
-release body on the releases repo.
+**Not submitting.** Checked 2026-11-27: Softpedia's submission page says it
+does not accept applications where any of the code was written by LLMs
+("AI"), and both submission forms have a required "No AI-written code"
+checkbox. Parts of Apex were written with AI assistance, so ticking that
+box would be a false declaration. Skip Softpedia unless that rule changes;
+the same audience is reached through MajorGeeks, AlternativeTo, winget,
+Scoop, Chocolatey and the extension stores. Check other directories for a
+similar rule before submitting to them.
 
 ## MajorGeeks
 
@@ -241,7 +208,9 @@ the installer's result on VirusTotal yourself so there are no surprises
     Source code: https://github.com/ThembaTman0/apex-download-manager
     Screenshots: https://github.com/ThembaTman0/apex-download-manager#readme
 
-    The installer is not code-signed yet, so SmartScreen may show an "unrecognized app" prompt. The SHA-256 of every installer is published on the homepage.
+    It is also on winget (ThembaTman0.ApexDownloadManager), Scoop and Chocolatey, and there is a Linux AppImage and .deb. The current version is 1.2.2.
+
+    The installer is not code-signed yet, so SmartScreen may show an "unrecognized app" prompt. Every installer is built by public GitHub Actions from tagged source, its SHA-256 is published on the homepage, and it carries a GitHub build attestation you can check with "gh attestation verify".
 
     Thanks for your time,
     ThembaTman0
