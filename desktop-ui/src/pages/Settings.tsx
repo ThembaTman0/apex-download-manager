@@ -15,6 +15,7 @@ import {
 } from "@/stores/settingsNavStore";
 import {
   Bell,
+  Bug,
   Check,
   ClipboardCopy,
   ListX,
@@ -24,6 +25,7 @@ import {
   FolderTree,
   Gauge,
   Globe,
+  Heart,
   Keyboard,
   Layers,
   ListOrdered,
@@ -34,6 +36,7 @@ import {
   RefreshCw,
   Rocket,
   Save,
+  Star,
   X,
 } from "lucide-react";
 import { backend } from "@/services/backend";
@@ -141,7 +144,8 @@ export function SettingsPage() {
   // Video and Updates act on their own (install, check, update) and hold no
   // form fields, so the pill would offer to save something not on screen.
   // Changes made elsewhere stay pending and the pill returns on those pages.
-  const actsImmediately = !q && (tab === "updates" || tab === "video");
+  const actsImmediately =
+    !q && (tab === "updates" || tab === "video" || tab === "about");
   const showSaveBar = !actsImmediately && (dirty || saved || !!error);
 
   return (
@@ -481,6 +485,12 @@ export function SettingsPage() {
           </div>
         )}
 
+        {showPanel("about") && (
+          <div data-panel className="py-5 border-b border-white/[0.04] last:border-b-0">
+            <AboutSection />
+          </div>
+        )}
+
         {showPanel("video") && (
           <div data-panel className="py-5 border-b border-white/[0.04] last:border-b-0">
             <VideoGrabberSection />
@@ -808,6 +818,76 @@ function AppUpdatesSection() {
           kept.
         </p>
       </div>
+    </>
+  );
+}
+
+const REPO = "https://github.com/ThembaTman0/apex-download-manager";
+
+function openExternal(url: string) {
+  import("@tauri-apps/plugin-opener")
+    .then(({ openUrl }) => openUrl(url))
+    .catch(() => window.open(url, "_blank", "noopener"));
+}
+
+/** Who makes Apex, where it lives, and how to help or report a problem. */
+function AboutSection() {
+  const [version, setVersion] = useState("");
+  useEffect(() => {
+    import("@tauri-apps/api/app")
+      .then(({ getVersion }) => getVersion())
+      .then(setVersion)
+      .catch(() => {});
+  }, []);
+
+  const links: { icon: React.ElementType; label: string; hint: string; url: string }[] = [
+    { icon: Star, label: "Star on GitHub", hint: "Helps other people find Apex", url: REPO },
+    { icon: Bug, label: "Report a bug", hint: "Attach apex.log from Updates if a download misbehaves", url: `${REPO}/issues/new/choose` },
+    { icon: Globe, label: "Website", hint: "apexdownloadmanager.com", url: "https://apexdownloadmanager.com/" },
+    { icon: Heart, label: "Support on Ko-fi", hint: "Goes towards a code-signing certificate", url: "https://ko-fi.com/thembatman0" },
+  ];
+
+  return (
+    <>
+      <div className="flex items-center gap-3 mb-4">
+        <img src="/apex-icon.png" alt="" className="w-10 h-10 rounded-lg" onError={(e) => (e.currentTarget.style.display = "none")} />
+        <div>
+          <p className="text-sm font-semibold text-ink">
+            Apex Download Manager {version && <span className="text-ink-muted font-normal">v{version}</span>}
+          </p>
+          <p className="text-[11px] text-ink-muted">
+            Free and open source, made by ThembaTman0 in South Africa.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-2 @lg/settings:grid-cols-2 mb-5">
+        {links.map(({ icon: Icon, label, hint, url }) => (
+          <button
+            key={label}
+            onClick={() => openExternal(url)}
+            className="flex items-start gap-2.5 text-left px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] transition-colors"
+          >
+            <Icon className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+            <span>
+              <span className="block text-xs font-medium text-ink">{label}</span>
+              <span className="block text-[11px] text-ink-muted leading-snug">{hint}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <p className="text-[11px] text-ink-faint leading-relaxed">
+        No accounts, no ads, no telemetry: Apex never sends anything about you or
+        your downloads anywhere.{" "}
+        <button onClick={() => openExternal("https://apexdownloadmanager.com/privacy.html")} className="underline underline-offset-2 hover:text-ink">
+          Privacy
+        </button>
+        {" · "}
+        <button onClick={() => openExternal(`${REPO}/blob/main/LICENSE`)} className="underline underline-offset-2 hover:text-ink">
+          GPL-3.0 licence
+        </button>
+      </p>
     </>
   );
 }

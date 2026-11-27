@@ -4,6 +4,7 @@ import {
   FolderTree,
   Gauge,
   Globe,
+  Info,
   RefreshCw,
   Rocket,
 } from "lucide-react";
@@ -15,7 +16,8 @@ export type SettingsTab =
   | "folders"
   | "browser"
   | "video"
-  | "updates";
+  | "updates"
+  | "about";
 
 export const SETTINGS_TABS: {
   id: SettingsTab;
@@ -29,12 +31,13 @@ export const SETTINGS_TABS: {
   { id: "browser", label: "Browser", icon: Globe, blurb: "Capture downloads from the browser extension" },
   { id: "video", label: "Video", icon: Clapperboard, blurb: "yt-dlp, FFmpeg and Deno for grabbing video" },
   { id: "updates", label: "Updates", icon: RefreshCw, blurb: "Version and app updates" },
+  { id: "about", label: "About", icon: Info, blurb: "Version, GitHub, report a bug, licence, privacy and support" },
 ];
 
 export const SETTINGS_GROUPS: { label: string; tabs: SettingsTab[] }[] = [
   { label: "Preferences", tabs: ["general", "downloads", "folders"] },
   { label: "Integrations", tabs: ["browser", "video"] },
-  { label: "App", tabs: ["updates"] },
+  { label: "App", tabs: ["updates", "about"] },
 ];
 
 interface SettingsNavState {
