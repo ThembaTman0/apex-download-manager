@@ -14,6 +14,7 @@ import {
   type SettingsTab,
 } from "@/stores/settingsNavStore";
 import {
+  ArrowUpRight,
   Bell,
   Bug,
   Check,
@@ -840,55 +841,69 @@ function AboutSection() {
       .catch(() => {});
   }, []);
 
-  const links: { icon: React.ElementType; label: string; hint: string; url: string }[] = [
-    { icon: Star, label: "Star on GitHub", hint: "Helps other people find Apex", url: REPO },
-    { icon: Bug, label: "Report a bug", hint: "Attach apex.log from Updates if a download misbehaves", url: `${REPO}/issues/new/choose` },
-    { icon: Globe, label: "Website", hint: "apexdownloadmanager.com", url: "https://apexdownloadmanager.com/" },
-    { icon: Heart, label: "Support on Ko-fi", hint: "Goes towards a code-signing certificate", url: "https://ko-fi.com/thembatman0" },
+  // One grouped list, macOS Settings style: a tinted icon tile per row,
+  // hairline dividers inset past the tile, an arrow saying "opens outside".
+  const links: { icon: React.ElementType; tint: string; label: string; hint: string; url: string }[] = [
+    { icon: Star, tint: "bg-amber-400/15 text-amber-300", label: "Star on GitHub", hint: "Helps other people find Apex", url: REPO },
+    { icon: Bug, tint: "bg-rose-400/15 text-rose-300", label: "Report a bug", hint: "Attach apex.log from Updates if a download misbehaves", url: `${REPO}/issues/new/choose` },
+    { icon: Globe, tint: "bg-sky-400/15 text-sky-300", label: "Website", hint: "apexdownloadmanager.com", url: "https://apexdownloadmanager.com/" },
+    { icon: Heart, tint: "bg-pink-400/15 text-pink-300", label: "Support on Ko-fi", hint: "Goes towards a code-signing certificate", url: "https://ko-fi.com/thembatman0" },
   ];
 
   return (
-    <>
-      <div className="flex items-center gap-3 mb-4">
-        <img src="/apex-icon.png" alt="" className="w-10 h-10 rounded-lg" onError={(e) => (e.currentTarget.style.display = "none")} />
-        <div>
-          <p className="text-sm font-semibold text-ink">
-            Apex Download Manager {version && <span className="text-ink-muted font-normal">v{version}</span>}
-          </p>
-          <p className="text-[11px] text-ink-muted">
-            Free and open source, made by ThembaTman0 in South Africa.
-          </p>
-        </div>
+    <div className="max-w-md mx-auto">
+      <div className="flex flex-col items-center text-center pt-2 pb-6">
+        <img
+          src="/apex-icon.png"
+          alt=""
+          className="w-16 h-16 rounded-[18px] shadow-[0_8px_24px_rgba(0,0,0,0.35)] mb-3"
+          onError={(e) => (e.currentTarget.style.display = "none")}
+        />
+        <p className="text-[17px] font-semibold text-ink tracking-[-0.01em] leading-tight">
+          Apex Download Manager
+        </p>
+        <p className="mt-1 text-xs text-ink-muted tabular-nums">
+          {version ? `Version ${version}` : " "}
+        </p>
+        <p className="mt-2 text-xs text-ink-muted">
+          Free and open source. Made by Themba Ngobeni in South Africa.
+        </p>
       </div>
 
-      <div className="grid gap-2 @lg/settings:grid-cols-2 mb-5">
-        {links.map(({ icon: Icon, label, hint, url }) => (
+      <div className="rounded-xl bg-white/[0.04] border border-white/[0.08] overflow-hidden">
+        {links.map(({ icon: Icon, tint, label, hint, url }, i) => (
           <button
             key={label}
             onClick={() => openExternal(url)}
-            className="flex items-start gap-2.5 text-left px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] transition-colors"
+            className="group relative w-full flex items-center gap-3 text-left pl-3 pr-3.5 py-2.5 hover:bg-white/[0.04] active:bg-white/[0.07] transition-colors duration-100 focus-visible:outline-none focus-visible:bg-white/[0.06]"
           >
-            <Icon className="w-4 h-4 text-accent mt-0.5 shrink-0" />
-            <span>
-              <span className="block text-xs font-medium text-ink">{label}</span>
-              <span className="block text-[11px] text-ink-muted leading-snug">{hint}</span>
+            {i > 0 && <span aria-hidden className="absolute top-0 left-[52px] right-0 h-px bg-white/[0.07]" />}
+            <span className={`w-7 h-7 rounded-[7px] grid place-items-center shrink-0 ${tint}`}>
+              <Icon className="w-[15px] h-[15px]" />
             </span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-[13px] text-ink leading-tight">{label}</span>
+              <span className="block text-[11px] text-ink-muted leading-snug mt-0.5 truncate">{hint}</span>
+            </span>
+            <ArrowUpRight className="w-3.5 h-3.5 text-ink-faint shrink-0 group-hover:text-ink-muted transition-colors" />
           </button>
         ))}
       </div>
 
-      <p className="text-[11px] text-ink-faint leading-relaxed">
-        No accounts, no ads, no telemetry: Apex never sends anything about you or
-        your downloads anywhere.{" "}
-        <button onClick={() => openExternal("https://apexdownloadmanager.com/privacy.html")} className="underline underline-offset-2 hover:text-ink">
+      <p className="mt-5 text-[11px] text-ink-faint leading-relaxed text-center text-balance">
+        No accounts, no ads, no telemetry. Apex never sends anything about you
+        or your downloads anywhere.
+      </p>
+      <p className="mt-1.5 text-[11px] text-center">
+        <button onClick={() => openExternal("https://apexdownloadmanager.com/privacy.html")} className="text-ink-muted hover:text-ink transition-colors">
           Privacy
         </button>
-        {" · "}
-        <button onClick={() => openExternal(`${REPO}/blob/main/LICENSE`)} className="underline underline-offset-2 hover:text-ink">
+        <span className="text-ink-faint mx-2">·</span>
+        <button onClick={() => openExternal(`${REPO}/blob/main/LICENSE`)} className="text-ink-muted hover:text-ink transition-colors">
           GPL-3.0 licence
         </button>
       </p>
-    </>
+    </div>
   );
 }
 
