@@ -69,7 +69,15 @@ export default function Checksum({ compact = false }: { compact?: boolean }) {
         {fileName ? <span className="mono">{fileName}</span> : "The installer"}.
         Check it before you run it: <span className="mono">certutil -hashfile
         &lt;file&gt; SHA256</span>, or paste it into the Verify Checksum dialog
-        in Apex.
+        in Apex. Or see{" "}
+        <a
+          href={`https://www.virustotal.com/gui/file/${sha256}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          this file's VirusTotal scan
+        </a>
+        .
       </p>
     </div>
   );
