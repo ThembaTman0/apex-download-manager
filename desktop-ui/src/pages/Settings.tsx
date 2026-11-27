@@ -843,11 +843,11 @@ function AboutSection() {
 
   // One grouped list, macOS Settings style: a tinted icon tile per row,
   // hairline dividers inset past the tile, an arrow saying "opens outside".
-  const links: { icon: React.ElementType; tint: string; label: string; hint: string; url: string }[] = [
-    { icon: Star, tint: "bg-amber-400/15 text-amber-300", label: "Star on GitHub", hint: "Helps other people find Apex", url: REPO },
-    { icon: Bug, tint: "bg-rose-400/15 text-rose-300", label: "Report a bug", hint: "Attach apex.log from Updates if a download misbehaves", url: `${REPO}/issues/new/choose` },
-    { icon: Globe, tint: "bg-sky-400/15 text-sky-300", label: "Website", hint: "apexdownloadmanager.com", url: "https://apexdownloadmanager.com/" },
-    { icon: Heart, tint: "bg-pink-400/15 text-pink-300", label: "Support on Ko-fi", hint: "Goes towards a code-signing certificate", url: "https://ko-fi.com/thembatman0" },
+  const links: { icon: React.ElementType; label: string; hint: string; url: string }[] = [
+    { icon: Star, label: "Star on GitHub", hint: "Helps other people find Apex", url: REPO },
+    { icon: Bug, label: "Report a bug", hint: "Attach apex.log from Updates if a download misbehaves", url: `${REPO}/issues/new/choose` },
+    { icon: Globe, label: "Website", hint: "apexdownloadmanager.com", url: "https://apexdownloadmanager.com/" },
+    { icon: Heart, label: "Support on Ko-fi", hint: "Goes towards a code-signing certificate", url: "https://ko-fi.com/thembatman0" },
   ];
 
   return (
@@ -870,17 +870,23 @@ function AboutSection() {
         </p>
       </div>
 
+      <p className="mb-6 text-xs text-ink-muted leading-relaxed text-center text-balance">
+        Apex splits each download into up to 32 connections and keeps adjusting
+        them as it goes, so files arrive faster. Pause and resume survive
+        restarts, the browser extension hands downloads over with their cookies,
+        and Grab Video saves videos from most sites. A native Rust engine keeps
+        it small and light on memory.
+      </p>
+
       <div className="rounded-xl bg-white/[0.04] border border-white/[0.08] overflow-hidden">
-        {links.map(({ icon: Icon, tint, label, hint, url }, i) => (
+        {links.map(({ icon: Icon, label, hint, url }, i) => (
           <button
             key={label}
             onClick={() => openExternal(url)}
             className="group relative w-full flex items-center gap-3 text-left pl-3 pr-3.5 py-2.5 hover:bg-white/[0.04] active:bg-white/[0.07] transition-colors duration-100 focus-visible:outline-none focus-visible:bg-white/[0.06]"
           >
-            {i > 0 && <span aria-hidden className="absolute top-0 left-[52px] right-0 h-px bg-white/[0.07]" />}
-            <span className={`w-7 h-7 rounded-[7px] grid place-items-center shrink-0 ${tint}`}>
-              <Icon className="w-[15px] h-[15px]" />
-            </span>
+            {i > 0 && <span aria-hidden className="absolute top-0 left-[40px] right-0 h-px bg-white/[0.07]" />}
+            <Icon className="w-4 h-4 text-ink-muted shrink-0" />
             <span className="flex-1 min-w-0">
               <span className="block text-[13px] text-ink leading-tight">{label}</span>
               <span className="block text-[11px] text-ink-muted leading-snug mt-0.5 truncate">{hint}</span>
