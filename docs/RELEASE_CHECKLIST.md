@@ -115,6 +115,7 @@ https://github.com/ThembaTman0/apex-download-manager-releases/releases/tag/v1.0.
 - [ ] Settings > Updates shows v1.0.14; Check for Updates says "You're up to date".
 - [ ] Taskbar pin icon still correct.
 - [ ] Website download button gives the 1.0.14 installer.
+- [ ] Upload the new `_x64-setup.exe` to https://www.virustotal.com/ and check the result (expect 0 detections). The website's "VirusTotal scan" link is built from the installer's SHA-256 and shows "Item not found" until someone has uploaded that exact file. If an engine flags it, report the false positive to that vendor before announcing the release.
 
 If the update fails: do not tag again. Capture the error and check the
 release workflow log before anything else.
