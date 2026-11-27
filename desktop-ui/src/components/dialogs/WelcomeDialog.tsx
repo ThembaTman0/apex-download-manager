@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Clapperboard, FolderTree, Globe, PartyPopper, Sparkles, X } from "lucide-react";
+import { Check, Clapperboard, FolderTree, Globe, PartyPopper, Sparkles, Star, X } from "lucide-react";
 import { backend } from "@/services/backend";
 import { useDownloadsStore } from "@/stores/downloadsStore";
 import {
@@ -286,6 +286,20 @@ export function WelcomeDialog() {
                       </button>
                     </section>
                   </div>
+                )}
+
+                {mode === "whatsnew" && (
+                  <p className="mt-4 text-xs text-ink-muted flex items-center gap-1.5">
+                    <Star className="w-3.5 h-3.5 text-accent shrink-0" />
+                    Finding Apex useful? A star on{" "}
+                    <button
+                      onClick={() => openExternal("https://github.com/ThembaTman0/apex-download-manager")}
+                      className="text-ink underline underline-offset-2 hover:text-accent transition-colors"
+                    >
+                      GitHub
+                    </button>{" "}
+                    helps other people find it.
+                  </p>
                 )}
 
                 <div className="flex items-center justify-between gap-4 mt-5">
