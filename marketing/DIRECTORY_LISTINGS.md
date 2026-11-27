@@ -312,6 +312,18 @@ None of this needs anyone's approval:
 - **Wikipedia, "Comparison of download managers"**: a real referral source,
   but adding your own software is a conflict of interest under their rules and
   gets reverted. It needs independent coverage first, added by someone else.
+- **Flathub** (checked 2026-11-27): bans apps containing AI-generated or
+  AI-assisted code, docs or other content, with a carve-out for "mature,
+  well-maintained projects"; submissions can be rejected without review.
+  No Flatpak for now; Linux ships as AppImage and .deb.
+- **r/opensource** (rule since 2026-10): bans projects that use AI, are made
+  by AI, or are for AI. Do not post there.
+- **AlternativeTo "slopware" lists**: not a rule, but users keep public lists
+  tagging AI-coded apps. Being open about AI assistance (README note) is the
+  defence; hiding it is what gets punished.
+- No AI rule found (2026-11-27) for MajorGeeks, AlternativeTo itself,
+  winget, Scoop or Chocolatey. OpenAlternative's form needs a login; re-check
+  it when submitting in January.
 - **Softonic, Uptodown and similar**: they wrap installers in their own
   downloaders, which contradicts the no-bundled-extras promise. Skip them.
 
